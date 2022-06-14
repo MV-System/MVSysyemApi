@@ -1,0 +1,33 @@
+﻿using System;
+
+namespace MVSystemApi.Model
+{
+    public class Accesorio
+    {
+        public Int64 ID_Accesorio { get; set; }
+        public string Imei_Equipo { get; set; }
+        public int ID_Modelo { get; set; }
+        public string Modelo { get; set; }
+        public string Marca { get; set; }
+        public string codigo { get; set; }
+        public string Descripcion_Accesorio { get; set; }
+        public int ID_Almacen { get; set; }
+        public Int64? Cantidad { get; set; }
+        public Int64? Can_Max { get; set; }
+        public Int64? Can_Min { get; set; }
+        public decimal Precio_Por_Mayor { get; set; }
+        public decimal Precio_Detalle { get; set; }
+        public decimal Costo_Equipo { get; set; }
+        public string Disponible { get; set; }
+        public string Disponible_Detalle { get; set; }
+        public Int64 Cod_Barra { get; set; }
+        public string Usuario { get; set; }
+    }
+    public class Accesorio_Respuesta
+    {
+        public string Descripcion_Accesorio { get; set; }
+        public decimal Precio_Por_Mayor { get; set; }
+        public decimal Precio_Detalle { get; set; }
+        public Int64? Cantidad { get; set; }
+    }
+}

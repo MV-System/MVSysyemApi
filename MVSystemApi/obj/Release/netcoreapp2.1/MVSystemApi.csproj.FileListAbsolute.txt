@@ -1,0 +1,14 @@
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\bin\Release\netcoreapp2.1\MVSystemApi.deps.json
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\bin\Release\netcoreapp2.1\MVSystemApi.runtimeconfig.json
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\bin\Release\netcoreapp2.1\MVSystemApi.runtimeconfig.dev.json
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\bin\Release\netcoreapp2.1\MVSystemApi.dll
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\bin\Release\netcoreapp2.1\MVSystemApi.pdb
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.csprojAssemblyReference.cache
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.csproj.CoreCompileInputs.cache
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.RazorAssemblyInfo.cache
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.RazorAssemblyInfo.cs
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.AssemblyInfoInputs.cache
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.AssemblyInfo.cs
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.RazorTargetAssemblyInfo.cache
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.dll
+C:\Users\LENOVO\Google Drive\MVSystemApi\MVSystemApi\MVSystemApi\obj\Release\netcoreapp2.1\MVSystemApi.pdb

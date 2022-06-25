@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 
@@ -15,18 +16,20 @@ namespace MVSystemApi.Controllers
     public class FacturacionController : Controller
     {
         private readonly Facturas_Negocio AD;
-        public FacturacionController(Facturas_Negocio _en)
+        private readonly IAccesoDatos _accesoDatos;
+        public FacturacionController(Facturas_Negocio _en, IAccesoDatos accesoDatos)
         {
+            _accesoDatos = accesoDatos;
             AD = _en;
         }
         [HttpPost]
-        [Route("post_Factura")]
-        public ActionResult<Facturas> post_Factura([FromBody]Facturas factura)
+        [Route("PostFactura")]
+        public ActionResult<Facturas> PostFactura(Facturas factura)
         {
             try
             {
 
-                var result = AD.Post_Factura(factura,0,null);
+                var result = _accesoDatos.PostFactura(factura);
                 if (result == null)
                 {
                     return NotFound();

@@ -7,48 +7,48 @@ namespace MVSystemApi.Model
 {
     public class Facturas
     {
-        public string Cliente { get; set; }
-        public int Numero_Factura { get; set; }
-        public int ID_Cliente { get; set; }
-        public int ID_Tipo_Factura { get; set; }
-        public int ID_Vendedor { get; set; }
-        public int ID_Tipo_Pagos { get; set; }
-        public int NFCTipoNumero { get; set; }
-        public int? ID_Sucursal { get; set; }
-        public string SubTotal { get; set; }
-        public string Descuento { get; set; }
-        public string Itbis { get; set; }
-        public DateTime Tiempo_Credito { get; set; }
-        public string Total { get; set; }
-        public int Cantidad_Articulos { get; set; }
+        //public string Cliente { get; set; }
+        public int NumeroFactura { get; set; }
+        public int IdCliente { get; set; }
+        public int IdTipoFactura { get; set; }
+        public int IdVendedor { get; set; }
+        public int IdTipoPago { get; set; }
+        public int NcfTipoNumero { get; set; }
+        public int? IdAlmacen{ get; set; }
+        public int SubTotal { get; set; }
+        public int Descuento { get; set; }
+        public int Itbis { get; set; }
+        public DateTime TiempoCredito { get; set; }
+        public int Total { get; set; }
+        public int CantidadArticulos { get; set; }
         public string Nota { get; set; }
-        public string Estado { get; set; }
+        //public string Estado { get; set; }
         public string Usuario { get; set; }
-        public DateTime Fecha_registro { get; set; }
-        public string abono { get; set; }
+        public DateTime FechaRegistro { get; set; }
+        public int Abono { get; set; }
         public string RNC { get; set; }
-        public string NFCFISCAL { get; set; }
-        public string NCF_NUMERO { get; set; }
-        public List<Detalle_Factura> DetalleFacturaList { get; set; }
+        //public string NcfFiscal { get; set; }
+        public int NcfNumero { get; set; }
+        public List<DetalleFactura> DetalleFacturaList { get; set; }
     }
-    public class Detalle_Factura
+    public class DetalleFactura
     {
-        public int Numero_Factura { get; set; }
-        public int? ID_Sucursal { get; set; }
-        public string ID_Equipo { get; set; }
-        public int ID_Tipo { get; set; }
-        public int ID_Vendedor { get; set; }
-        public int ID_Tipo_Factura { get; set; }
-        public int ID_Garantia { get; set; }
-        public int cantidad { get; set; }
-        public decimal precio { get; set; }
-        public string SubTotal { get; set; }
-        public string Descuento { get; set; }
-        public string Itbis { get; set; }
-        public string Total { get; set; }
-        public string Estado { get; set; }
+        public int NumeroFactura { get; set; }
+        //public int? IdAlmacen { get; set; }
+        public int IdEquipo { get; set; }
+        public int IdTipo { get; set; }
+        public int IdVendedor { get; set; }
+        public int IdTipoFactura { get; set; }
+        public int IdGarantia { get; set; }
+        public int Cantidad { get; set; }
+        public decimal Precio { get; set; }
+        public int SubTotal { get; set; }
+        public int Descuento { get; set; }
+        public int Itbis { get; set; }
+        public int Total { get; set; }
+        //public string Estado { get; set; }
         public string Usuario { get; set; }
-        public DateTime Fecha_registro { get; set; }
+        public DateTime FechaRegistro { get; set; }
         public string Descripcion { get; set; }
     }
 }

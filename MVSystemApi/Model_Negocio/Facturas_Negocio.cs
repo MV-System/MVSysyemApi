@@ -17,21 +17,36 @@ namespace MVSystemApi.Model_Negocio
         {
             Ac = Ad;
         }
-        internal object Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null)
-        {
-            //var result = (from dt in Ac.Post_Factura(Factura,Cotizacion_Numero,tran).AsEnumerable()
-            //              select new Facturas
-            //              {
-            //                  //Imei = Convert.ToString(dt["Imei"]),
-            //                  //Modelo = Convert.ToString(dt["Modelo"]),
-            //                  //Marca = Convert.ToString(dt["Marca"]),
-            //                  //Mensaje = Convert.ToString(dt["Mensaje"])
+        //internal object PostFactura(Facturas Factura)
+        //{
+        //    var result = (from dt in Ac.PostFactura(Factura).AsEnumerable()
+        //                  select new Facturas
+        //                  {
+        //                      Imei = Convert.ToString(dt["Imei"]),
+        //                      Modelo = Convert.ToString(dt["Modelo"]),
+        //                      Marca = Convert.ToString(dt["Marca"]),
+        //                      Mensaje = Convert.ToString(dt["Mensaje"])
 
-            //              }).ToList();
-            var result = "Factura Generada";
+        //                  }).ToList();
+        //    var result = "Factura Generada";
 
-            return result;
-        }
+        //    return result;
+        //}
+        //internal object Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null)
+        //{
+        //    var result = (from dt in Ac.Post_Factura(Factura, Cotizacion_Numero, tran).AsEnumerable()
+        //                  select new Facturas
+        //                  {
+        //                      //Imei = Convert.ToString(dt["Imei"]),
+        //                      //Modelo = Convert.ToString(dt["Modelo"]),
+        //                      //Marca = Convert.ToString(dt["Marca"]),
+        //                      //Mensaje = Convert.ToString(dt["Mensaje"])
+
+        //                  }).ToList();
+        //    var result = "Factura Generada";
+
+        //    return result;
+        //}
        
     }
 }

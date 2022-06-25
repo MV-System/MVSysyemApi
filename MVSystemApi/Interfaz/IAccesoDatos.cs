@@ -46,7 +46,8 @@ namespace MVSystemApi.Interfaz
         DataTable GetComprobantes_Combo(); // trae la lista de comprobantes
         //DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null); // trae la lista de comprobantes
 
-        
+        public DataTable PostFactura(Facturas Factura);
+
 
         #endregion
 

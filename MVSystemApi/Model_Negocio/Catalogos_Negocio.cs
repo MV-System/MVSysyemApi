@@ -66,6 +66,8 @@ namespace MVSystemApi.Model
                                  Accesorio_Descripcion = Convert.ToString(dt["ACCESORIO"]),
                                  Modelo = Convert.ToString(dt["MODELO"]),
                                  Codigo_Barra = Convert.ToInt64(dt["CODIGO BARRA"]),
+                                 Precio_Por_Mayor = Convert.ToDecimal(dt["Precio_Por_Mayor"]),
+                                 Precio_Detalle = Convert.ToDecimal(dt["Precio_Detalle"]),
 
                              }).ToList();
 

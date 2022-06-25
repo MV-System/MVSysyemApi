@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -40,6 +41,16 @@ namespace MVSystemApi
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            //Habilitar swagger
+            app.UseSwagger();
+
+            //indica la ruta para generar la configuración de swagger
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api MvSystem REST");
+                c.RoutePrefix = string.Empty;
+            });
+
             app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT").AllowAnyHeader());
             if (env.IsDevelopment())
             {
@@ -62,6 +73,14 @@ namespace MVSystemApi
 
         public void ConfigureServicio(IServiceCollection services)
         {
+            services.AddControllers().AddNewtonsoftJson(x =>
+             x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                { Title = "Api MvSystem REST", Version = "v1" });
+            });
             services.AddScoped<IAccesoDatos>(_ => new AccesoDatos(Configuration.GetConnectionString("MVSystem")));
 
             services.AddScoped<Catalogos_Negocio>();

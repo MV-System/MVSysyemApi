@@ -1,23 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\LENOVO\\Google Drive\\MVSystemApi\\MVSystemApi\\MVSystemApi\\MVSystemApi.csproj": {}
+    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\LENOVO\\Google Drive\\MVSystemApi\\MVSystemApi\\MVSystemApi\\MVSystemApi.csproj": {
+    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\LENOVO\\Google Drive\\MVSystemApi\\MVSystemApi\\MVSystemApi\\MVSystemApi.csproj",
+        "projectUniqueName": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
         "projectName": "MVSystemApi",
-        "projectPath": "C:\\Users\\LENOVO\\Google Drive\\MVSystemApi\\MVSystemApi\\MVSystemApi\\MVSystemApi.csproj",
-        "packagesPath": "C:\\Users\\LENOVO\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\LENOVO\\Google Drive\\MVSystemApi\\MVSystemApi\\MVSystemApi\\obj\\",
+        "projectPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
+        "packagesPath": "C:\\Users\\xavie\\.nuget\\packages\\",
+        "outputPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-        ],
         "configFilePaths": [
-          "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\xavie\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -29,6 +26,7 @@
         },
         "frameworks": {
           "netcoreapp3.1": {
+            "targetAlias": "netcoreapp3.1",
             "projectReferences": {}
           }
         },
@@ -40,11 +38,16 @@
       },
       "frameworks": {
         "netcoreapp3.1": {
+          "targetAlias": "netcoreapp3.1",
           "dependencies": {
+            "Microsoft.AspNetCore.Mvc.NewtonsoftJson": {
+              "target": "Package",
+              "version": "[3.1.26, )"
+            },
             "Microsoft.AspNetCore.Razor.Design": {
               "suppressParent": "All",
               "target": "Package",
-              "version": "[2.1.2, )"
+              "version": "[2.2.0, )"
             },
             "Microsoft.CodeAnalysis.Analyzers": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
@@ -70,6 +73,10 @@
               "target": "Package",
               "version": "[3.1.5, )"
             },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.3.1, )"
+            },
             "System.Data.SqlClient": {
               "target": "Package",
               "version": "[4.6.1, )"
@@ -93,7 +100,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.417\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
         }
       }
     }

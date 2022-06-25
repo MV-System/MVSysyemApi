@@ -1,5 +1,6 @@
 ﻿using MVSystemApi.Interfaz;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -560,62 +561,117 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
+        public int PostDetalleFactura(List<DetalleFactura>  detalleFactura,int numeroFactura)
+        {
+            List<DetalleFactura> detalleLista = new List<DetalleFactura>(); 
+            int res = 0;
+            using (cn )
+            {
+                SqlCommand cmd = new SqlCommand("Detalle_Factura_Insert", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
 
+                //SqlDataReader dr = cmd.ExecuteReader();
+
+                foreach (var item in detalleFactura)
+                {
+                cmd.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+                cmd.Parameters.AddWithValue("@ID_Equipo", item.IdEquipo);
+                cmd.Parameters.AddWithValue("@Descripcion", item.Descripcion);
+                cmd.Parameters.AddWithValue("@ID_Tipo", item.IdTipo);
+                cmd.Parameters.AddWithValue("@ID_Garantia", item.IdGarantia);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Factura", item.IdTipoFactura);
+                cmd.Parameters.AddWithValue("@ID_Vendedor", item.IdVendedor);
+                cmd.Parameters.AddWithValue("@SubTotal", item.SubTotal);
+                cmd.Parameters.AddWithValue("@cantidad", item.Cantidad);
+                cmd.Parameters.AddWithValue("@precio", item.Precio);
+                cmd.Parameters.AddWithValue("@Descuento", item.Descuento);
+                cmd.Parameters.AddWithValue("@Itbis", item.Itbis);
+                cmd.Parameters.AddWithValue("@Total", item.Total);
+                //cmd.Parameters.AddWithValue("@Estado", "A");
+                //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
+                cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
+                cmd.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
+
+                cn.Open();
+                res = Convert.ToInt32(cmd.ExecuteScalar());
+                cn.Close();
+
+                }
+
+
+
+            }
+            return res;
+        }
         //public DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null)
-        //{
-        //    try
-        //    {
-        //        cn.Open();
-        //        if (tran != null)
-        //            tran = cn.BeginTransaction();
-        //        DataTable dt = new DataTable();
-        //        SqlCommand cmd = cn.CreateCommand();
-        //        SqlDataAdapter da = new SqlDataAdapter(cmd);
-        //        cmd.CommandType = CommandType.StoredProcedure;
-        //        cmd.CommandText = "facturas_Insert";
 
-        //        cmd.Parameters.AddWithValue("@ID_Cliente", Factura.ID_Cliente);
-        //        cmd.Parameters.AddWithValue("@ID_Vendedor", Factura.ID_Vendedor);
-        //        cmd.Parameters.AddWithValue("@ID_Tipo_Factura", Factura.ID_Tipo_Factura);
-        //        cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", Factura.ID_Tipo_Pagos);
-        //        cmd.Parameters.AddWithValue("@ID_Almacen", Factura.ID_Sucursal);
-        //        cmd.Parameters.AddWithValue("@Cantidad_Articulos", Factura.Cantidad_Articulos);
-        //        cmd.Parameters.AddWithValue("@Itbis", Factura.Itbis);
-        //        cmd.Parameters.AddWithValue("@NFCTipoNumero", Factura.NFCTipoNumero);
-        //        cmd.Parameters.AddWithValue("@RNC", Factura.RNC);
-        //        cmd.Parameters.AddWithValue("@SubTotal", Factura.SubTotal);
-        //        cmd.Parameters.AddWithValue("@Abono", Factura.abono);
-        //        cmd.Parameters.AddWithValue("@Tiempo_Credito", Factura.Tiempo_Credito);
-        //        cmd.Parameters.AddWithValue("@Total", Factura.Total);
-        //        cmd.Parameters.AddWithValue("@Descuento", Factura.Descuento);
-        //        cmd.Parameters.AddWithValue("@Nota", Factura.Nota);
-        //        cmd.Parameters.AddWithValue("@Estado", "A");
-        //        cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
-        //        cmd.Parameters.AddWithValue("@fecha_registro", Factura.Fecha_registro);
-        //        cmd.Parameters.AddWithValue("@Cotizacion_Numero", Cotizacion_Numero);
+        public DataTable PostFactura(Facturas Factura)
+        {
+            try
+            {
+                using (cn)
+                {
+                    SqlCommand cmd = new SqlCommand("facturas_Insert", cn);
+                    cmd.CommandType = CommandType.StoredProcedure;
 
-        //        // cmd.Parameters.AddWithValue("@Fecha_registro", Factura.Fecha_registro);
-        //        SqlParameter numero_Factura = new SqlParameter("@Numero_factura", 0);
-        //        numero_Factura.Direction = ParameterDirection.Output;
-        //        cmd.Parameters.Add(numero_Factura);
-        //        cmd.ExecuteNonQuery();
-        //        Factura.Numero_Factura = Int32.Parse(cmd.Parameters["@Numero_factura"].Value.ToString());
-        //        da.Fill(dt);
-        //        cn.Close();
-        //        return dt;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        string lineNumber = ex.StackTrace.Substring(ex.StackTrace.Length - 7, 7);
-        //        DateTime fecha = DateTime.Now;
-        //        using (System.IO.StreamWriter file =
-        //        new System.IO.StreamWriter(@"./Errores Leyenda.txt", true))
-        //        {
-        //            //   file.WriteLine("class: FacturacionDLL" + " li" + lineNumber + " ERROR: " + ex.Message.ToString() + " Fecha: " + fecha + " Sucursal: " + FrmFacturacion.sucu + " Usuario " + StaticClass.UsuarioNombre);
-        //        }
+                    //if (tran != null)
+                    //tran = cn.BeginTransaction();
+                    DataTable dt = new DataTable();
+                    //SqlCommand cmd = cn.CreateCommand();
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    //cmd.CommandType = CommandType.StoredProcedure;
+                    //cmd.CommandText = "facturas_Insert";
 
-        //    }       
-        //}
+                    cmd.Parameters.AddWithValue("@ID_Cliente", Factura.IdCliente);
+                    cmd.Parameters.AddWithValue("@ID_Vendedor", Factura.IdVendedor);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Factura", Factura.IdTipoFactura);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", Factura.IdTipoPago);
+                    cmd.Parameters.AddWithValue("@ID_Almacen", Factura.IdAlmacen);
+
+                    cmd.Parameters.AddWithValue("@Cantidad_Articulos", Factura.CantidadArticulos);
+                    cmd.Parameters.AddWithValue("@Itbis", Factura.Itbis);
+                    cmd.Parameters.AddWithValue("@NFCTipoNumero", Factura.NcfTipoNumero);
+                    cmd.Parameters.AddWithValue("@RNC", Factura.RNC);
+                    cmd.Parameters.AddWithValue("@SubTotal", Factura.SubTotal);
+                    cmd.Parameters.AddWithValue("@Abono", Factura.Abono);
+                    cmd.Parameters.AddWithValue("@Tiempo_Credito", Factura.TiempoCredito);
+                    cmd.Parameters.AddWithValue("@Total", Factura.Total);
+                    cmd.Parameters.AddWithValue("@Descuento", Factura.Descuento);
+                    cmd.Parameters.AddWithValue("@Nota", Factura.Nota);
+                    //cmd.Parameters.AddWithValue("@Estado", "A");
+                    cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
+                    //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
+                    cmd.Parameters.AddWithValue("@fecha_registro", Factura.FechaRegistro);
+                    //cmd.Parameters.AddWithValue("@Cotizacion_Numero", Cotizacion_Numero);
+
+                    // cmd.Parameters.AddWithValue("@Fecha_registro", Factura.Fecha_registro);
+                    cn.Open();
+
+                    SqlParameter numero_Factura = new SqlParameter("@Numero_factura", 0);
+                    numero_Factura.Direction = ParameterDirection.Output;
+                    cmd.Parameters.Add(numero_Factura);
+                    cmd.ExecuteNonQuery();
+                    Factura.NumeroFactura = Convert.ToInt32(cmd.Parameters["@Numero_factura"].Value.ToString());
+                    da.Fill(dt);
+                    cn.Close();
+                    PostDetalleFactura(Factura.DetalleFacturaList, Factura.NumeroFactura);
+
+                    return dt;
+                }
+            }
+            catch (Exception ex)
+            {
+                //string lineNumber = ex.StackTrace.Substring(ex.StackTrace.Length - 7, 7);
+                //DateTime fecha = DateTime.Now;
+                //using (System.IO.StreamWriter file =
+                //new System.IO.StreamWriter(@"./Errores Leyenda.txt", true))
+                //{
+                    //   file.WriteLine("class: FacturacionDLL" + " li" + lineNumber + " ERROR: " + ex.Message.ToString() + " Fecha: " + fecha + " Sucursal: " + FrmFacturacion.sucu + " Usuario " + StaticClass.UsuarioNombre);
+                //}
+                throw ex;
+
+            }
+        }
 
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {

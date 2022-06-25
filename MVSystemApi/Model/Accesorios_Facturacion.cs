@@ -12,5 +12,7 @@ namespace MVSystemApi.Model
         public string Accesorio_Descripcion { get; set; }
         public string Modelo { get; set; }
         public Int64 Codigo_Barra { get; set; }
+        public decimal Precio_Por_Mayor { get; set; }
+        public decimal Precio_Detalle { get; set; }
     }
 }

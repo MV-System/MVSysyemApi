@@ -563,7 +563,7 @@ namespace MVSystemApi.Model
         }
         public DataTable PostDetalleFactura(List<DetalleFactura>  detalleFactura,int numeroFactura)
         {
-            List<DetalleFactura> detalleLista = new List<DetalleFactura>();
+            
        
                 DataTable dt = new DataTable();
             using (cn )

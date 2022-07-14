@@ -18,13 +18,13 @@ namespace MVSystemApi.Model
         public int SubTotal { get; set; }
         public int Descuento { get; set; }
         public int Itbis { get; set; }
-        public DateTime TiempoCredito { get; set; }
+        public string TiempoCredito { get; set; }
         public int Total { get; set; }
         public int CantidadArticulos { get; set; }
         public string Nota { get; set; }
         //public string Estado { get; set; }
         public string Usuario { get; set; }
-        public DateTime FechaRegistro { get; set; }
+        public string FechaRegistro { get; set; }
         public int Abono { get; set; }
         public string RNC { get; set; }
         //public string NcfFiscal { get; set; }
@@ -48,7 +48,7 @@ namespace MVSystemApi.Model
         public int Total { get; set; }
         //public string Estado { get; set; }
         public string Usuario { get; set; }
-        public DateTime FechaRegistro { get; set; }
+        public string FechaRegistro { get; set; }
         public string Descripcion { get; set; }
     }
 }

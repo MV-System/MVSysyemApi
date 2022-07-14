@@ -561,16 +561,17 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-        public int PostDetalleFactura(List<DetalleFactura>  detalleFactura,int numeroFactura)
+        public DataTable PostDetalleFactura(List<DetalleFactura>  detalleFactura,int numeroFactura)
         {
-            List<DetalleFactura> detalleLista = new List<DetalleFactura>(); 
-            int res = 0;
+            List<DetalleFactura> detalleLista = new List<DetalleFactura>();
+       
+                DataTable dt = new DataTable();
             using (cn )
             {
                 SqlCommand cmd = new SqlCommand("Detalle_Factura_Insert", cn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                //SqlDataReader dr = cmd.ExecuteReader();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
 
                 foreach (var item in detalleFactura)
                 {
@@ -593,15 +594,17 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
 
                 cn.Open();
-                res = Convert.ToInt32(cmd.ExecuteScalar());
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
                 cn.Close();
-
                 }
 
 
 
+
             }
-            return res;
+            return dt;
+
         }
         //public DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null)
 

@@ -1,21 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {}
+    "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {}
   },
   "projects": {
-    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {
+    "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
+        "projectUniqueName": "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
         "projectName": "MVSystemApi",
-        "projectPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
-        "packagesPath": "C:\\Users\\xavie\\.nuget\\packages\\",
-        "outputPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\obj\\",
+        "projectPath": "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
+        "packagesPath": "C:\\Users\\f.ventura\\.nuget\\packages\\",
+        "outputPath": "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Microsoft\\Xamarin\\NuGet\\",
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
         "configFilePaths": [
-          "C:\\Users\\xavie\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\f.ventura\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
         ],
         "originalTargetFrameworks": [
           "netcoreapp3.1"
@@ -26,7 +31,6 @@
         },
         "frameworks": {
           "netcoreapp3.1": {
-            "targetAlias": "netcoreapp3.1",
             "projectReferences": {}
           }
         },
@@ -38,7 +42,6 @@
       },
       "frameworks": {
         "netcoreapp3.1": {
-          "targetAlias": "netcoreapp3.1",
           "dependencies": {
             "Microsoft.AspNetCore.Mvc.NewtonsoftJson": {
               "target": "Package",
@@ -100,7 +103,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.302\\RuntimeIdentifierGraph.json"
         }
       }
     }

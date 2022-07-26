@@ -14,5 +14,6 @@ namespace MVSystemApi.Model
         public Int64 Codigo_Barra { get; set; }
         public decimal Precio_Por_Mayor { get; set; }
         public decimal Precio_Detalle { get; set; }
+        public int Cantidad { get; set; }
     }
 }

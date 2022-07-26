@@ -346,10 +346,8 @@ C:\Reivax\Proyectos\MV System\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\
 C:\Reivax\Proyectos\MV System\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Reivax\Proyectos\MV System\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.MvcApplicationPartsAssemblyInfo.cs
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\appsettings.Development.json
-C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\Properties\launchSettings.json
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\web.config
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\appsettings.json
-C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\Properties\ServiceDependencies\ComplaintsManagement - Web Deploy\profile.arm.json
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\MVSystemApi.exe
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\MVSystemApi.deps.json
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\MVSystemApi.runtimeconfig.json
@@ -457,7 +455,6 @@ C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\runtimes\unix\lib\netcoreapp2.0\System.Runtime.Caching.dll
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\runtimes\win\lib\netcoreapp2.0\System.Runtime.Caching.dll
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\bin\Release\netcoreapp3.1\runtimes\win\lib\netstandard2.0\System.Security.Cryptography.ProtectedData.dll
-C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.csprojAssemblyReference.cache
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.AssemblyInfoInputs.cache
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.AssemblyInfo.cs
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.csproj.CoreCompileInputs.cache
@@ -468,3 +465,5 @@ C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.dll
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.pdb
 C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.genruntimeconfig.cache
+C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.csproj.AssemblyReference.cache
+C:\GitHub_Sisalril\New folder (2)\MVSysyemApi\MVSystemApi\obj\Release\netcoreapp3.1\MVSystemApi.GeneratedMSBuildEditorConfig.editorconfig

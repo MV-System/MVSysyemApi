@@ -57,7 +57,6 @@ namespace MVSystemApi.Model
             }
 
         }
-
         public DataTable ConsultaAccesorio(int Codigo)
         {
             try
@@ -84,7 +83,6 @@ namespace MVSystemApi.Model
             }
 
         }
-
         public DataTable Suplidor_Insert(Suplidor Suplidor)
         {
             cn.Open();
@@ -194,7 +192,6 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-
         public DataTable GetTipo_Telefono_Lista()
         {
 
@@ -380,7 +377,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Get_Garantia_Equipo_Combo()
         {
             cn.Open();
@@ -395,7 +391,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Get_Desbloqueado_Equipo_Combo()
         {
             cn.Open();
@@ -409,7 +404,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Get_Condicion_Equipo_Combo()
         {
             cn.Open();
@@ -424,7 +418,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Get_Almacen_Combo()
         {
             cn.Open();
@@ -439,7 +432,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Get_Modelos_Combo(int? ID_Marca)
         {
             cn.Open();
@@ -456,7 +448,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Get_Suplidor_Combo()
         {
             cn.Open();
@@ -471,7 +462,6 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
-
         public DataTable Equipo_Insert(Equipos Equipo)
         {
             try
@@ -546,7 +536,6 @@ namespace MVSystemApi.Model
             }
 
         }
-
         public DataTable GetComprobantes_Combo()
         {
             cn.Open();
@@ -603,8 +592,6 @@ namespace MVSystemApi.Model
             }
             return res;
         }
-        //public DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null)
-
         public DataTable PostFactura(Facturas Factura)
         {
             try
@@ -672,7 +659,6 @@ namespace MVSystemApi.Model
 
             }
         }
-
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {
             cn.Open();
@@ -696,6 +682,27 @@ namespace MVSystemApi.Model
             }
 
 
+        }
+        public DataTable Marca_Insert(Marcas Marca)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Marcas_Insert";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Descripcion",Marca.Descripcion);
+                cmd.Parameters.AddWithValue("@Usuario",Marca.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }

@@ -59,6 +59,11 @@ namespace MVSystemApi.Interfaz
 
         #endregion
 
+        #region // ------------- Marcas --------------------------
+        DataTable Marca_Insert(Marcas Marca);
+
+        #endregion
+
 
     }
 }

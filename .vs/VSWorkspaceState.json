@@ -1,7 +1,9 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\MVSystemApi",
+    "\\MVSystemApi\\Model_Negocio"
   ],
-  "SelectedNode": "\\MVSystemApi.sln",
+  "SelectedNode": "\\MVSystemApi\\Model_Negocio\\Catalogos_Negocio.cs",
   "PreviewInSolutionExplorer": false
 }

@@ -68,6 +68,8 @@ namespace MVSystemApi.Model
                                  Codigo_Barra = Convert.ToInt64(dt["CODIGO BARRA"]),
                                  Precio_Por_Mayor = Convert.ToDecimal(dt["Precio_Por_Mayor"]),
                                  Precio_Detalle = Convert.ToDecimal(dt["Precio_Detalle"]),
+                                 Cantidad = Convert.ToInt32(dt["Cantidad"]),
+
 
                              }).ToList();
 

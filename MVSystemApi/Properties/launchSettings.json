@@ -23,7 +23,6 @@
     },
     "MVSystemApi": {
       "commandName": "IISExpress",
-      "launchBrowser": true,
       "launchUrl": "Catalogos/Tipos_Pagos_Combo",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

@@ -25,7 +25,7 @@ namespace MVSystemApi.Model_Negocio
                                select new Marcas
                                {
                                    ID_Marca = Convert.ToInt32(dt["ID_Marca"]),
-                                   Descripcion = Convert.ToString(dt["Descripcion"]),
+                                   descripcion = Convert.ToString(dt["Descripcion"]),
                                    Mensaje = Convert.ToString(dt["Mensaje"]),
                                }).ToList().FirstOrDefault();
 

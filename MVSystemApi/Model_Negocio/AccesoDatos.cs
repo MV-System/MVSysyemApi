@@ -694,7 +694,7 @@ namespace MVSystemApi.Model
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = "Marcas_Insert";
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Descripcion",Marca.Descripcion);
+                cmd.Parameters.AddWithValue("@Descripcion",Marca.descripcion);
                 cmd.Parameters.AddWithValue("@Usuario",Marca.Usuario);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();

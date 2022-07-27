@@ -22,7 +22,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Marca_Insert")]
-        public ActionResult<Marcas> Cliente_Insert([FromBody] Marcas Marca)
+        public ActionResult<Marcas> Marca_Insert([FromBody] Marcas Marca)
         {
 
             try

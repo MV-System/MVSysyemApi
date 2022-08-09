@@ -595,7 +595,7 @@ namespace MVSystemApi.Model
             return dt;
 
         }
-        public DataTable PostFactura(Facturas Factura)
+        public Facturas PostFactura(Facturas Factura)
         {
             try
             {
@@ -646,7 +646,7 @@ namespace MVSystemApi.Model
                     cn.Close();
                     PostDetalleFactura(Factura.DetalleFacturaList, Factura.NumeroFactura);
 
-                    return dt;
+                    return Factura;
                 }
             }
             catch (Exception ex)
@@ -659,7 +659,6 @@ namespace MVSystemApi.Model
                     //   file.WriteLine("class: FacturacionDLL" + " li" + lineNumber + " ERROR: " + ex.Message.ToString() + " Fecha: " + fecha + " Sucursal: " + FrmFacturacion.sucu + " Usuario " + StaticClass.UsuarioNombre);
                 //}
                 throw ex;
-
             }
         }
         public DataTable Equipo_Consulta_Ultimo_Registro()

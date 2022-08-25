@@ -56,7 +56,7 @@ namespace MVSystemApi.Interfaz
         DataTable GetComprobantes_Combo(); // trae la lista de comprobantes
         //DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null); // trae la lista de comprobantes
 
-        public DataTable PostFactura(Facturas Factura);
+        public Facturas PostFactura(Facturas Factura);
 
 
         #endregion
@@ -66,6 +66,11 @@ namespace MVSystemApi.Interfaz
         DataTable ConsultaAccesorio(int Codigo);
         DataTable Equipo_Consulta_Ultimo_Registro();
 
+
+        #endregion
+
+        #region // ------------- Marcas --------------------------
+        DataTable Marca_Insert(Marcas Marca);
 
         #endregion
 

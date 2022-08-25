@@ -14,7 +14,7 @@ namespace MVSystemApi.Model
         public int IdVendedor { get; set; }
         public int IdTipoPago { get; set; }
         public int NcfTipoNumero { get; set; }
-        public int? IdAlmacen{ get; set; }
+        public int? IdAlmacen { get; set; }
         public int SubTotal { get; set; }
         public int Descuento { get; set; }
         public int Itbis { get; set; }
@@ -31,6 +31,7 @@ namespace MVSystemApi.Model
         public int NcfNumero { get; set; }
         public List<DetalleFactura> DetalleFacturaList { get; set; }
     }
+
     public class DetalleFactura
     {
         public int NumeroFactura { get; set; }

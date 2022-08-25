@@ -150,7 +150,7 @@ namespace MVSystemApi.Model
                              select new Marcas
                              {
                                  ID_Marca = Convert.ToInt32(dt["ID_Marca"]),
-                                 Descripcion = Convert.ToString(dt["Descripcion"]),
+                                 descripcion = Convert.ToString(dt["Descripcion"]),
 
                              }).ToList();
 

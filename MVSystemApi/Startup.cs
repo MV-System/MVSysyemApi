@@ -90,7 +90,10 @@ namespace MVSystemApi
             services.AddScoped<Accesorios_Negocio>();
             services.AddScoped<Equipos_Negocio>();
             services.AddScoped<Facturas_Negocio>();
+            services.AddScoped<Marcas_Negocio>();
             
+
+
         }
     }
 }

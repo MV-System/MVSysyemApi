@@ -36,7 +36,7 @@ namespace MVSystemApi.Model
     {
         public int NumeroFactura { get; set; }
         //public int? IdAlmacen { get; set; }
-        public int IdEquipo { get; set; }
+        public string IdEquipo { get; set; }
         public int IdTipo { get; set; }
         public int IdVendedor { get; set; }
         public int IdTipoFactura { get; set; }

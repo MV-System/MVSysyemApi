@@ -1,6 +1,9 @@
 ﻿using System;
+using DTO;
 using Microsoft.AspNetCore.Mvc;
+using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
+using Newtonsoft.Json;
 
 namespace MVSystemApi.Controllers
 {
@@ -9,8 +12,10 @@ namespace MVSystemApi.Controllers
     public class EquiposController : ControllerBase
     {
         private readonly Equipos_Negocio AD;
-        public EquiposController(Equipos_Negocio _en)
+        private readonly IAccesoDatos _accesoDatos;
+        public EquiposController(Equipos_Negocio _en, IAccesoDatos accesoDatos)
         {
+            _accesoDatos = accesoDatos;
             AD = _en;
         }
 
@@ -41,6 +46,29 @@ namespace MVSystemApi.Controllers
             try
             {
                 var result = AD.Equipo_Busca_Disponible(Equipo, Id_Almacen);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }    
+        [HttpGet]
+        [Route("GetEquiposDisponible")]
+        public ActionResult<EquipoDisponibleDTO> GetEquiposDisponible([FromQuery] EquipoDisponibleQueryDTO? equipoDisponibleQueryDTO)
+        {
+            try
+            {
+
+                var result = AD.GetEquiposDisponible(equipoDisponibleQueryDTO);
+
+
+
+
                 if (result == null)
                 {
                     return NotFound();

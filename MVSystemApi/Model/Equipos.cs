@@ -30,7 +30,9 @@ namespace MVSystemApi.Model
         
         public int? Numero_Registro { get; set; }
         public string Usuario { get; set; }
+
     }
+   
     public class Equipo_return
     {
         public string Imei { get; internal set; }
@@ -41,6 +43,7 @@ namespace MVSystemApi.Model
         public string Disponible_Detalle { get; set; }
         public string Mensaje { get;  set; }
     }
+
     public class Numero_registro
     {
         public int Numero_Registro { get; internal set; }

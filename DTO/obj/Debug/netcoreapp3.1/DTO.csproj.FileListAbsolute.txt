@@ -1,0 +1,10 @@
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\bin\Debug\netcoreapp3.1\DTO.deps.json
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\bin\Debug\netcoreapp3.1\DTO.dll
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\bin\Debug\netcoreapp3.1\DTO.pdb
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.csproj.AssemblyReference.cache
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.GeneratedMSBuildEditorConfig.editorconfig
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.AssemblyInfoInputs.cache
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.AssemblyInfo.cs
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.csproj.CoreCompileInputs.cache
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.dll
+C:\Reivax\Proyectos\MV System\MVSysyemApi\DTO\obj\Debug\netcoreapp3.1\DTO.pdb

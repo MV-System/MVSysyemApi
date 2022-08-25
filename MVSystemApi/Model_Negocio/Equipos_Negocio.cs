@@ -1,5 +1,7 @@
-﻿using MVSystemApi.Interfaz;
+﻿using DTO;
+using MVSystemApi.Interfaz;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
@@ -45,6 +47,45 @@ namespace MVSystemApi.Model
 
 
             return result;
+        }
+
+        internal  object GetEquiposDisponible(EquipoDisponibleQueryDTO equipoDisponibleQueryDTO)
+        {
+
+
+            var result = (from dt in Ac.GetEquiposDisponible(equipoDisponibleQueryDTO).AsEnumerable()
+                          select new EquipoDisponibleDTO
+                          {
+                              Imei = Convert.ToString(dt["Imei"]),
+                              Descripcion = Convert.ToString(dt["Descripcion"]),
+                              Tecnologia = Convert.ToString(dt["Tecnologia"]),
+                              Garantia = Convert.ToString(dt["Garantia"]),
+                              EstadoBloqueo = Convert.ToString(dt["Estado Bloqueo"]),
+                              PrecioPorMayor = Convert.ToDecimal(dt["Por Mayor"]),
+                              PrecioDetalle = Convert.ToDecimal(dt["Al Detalle"]),
+                              ComisionDetalle = Convert.ToDecimal(dt["Comision Detalle"]),
+                              ComisionPorMayor = Convert.ToDecimal(dt["Comision Por Mayor"]),
+                              DescripcionAlmacen = Convert.ToString(dt["Descripcion_Almacen"]),
+                              Suplidor = Convert.ToString(dt["Suplidor"]),
+                              CostoEquipo = Convert.ToDecimal(dt["Costo"]),
+                              IsDesbloqueado = Convert.ToString(dt["Desbloqueado"]),
+                              IsDisponible = Convert.ToString(dt["Disponible"]),
+                              NotaAdicional = Convert.ToString(dt["Nota"]),
+                              IdAlmacen = Convert.ToInt32(dt["ID_Almacen"]),
+                              IdModelo = Convert.ToInt32(dt["ID_Modelo"]),
+                              IdSuplidor = Convert.ToInt32(dt["ID_Suplidor"]),
+                              Fecharegistro = Convert.ToString(dt["Fecha_registro"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+
+                          }).ToList();
+
+
+
+
+            return result;
+            //return Pagination<EquipoDisponibleDTO>.GetPagination(result, paginate.PageNumber, paginate.PageSize);
         }
         internal object Numero_Registro()
         {

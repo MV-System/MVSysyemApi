@@ -1,26 +1,21 @@
 {
   "format": 1,
   "restore": {
-    "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {}
+    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {}
   },
   "projects": {
-    "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {
+    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\DTO\\DTO.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
-        "projectName": "MVSystemApi",
-        "projectPath": "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
-        "packagesPath": "C:\\Users\\f.ventura\\.nuget\\packages\\",
-        "outputPath": "C:\\GitHub_Sisalril\\New folder (2)\\MVSysyemApi\\MVSystemApi\\obj\\",
+        "projectUniqueName": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\DTO\\DTO.csproj",
+        "projectName": "DTO",
+        "projectPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\DTO\\DTO.csproj",
+        "packagesPath": "C:\\Users\\xavie\\.nuget\\packages\\",
+        "outputPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\DTO\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Microsoft\\Xamarin\\NuGet\\",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-        ],
         "configFilePaths": [
-          "C:\\Users\\f.ventura\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "C:\\Users\\xavie\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "netcoreapp3.1"
@@ -31,6 +26,7 @@
         },
         "frameworks": {
           "netcoreapp3.1": {
+            "targetAlias": "netcoreapp3.1",
             "projectReferences": {}
           }
         },
@@ -42,7 +38,74 @@
       },
       "frameworks": {
         "netcoreapp3.1": {
+          "targetAlias": "netcoreapp3.1",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.303\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
+        "projectName": "MVSystemApi",
+        "projectPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\MVSystemApi.csproj",
+        "packagesPath": "C:\\Users\\xavie\\.nuget\\packages\\",
+        "outputPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\MVSystemApi\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\xavie\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "targetAlias": "netcoreapp3.1",
+            "projectReferences": {
+              "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\DTO\\DTO.csproj": {
+                "projectPath": "C:\\Reivax\\Proyectos\\MV System\\MVSysyemApi\\DTO\\DTO.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "targetAlias": "netcoreapp3.1",
           "dependencies": {
+            "AutoMapper": {
+              "target": "Package",
+              "version": "[11.0.1, )"
+            },
+            "AutoMapper.Extensions.Microsoft.DependencyInjection": {
+              "target": "Package",
+              "version": "[11.0.0, )"
+            },
             "Microsoft.AspNetCore.Mvc.NewtonsoftJson": {
               "target": "Package",
               "version": "[3.1.26, )"
@@ -103,7 +166,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.302\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.303\\RuntimeIdentifierGraph.json"
         }
       }
     }

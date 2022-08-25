@@ -1,4 +1,5 @@
-﻿using MVSystemApi.Interfaz;
+﻿using DTO;
+using MVSystemApi.Interfaz;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -517,6 +518,40 @@ namespace MVSystemApi.Model
                 throw ex;
             }
             
+        }
+
+        public DataTable GetEquiposDisponible(EquipoDisponibleQueryDTO equipoDisponibleQueryDTO)
+        {
+            try
+            {
+                cn.Open();
+
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+
+                cmd.CommandText = "Proc_Equipo_Disponible_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Almacen", equipoDisponibleQueryDTO.Almacen);
+                cmd.Parameters.AddWithValue("@Suplidor", equipoDisponibleQueryDTO.Suplidor);
+                cmd.Parameters.AddWithValue("@Imei", equipoDisponibleQueryDTO.Imei);
+                cmd.Parameters.AddWithValue("@Modelo", equipoDisponibleQueryDTO.Modelo);
+                cmd.Parameters.AddWithValue("@PageIndex", equipoDisponibleQueryDTO.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", equipoDisponibleQueryDTO.PageSize);
+
+                //cmd.Parameters.AddWithValue("@criterio", criterio);
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
         }
         public DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {

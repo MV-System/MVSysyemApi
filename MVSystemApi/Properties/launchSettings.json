@@ -16,7 +16,7 @@
     "IIS Express": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "Catalogos/Marcas_Lista",
+      "launchUrl": "index.html",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -24,7 +24,8 @@
     "MVSystemApi": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "Catalogos/Tipos_Pagos_Combo",
+      //"launchUrl": "Catalogos/Tipos_Pagos_Combo",
+      "launchUrl": "index.html",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

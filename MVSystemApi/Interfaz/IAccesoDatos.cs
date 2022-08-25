@@ -1,4 +1,6 @@
-﻿using MVSystemApi.Model;
+﻿using DTO;
+using MVSystemApi.Model;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -8,6 +10,7 @@ namespace MVSystemApi.Interfaz
     {
         #region  // ------------- equipos ---------------------//
         DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen);
+
         DataTable Equipo_Insert(Equipos Equipo);
         DataTable Get_Tegnologia_Combo();
         DataTable Get_Garantia_Equipo_Combo();
@@ -17,6 +20,13 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Marcas_Combo();
         DataTable Get_Modelos_Combo(int? ID_Marca);
         DataTable Get_Suplidor_Combo();
+        public DataTable GetEquiposDisponible(EquipoDisponibleQueryDTO equipoDisponibleQueryDTO);
+
+
+
+
+
+
 
         #endregion // ------------- fin de combos para el registro de equipo ----------------------
 

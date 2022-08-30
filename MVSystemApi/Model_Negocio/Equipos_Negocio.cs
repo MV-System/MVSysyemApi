@@ -49,11 +49,11 @@ namespace MVSystemApi.Model
             return result;
         }
 
-        internal  object GetEquiposDisponible(EquipoDisponibleQueryDTO equipoDisponibleQueryDTO)
+        internal  object GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
 
 
-            var result = (from dt in Ac.GetEquiposDisponible(equipoDisponibleQueryDTO).AsEnumerable()
+            var result = (from dt in Ac.GetEquiposDisponible(equipoDisponibleFilterDTO).AsEnumerable()
                           select new EquipoDisponibleDTO
                           {
                               Imei = Convert.ToString(dt["Imei"]),
@@ -86,6 +86,41 @@ namespace MVSystemApi.Model
 
             return result;
             //return Pagination<EquipoDisponibleDTO>.GetPagination(result, paginate.PageNumber, paginate.PageSize);
+        }
+        internal object GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
+        {
+
+
+            var result = (from dt in Ac.GetEquiposVendidos(equipoVendidoFilter).AsEnumerable()
+                          select new EquipoVendido
+                          {
+                              Imei = Convert.ToString(dt["Imei"]),
+                              Descripcion = Convert.ToString(dt["Descripcion"]),
+                              PrecioVendido = Convert.ToDecimal(dt["Precio Vendido"]),
+                              TipoFactura = Convert.ToString(dt["Tipo Factura"]),
+                              PrecioPorMayor = Convert.ToDecimal(dt["Por Mayor"]),
+                              PrecioDetalle = Convert.ToDecimal(dt["Al Detalle"]),
+                              ComisionDetalle = Convert.ToDecimal(dt["Comision Detalle"]),
+                              ComisionPorMayor = Convert.ToDecimal(dt["Comision Por Mayor"]),
+                              DescripcionAlmacen = Convert.ToString(dt["Descripcion_Almacen"]),
+                              Suplidor = Convert.ToString(dt["Suplidor"]),
+                              Vendedor = Convert.ToString(dt["Vendedor"]),
+                              Cliente = Convert.ToString(dt["Cliente"]),
+                              CostoEquipo = Convert.ToDecimal(dt["Costo"]),
+                              IsDesbloqueado = Convert.ToString(dt["Desb"]),
+                              NotaAdicional = Convert.ToString(dt["Nota"]),
+                              //IdAlmacen = Convert.ToInt32(dt["ID_Almacen"]),
+                              //IdModelo = Convert.ToInt32(dt["ID_Modelo"]),
+                              //IdSuplidor = Convert.ToInt32(dt["ID_Suplidor"]),
+                              FechaRegistro = Convert.ToString(dt["Fecha_registro"]),
+                              FechaFacturado = Convert.ToString(dt["Fecha facturado"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+
+                          }).ToList();
+
+            return result;
         }
         internal object Numero_Registro()
         {

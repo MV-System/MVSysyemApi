@@ -510,7 +510,7 @@ namespace MVSystemApi.Model
 
         }
 
-        public DataTable GetEquiposDisponible(EquipoDisponibleQueryDTO equipoDisponibleQueryDTO)
+        public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
             try
             {
@@ -523,12 +523,49 @@ namespace MVSystemApi.Model
 
                 cmd.CommandText = "Proc_Equipo_Disponible_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Almacen", equipoDisponibleQueryDTO.Almacen);
-                cmd.Parameters.AddWithValue("@Suplidor", equipoDisponibleQueryDTO.Suplidor);
-                cmd.Parameters.AddWithValue("@Imei", equipoDisponibleQueryDTO.Imei);
-                cmd.Parameters.AddWithValue("@Modelo", equipoDisponibleQueryDTO.Modelo);
-                cmd.Parameters.AddWithValue("@PageIndex", equipoDisponibleQueryDTO.PageIndex);
-                cmd.Parameters.AddWithValue("@PageSize", equipoDisponibleQueryDTO.PageSize);
+                cmd.Parameters.AddWithValue("@Almacen", equipoDisponibleFilterDTO.Almacen);
+                cmd.Parameters.AddWithValue("@Suplidor", equipoDisponibleFilterDTO.Suplidor);
+                cmd.Parameters.AddWithValue("@Imei", equipoDisponibleFilterDTO.Imei);
+                cmd.Parameters.AddWithValue("@Modelo", equipoDisponibleFilterDTO.Modelo);
+                cmd.Parameters.AddWithValue("@PageIndex", equipoDisponibleFilterDTO.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", equipoDisponibleFilterDTO.PageSize);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoDisponibleFilterDTO.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", equipoDisponibleFilterDTO.FechaFinal);
+
+                //cmd.Parameters.AddWithValue("@criterio", criterio);
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+        public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
+        {
+            try
+            {
+                cn.Open();
+
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+
+                cmd.CommandText = "Proc_Equipo_Consulta_Vendidos";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
+                cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
+                cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
+                cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);
+                cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoVendidoFilter.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", equipoVendidoFilter.FechaFinal);
 
                 //cmd.Parameters.AddWithValue("@criterio", criterio);
                 cmd.ExecuteNonQuery();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -48,5 +49,43 @@ namespace MVSystemApi.Model
     {
         public int Numero_Registro { get; internal set; }
 
+    }
+    public class EquipoVendido : PagingDTO
+    { 
+
+        public string Imei { get; set; }
+        public string Descripcion { get; set; }
+        public decimal PrecioPorMayor { get; set; }
+        public decimal PrecioVendido { get; set; }
+        public decimal PrecioDetalle { get; set; }
+        public decimal CostoEquipo { get; set; }
+        public decimal ComisionDetalle { get; set; }
+        public decimal ComisionPorMayor { get; set; }
+        public string TipoFactura { get; set; }
+        public string IsDesbloqueado { get; set; }
+        public string NotaAdicional { get; set; }
+        public string DescripcionAlmacen { get; set; }
+        public string Suplidor { get; set; }
+        public string Cliente { get; set; }
+        public string Vendedor { get; set; }
+        //public int IdSuplidor { get; set; }
+        //public int IdAlmacen { get; set; }
+        public string FechaRegistro { get; set; }
+        public string FechaFacturado { get; set; }
+
+        
+    }
+    public class EquipoVendidoFilter
+    {
+        [Required]
+        public int PageIndex { get; set; }
+        [Required]
+        public int PageSize { get; set; }
+        public int? Almacen { get; set; }
+        public string? Suplidor { get; set; }
+        public string? FechaRegistro { get; set; }
+        public string? Modelo { get; set; }
+        public string? FechaInicio { get; set; }
+        public string? FechaFinal { get; set; }
     }
 }

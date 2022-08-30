@@ -20,8 +20,8 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Marcas_Combo();
         DataTable Get_Modelos_Combo(int? ID_Marca);
         DataTable Get_Suplidor_Combo();
-        public DataTable GetEquiposDisponible(EquipoDisponibleQueryDTO equipoDisponibleQueryDTO);
-
+        public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO);
+        public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter);
 
 
 

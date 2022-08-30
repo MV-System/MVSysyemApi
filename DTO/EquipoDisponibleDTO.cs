@@ -1,6 +1,7 @@
 ﻿using MVSystemApi.Model;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace DTO
@@ -31,14 +32,19 @@ namespace DTO
         public string Fecharegistro { get; set; }
 
     }
-    public class EquipoDisponibleQueryDTO 
+    public class EquipoDisponibleFilterDTO 
     {
+        [Required]
         public int PageIndex { get; set; }
+        [Required]
+
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
         public string? Suplidor { get; set; }
         public string? Imei { get; set; }
         public string? Modelo { get; set; }
+        public string? FechaInicio { get; set; }
+        public string? FechaFinal { get; set; }
 
     }
 

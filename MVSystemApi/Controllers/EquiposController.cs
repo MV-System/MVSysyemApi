@@ -18,6 +18,7 @@ namespace MVSystemApi.Controllers
             _accesoDatos = accesoDatos;
             AD = _en;
         }
+
         [HttpPost]
         [Route("Equipo_Insert")]
         public ActionResult<Equipos> Equipo_Insert([FromBody]Equipos Equipo)
@@ -37,13 +38,13 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
         [HttpGet]
         [Route("Equipo_Busca_Disponible")]
         public ActionResult<Equipos> Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {
             try
             {
-
                 var result = AD.Equipo_Busca_Disponible(Equipo, Id_Almacen);
                 if (result == null)
                 {
@@ -94,6 +95,7 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
         [HttpGet]
         [Route("Numero_Registro")]
         public ActionResult<Equipos> Numero_Registro()

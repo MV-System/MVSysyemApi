@@ -15,11 +15,11 @@ namespace MVSystemApi.Model
         public int IdTipoPago { get; set; }
         public int NcfTipoNumero { get; set; }
         public int? IdAlmacen { get; set; }
-        public int SubTotal { get; set; }
-        public int Descuento { get; set; }
-        public int Itbis { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Descuento { get; set; }
+        public decimal Itbis { get; set; }
         public string TiempoCredito { get; set; }
-        public int Total { get; set; }
+        public decimal Total { get; set; }
         public int CantidadArticulos { get; set; }
         public string Nota { get; set; }
         //public string Estado { get; set; }
@@ -36,17 +36,17 @@ namespace MVSystemApi.Model
     {
         public int NumeroFactura { get; set; }
         //public int? IdAlmacen { get; set; }
-        public int IdEquipo { get; set; }
+        public string IdEquipo { get; set; }
         public int IdTipo { get; set; }
         public int IdVendedor { get; set; }
         public int IdTipoFactura { get; set; }
         public int IdGarantia { get; set; }
         public int Cantidad { get; set; }
         public decimal Precio { get; set; }
-        public int SubTotal { get; set; }
-        public int Descuento { get; set; }
-        public int Itbis { get; set; }
-        public int Total { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Descuento { get; set; }
+        public decimal Itbis { get; set; }
+        public decimal Total { get; set; }
         //public string Estado { get; set; }
         public string Usuario { get; set; }
         public string FechaRegistro { get; set; }

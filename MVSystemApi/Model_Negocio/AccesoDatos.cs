@@ -633,6 +633,7 @@ namespace MVSystemApi.Model
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cn.Open();
 
                 foreach (var item in detalleFactura)
                 {
@@ -656,11 +657,11 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
                     cmd.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
 
-                    cn.Open();
                     //cmd.ExecuteNonQuery();
                     da.Fill(dt);
-                    cn.Close();
                 }
+
+                cn.Close();
 
             }
             return dt;

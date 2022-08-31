@@ -56,18 +56,33 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        }    
+        }
         [HttpGet]
-        [Route("GetEquiposDisponible")]
-        public ActionResult<EquipoDisponibleDTO> GetEquiposDisponible([FromQuery] EquipoDisponibleQueryDTO? equipoDisponibleQueryDTO)
+        [Route("GetEquiposVendidos")]
+        public ActionResult<EquipoVendido> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
         {
             try
             {
+                var result = AD.GetEquiposVendidos(equipoVendidoFilter);
 
-                var result = AD.GetEquiposDisponible(equipoDisponibleQueryDTO);
-
-
-
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpGet]
+        [Route("GetEquiposDisponible")]
+        public ActionResult<EquipoDisponibleDTO> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
+        {
+            try
+            {
+                var result = AD.GetEquiposDisponible(equipoDisponibleFilterDTO);
 
                 if (result == null)
                 {

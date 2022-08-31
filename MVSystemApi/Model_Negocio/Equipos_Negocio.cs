@@ -48,7 +48,7 @@ namespace MVSystemApi.Model
 
             return result;
         }
-
+  
         internal  object GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
 
@@ -78,7 +78,7 @@ namespace MVSystemApi.Model
                               LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
                               Line = Convert.ToInt32(dt["Linea"]),
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
-
+                              TotalInventario = Convert.ToDecimal(dt["TotalInventario"])
                           }).ToList();
 
 

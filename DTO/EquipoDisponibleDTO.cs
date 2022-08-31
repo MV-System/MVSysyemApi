@@ -30,6 +30,7 @@ namespace DTO
         public int IdSuplidor { get; set; }
         public int IdAlmacen { get; set; }
         public string Fecharegistro { get; set; }
+        public decimal TotalInventario { get; set; }
 
     }
     public class EquipoDisponibleFilterDTO 

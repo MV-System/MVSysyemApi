@@ -2,12 +2,13 @@ using Microsoft.OpenApi.Models;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using Rotativa.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddControllers().AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
-builder.Services.AddMvc();
+builder.Services.AddControllersWithViews().AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore).AddRazorRuntimeCompilation();
+builder.Services.AddMvc(opt => opt.EnableActionInvokers = false);
 builder.Services.AddCors();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -48,13 +49,20 @@ if (app.Environment.IsDevelopment())
 else
     app.UseExceptionHandler("/error");
 
+app.UseStaticFiles();
+app.UseRouting();
 app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT").AllowAnyHeader());
 app.UseHttpsRedirection();
 
-app.UseRouting();
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapControllers();
-});
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Films}/{action=Index}/{id?}");
+
+//app.UseEndpoints(endpoints =>
+//{
+//    endpoints.MapControllers();
+//});
+
+RotativaConfiguration.Setup((Microsoft.AspNetCore.Hosting.IHostingEnvironment)app.Environment);
 
 app.Run();

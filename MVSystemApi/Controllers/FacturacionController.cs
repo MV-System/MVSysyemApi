@@ -28,7 +28,6 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-
                 var result = _accesoDatos.PostFactura(factura);
                 if (result == null)
                 {

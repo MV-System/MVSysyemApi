@@ -117,6 +117,9 @@ namespace MVSystemApi.Model
                               LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
                               Line = Convert.ToInt32(dt["Linea"]),
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+                              TotalInventario = Convert.ToDecimal(dt["TotalInventario"]),
+                              TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"]),
+                              TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
 
                           }).ToList();
 

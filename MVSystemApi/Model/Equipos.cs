@@ -72,8 +72,11 @@ namespace MVSystemApi.Model
         //public int IdAlmacen { get; set; }
         public string FechaRegistro { get; set; }
         public string FechaFacturado { get; set; }
+        public decimal TotalInventario { get; set; }
+        public decimal TotalFacturado{ get; set; }
+        public decimal TotalGanancia { get; set; }
 
-        
+
     }
     public class EquipoVendidoFilter
     {

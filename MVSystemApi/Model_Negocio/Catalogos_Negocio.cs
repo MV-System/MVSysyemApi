@@ -58,7 +58,7 @@ namespace MVSystemApi.Model
 
             try
             {
-                var Lista = (from dt in Ac.Accesorios_Consulta_Facturacion(Id_accesorio,id_sucu).AsEnumerable()
+                var Lista = (from dt in Ac.Accesorios_Consulta_Facturacion(Id_accesorio, id_sucu).AsEnumerable()
                              select new Accesorios_Facturacion
                              {
                                  codigo = Convert.ToString(dt["CODIGO"]),
@@ -80,7 +80,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        internal object GetVendedor_Lista()
+        internal List<Vendedores_Combo> GetVendedor_Lista()
         {
 
             try
@@ -238,7 +238,7 @@ namespace MVSystemApi.Model
             return result;
         }
 
-       
+
 
         internal object Get_Suplidor_Combo()
         {

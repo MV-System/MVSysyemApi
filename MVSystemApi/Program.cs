@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 #region CONFIGURE SERVICES
-builder.Services.AddScoped<IAccesoDatos>(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
+builder.Services.AddTransient<IAccesoDatos>(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
 builder.Services.AddScoped<Catalogos_Negocio>();
 builder.Services.AddScoped<Clientes_Negocio>();
 builder.Services.AddScoped<Vendedores_Negocio>();

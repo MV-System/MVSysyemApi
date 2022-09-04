@@ -5,6 +5,13 @@ using System.Threading.Tasks;
 
 namespace MVSystemApi.Model
 {
+    public class FacturaCliente
+    {
+        public Facturas Factura { get; set; }
+        public Clientes_consulta Cliente { get; set; }
+        public string VendedorNombre { get; set; }
+    }
+
     public class Facturas
     {
         //public string Cliente { get; set; }

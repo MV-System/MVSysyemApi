@@ -171,6 +171,30 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+
+        public DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente)
+        {
+
+            ////SqlConnection cn = new SqlConnection(con);
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Cliente_Consulta_Por_Id_Cliente";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdCliente", id_Cliente);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public DataTable Cliente_Consulta(string criterio)
         {
 

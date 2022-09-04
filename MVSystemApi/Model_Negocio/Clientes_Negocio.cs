@@ -59,5 +59,27 @@ namespace MVSystemApi.Model
             }
         }
 
+        internal Clientes_consulta Cliente_Consulta_Por_Id_Cliente(int id_Cliente)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Cliente_Consulta_Por_Id_Cliente(id_Cliente).AsEnumerable()
+                               select new Clientes_consulta
+                               {
+                                   Id_Cliente = Convert.ToInt32(dt["Id_Cliente"]),
+                                   Nombres = Convert.ToString(dt["Nombres"]),
+                                   Apellidos = Convert.ToString(dt["Apellidos"]),
+                                   Numero_Telefono = Convert.ToInt64(dt["Numero de telefono"]),
+                                   Mensaje = Convert.ToString(dt["Mensaje"]),
+                               }).ToList();
+
+                return solicit.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }

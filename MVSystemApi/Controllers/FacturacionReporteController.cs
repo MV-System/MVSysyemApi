@@ -5,14 +5,18 @@ using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
 {
-    [ApiControllerAttribute]
+    [ApiController]
     public class FacturacionReporteController : Controller
     {
+        private readonly Clientes_Negocio _clientes_Negocio;
+        private readonly Catalogos_Negocio _catalogos_Negocio;
         private readonly IAccesoDatos _accesoDatos;
 
-        public FacturacionReporteController(IAccesoDatos accesoDatos)
+        public FacturacionReporteController(IAccesoDatos accesoDatos, Clientes_Negocio clientes_Negocio, Catalogos_Negocio catalogos_Negocio)
         {
             _accesoDatos = accesoDatos;
+            _catalogos_Negocio = catalogos_Negocio;
+            _clientes_Negocio = clientes_Negocio;
         }
 
         [HttpPost]
@@ -23,7 +27,17 @@ namespace MVSystemApi.Controllers
             if (result == null)
                 return NotFound();
 
-            return new ViewAsPdf(result);
+            var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
+            var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
+
+            var data = new FacturaCliente
+            {
+                Cliente = cliente,
+                Factura = factura,
+                VendedorNombre = vendedor,
+            };
+
+            return new ViewAsPdf(data);
         }
     }
 }

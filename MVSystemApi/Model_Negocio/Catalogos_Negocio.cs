@@ -271,5 +271,16 @@ namespace MVSystemApi.Model
                           }).ToList();
             return result;
         }
+
+        internal object AsumeITBIS()
+        {
+            var result = (from dt in Ac.AsumeITBIS().AsEnumerable()
+                          select new 
+                          {
+                              AsumeITBIS = Convert.ToString(dt["AsumeITBIS"]),
+                              ITBIS_Valor = Convert.ToString(dt["ITBIS_Valor"])
+                          }).FirstOrDefault();
+            return result;
+        }
     }
 }

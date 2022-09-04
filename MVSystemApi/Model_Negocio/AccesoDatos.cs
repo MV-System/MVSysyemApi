@@ -646,6 +646,22 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
+
+        public DataTable AsumeITBIS()
+        {
+            cn.Open();
+            DataTable dt = new DataTable();
+            SqlCommand cmd = cn.CreateCommand();
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+
+            cmd.CommandText = "Asume_ITBIS_Consulta";
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            da.Fill(dt);
+            cn.Close();
+            return dt;
+        }
+
         public DataTable PostDetalleFactura(List<DetalleFactura> detalleFactura, int numeroFactura)
         {
 

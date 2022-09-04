@@ -338,7 +338,27 @@ namespace MVSystemApi.Controllers
             }
 
         }
-        
+
+        [HttpGet]
+        [Route("AsumeITBIS")]
+        public IActionResult AsumeITBIS()
+        {
+            try
+            {
+                var result = AD.AsumeITBIS();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
+        }
+
     }
    
 

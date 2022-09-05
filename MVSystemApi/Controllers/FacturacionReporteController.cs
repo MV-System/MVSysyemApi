@@ -23,6 +23,9 @@ namespace MVSystemApi.Controllers
         [Route("FacturacionReporte/PostFactura")]
         public IActionResult Index(Facturas factura)
         {
+            if (factura.Cliente != null)
+                factura.IdCliente = _clientes_Negocio.Cliente_Insert(factura.Cliente).ID_Cliente;
+
             var result = _accesoDatos.PostFactura(factura);
             if (result == null)
                 return NotFound();

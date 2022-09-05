@@ -13,7 +13,7 @@ namespace MVSystemApi.Model
         {
             AA = dd;
         }
-        internal object Cliente_Insert(Clientes Cliente)
+        public Clientes Cliente_Insert(Clientes Cliente)
         {
             try
             {
@@ -28,6 +28,7 @@ namespace MVSystemApi.Model
                                    Email_Detalle = Convert.ToString(dt["Email_Detalle"]),
                                    Direccion_Detalle = Convert.ToString(dt["Direccion_Detalle"]),
                                    Mensaje = Convert.ToString(dt["Mensaje"]),
+                                   ID_Cliente = Convert.ToInt32(dt["ID_Cliente"]),
                                }).ToList().FirstOrDefault();
 
                 return solicit;

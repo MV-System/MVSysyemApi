@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MVSystemApi.Model
+﻿namespace MVSystemApi.Model
 {
     public class Clientes
     {
@@ -18,6 +16,7 @@ namespace MVSystemApi.Model
         public string criterio { get; set; }
         public string Usuario { get; set; }
         public string Mensaje { get; internal set; }
+        public int ID_Cliente { get; set; }
     }
     public class Clientes_consulta
     {

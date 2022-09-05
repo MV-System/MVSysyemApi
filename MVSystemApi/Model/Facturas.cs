@@ -37,6 +37,8 @@ namespace MVSystemApi.Model
         //public string NcfFiscal { get; set; }
         public int NcfNumero { get; set; }
         public List<DetalleFactura> DetalleFacturaList { get; set; }
+
+        public Clientes Cliente { get; set; }
     }
 
     public class DetalleFactura

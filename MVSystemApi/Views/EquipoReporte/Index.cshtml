@@ -1,0 +1,153 @@
+﻿@*@model  IEnumerable< DTO.EquipoDisponibleDTO>*@
+@model   DTO.EquipoReporte
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="~/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Detalle Equipos Disponibles</title>
+
+    <style>
+        .p0 p {
+            padding: 0%;
+            margin: 0%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container text-center">
+        <img src="/assets/logo.png" />
+    </div>
+
+    <div class="container text-center p0">
+        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
+        <p>
+            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
+            Tel.:809-908-6952 Cel.: 809-883-8858
+        </p>
+        <p> <b> RNC: 132307382 </b> </p>
+    </div>
+
+@*    <div class="container border border-dark">
+        <div class="row">
+            <div class="col-6 border border-dark">
+                <b>Cliente</b><br>
+                <b>Código: </b>@Model.Cliente.Id_Cliente<br>
+                <b>Nombre: </b>@Model.Cliente.Nombres @Model.Cliente.Apellidos<br>
+                <b>Teléfono: </b>@Model.Cliente.Numero_Telefono<br>
+                <b>Vendedor: </b>@Model.VendedorNombre<br>
+            </div>
+
+            <div class="col-6 border border-dark">
+                <b>Factura No.: P @Model.Factura.NumeroFactura</b><br>
+                <b>Tipo de factura: </b> Al por mayor<br>
+                <b>Tipo de pago: </b> Efectivo<br>
+                <b>Fecha: </b> @Model.Factura.FechaRegistro<br>
+                <b>NCF: </b>
+            </div>
+        </div>
+    </div>*@
+
+    <div class="container mt-5">
+        <div class="row text-center">
+            <b>
+                EQUIPOS DISPONIBLES
+            </b>
+        </div>
+
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        
+                        <th scope="col">IMEI</th>
+                        <th scope="col">DESCRIPCIÓN</th>
+                        <th scope="col">P POR MAYOR</th>
+                        <th scope="col">P DETALLE</th>
+                        <th scope="col">DESBLOQ</th>
+                        <th scope="col">ALMACEN</th>
+                        <th scope="col">SUPLIDOR</th>
+                        <th scope="col">COMISION DETALLE</th>
+                        <th scope="col">COMISION POR MAYOR</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @{
+                        foreach (var item in Model.EquipoDisponibles)
+                        {
+                            <tr>
+                                <td>@item.Imei</td>
+                                <td>@item.Descripcion</td>
+                                <td>@item.PrecioPorMayor.ToString("N2")</td>
+                                <td>@item.PrecioDetalle.ToString("N2")</td>
+                                <td>@item.IsDesbloqueado</td>
+                                <td>@item.DescripcionAlmacen</td>
+                                <td>@item.Suplidor</td>
+                                <td>@item.ComisionDetalle</td>
+                                <td>@item.ComisionPorMayor</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container text-right">
+ 
+        <div><b>TOTAL EQUIPOS: @Model.EquipoDisponibles.Select(x=>x.TotalRecord).FirstOrDefault().ToString("D")</b></div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <p>Nota: Jose Luis Jimenez</p>
+        </div>
+
+      @*  <div class="row">
+            <p>
+                <b>NOTA: </b>
+                TODOS LOS EQUIPOS TIENEN 30 DIAS DE GARANTIA , NO TIENEN GARANTIA EN PANTALLA Y
+                TOUCH NO SE REEMBOLSA DINERO, SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
+                CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTIA Y CONDICIONES IGUAL AL
+                MOMENTO DE LA COMPRA. LOS TELEFONOS TENDRAN SELLOS DE GARANTIAS, SI SON VIOLADOS LA
+                GARANTIA TERMINARA.
+            </p>
+        </div>*@
+    </div>
+
+    <br />
+    <br />
+
+    <div class="container">
+        <div class="row">
+            <div class="col-6 text-center">
+                <hr>
+                <b>Entregado por</b>
+            </div>
+
+            <div class="col-6 text-center">
+                <hr>
+                <b>Recibido por</b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class=" text-right">
+            Fecha de Impresión:
+            @Model.FechaImpresion
+        </div>
+    </div>
+</body>
+
+</html>

@@ -50,6 +50,11 @@ namespace MVSystemApi.Model
         public int Numero_Registro { get; internal set; }
 
     }
+    public class EquipoVendidoReporte
+    {
+        public List<EquipoVendido> EquipoVendidos { get; set; }
+        public string FechaImpresion { get; set; }
+    }
     public class EquipoVendido : PagingDTO
     { 
 

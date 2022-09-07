@@ -1,4 +1,4 @@
-﻿@model IEnumerable< DTO.EquipoDisponibleDTO>
+﻿@model   MVSystemApi.Model.EquipoVendidoReporte
 
 @{
     Layout = null;
@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link href="~/assets/bootstrap.min.css" rel="stylesheet" />
 
-    <title>Equipos Disponibles</title>
+    <title>Detalle Equipos Vendidos</title>
 
     <style>
         .p0 p {
@@ -36,30 +36,11 @@
         <p> <b> RNC: 132307382 </b> </p>
     </div>
 
-@*    <div class="container border border-dark">
-        <div class="row">
-            <div class="col-6 border border-dark">
-                <b>Cliente</b><br>
-                <b>Código: </b>@Model.Cliente.Id_Cliente<br>
-                <b>Nombre: </b>@Model.Cliente.Nombres @Model.Cliente.Apellidos<br>
-                <b>Teléfono: </b>@Model.Cliente.Numero_Telefono<br>
-                <b>Vendedor: </b>@Model.VendedorNombre<br>
-            </div>
 
-            <div class="col-6 border border-dark">
-                <b>Factura No.: P @Model.Factura.NumeroFactura</b><br>
-                <b>Tipo de factura: </b> Al por mayor<br>
-                <b>Tipo de pago: </b> Efectivo<br>
-                <b>Fecha: </b> @Model.Factura.FechaRegistro<br>
-                <b>NCF: </b>
-            </div>
-        </div>
-    </div>*@
-
-    <div class="container">
+    <div class="container mt-5">
         <div class="row text-center">
             <b>
-                DETALLES DE FACTURA
+                EQUIPOS VENDIDOS
             </b>
         </div>
 
@@ -67,37 +48,47 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th scope="col">COD.</th>
+                        
+                        <th scope="col">IMEI</th>
                         <th scope="col">DESCRIPCIÓN</th>
-                        <th scope="col">CANT.</th>
-                        <th scope="col">PRECIO</th>
-                        <th scope="col">SUBTOTAL</th>
-                        <th scope="col">DESC</th>
-                        <th scope="col">TOTAL</th>
+                        @*<th scope="col">P POR MAYOR</th>*@
+                        @*<th scope="col">P DETALLE</th>*@
+                        <th scope="col">COSTO</th>
+                        <th scope="col">PRECIO VENDIDO</th>
+                        <th scope="col">TIPO FACTURA</th>
+                        <th scope="col">DESBLOQ.</th>
+                        <th scope="col">NOTA</th>
+                        <th scope="col">ALMACEN</th>
+                        <th scope="col">SUPLIDOR</th>
+                        <th scope="col">VENDEDOR</th>
+                        <th scope="col">CLIENTE</th>
+                        <th scope="col">COMISION DETALLE</th>
+                        <th scope="col">COMISION POR MAYOR</th>
                     </tr>
                 </thead>
 
                 <tbody>
                     @{
-                        foreach (var item in Model)
+                        foreach (var item in Model.EquipoVendidos)
                         {
                             <tr>
-                                <td>---</td>
                                 <td>@item.Imei</td>
                                 <td>@item.Descripcion</td>
-                                <td>@item.PrecioPorMayor.ToString("N2")</td>
-                                <td>@item.PrecioDetalle.ToString("N2")</td>
+                                <td>@item.CostoEquipo</td>
+                                <td>@item.PrecioVendido</td>
+                                <td>@item.TipoFactura</td>
                                 <td>@item.IsDesbloqueado</td>
+                                <td>@item.NotaAdicional</td>
                                 <td>@item.DescripcionAlmacen</td>
                                 <td>@item.Suplidor</td>
+                                <td>@item.Vendedor</td>
+                                <td>@item.Cliente</td>
+                         
                                 <td>@item.ComisionDetalle</td>
                                 <td>@item.ComisionPorMayor</td>
                             </tr>
-                                //  <td>@item.Cantidad.ToString("N0")</td>
-                                //<td>@item.Precio.ToString("N2")</td>
-                                //<td>@item.SubTotal.ToString("N2")</td>
-                                //<td>@item.Descuento.ToString("N2")</td>
-                                //<td>@item.Total.ToString("N2")</td>
+                                //<td>@item.PrecioPorMayor.ToString("N2")</td>
+                                //<td>@item.PrecioDetalle.ToString("N2")</td>
                         }
                     }
                 </tbody>
@@ -106,12 +97,8 @@
     </div>
 
     <div class="container text-right">
-    @*    <div><b>Subtotal: @Model.Factura.DetalleFacturaList.Sum(x=>x.SubTotal).ToString("N2")</b></div>
-        <div><b>Descuento: @Model.Factura.DetalleFacturaList.Sum(x=>x.Descuento).ToString("N2")</b></div>
-        <div><b>ITBIS: @Model.Factura.DetalleFacturaList.Sum(x=>x.Itbis).ToString("N2")</b></div>
-        <div><b>Abonado: @Model.Factura.Abono.ToString("N2")</b></div>*@
-        @*<div><b>Total: @Model.Factura.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>*@
-        <div><b>TOTAL EQUIPOS: @Model.Select(x =>x.TotalRecord.ToString("N2"))</b></div>
+ 
+        <div><b>TOTAL EQUIPOS: @Model.EquipoVendidos.Select(x=>x.TotalRecord).FirstOrDefault().ToString("D")</b></div>
     </div>
 
     <div class="container">
@@ -133,7 +120,7 @@
 
     <br />
     <br />
-@*
+
     <div class="container">
         <div class="row">
             <div class="col-6 text-center">
@@ -146,11 +133,12 @@
                 <b>Recibido por</b>
             </div>
         </div>
-    </div>*@
+    </div>
 
     <div class="container">
         <div class=" text-right">
-            Fecha de Impresión: @Model.Select(x =>x.Fecharegistro)
+            Fecha de Impresión:
+            @Model.FechaImpresion
         </div>
     </div>
 </body>

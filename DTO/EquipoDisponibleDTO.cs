@@ -6,6 +6,11 @@ using System.Text;
 
 namespace DTO
 {
+    public class EquipoReporte
+    {
+        public List<EquipoDisponibleDTO> EquipoDisponibles { get; set; }
+        public string FechaImpresion { get; set; }
+    }
     public class EquipoDisponibleDTO : PagingDTO
     {
       
@@ -31,7 +36,7 @@ namespace DTO
         public int IdAlmacen { get; set; }
         public string Fecharegistro { get; set; }
         public decimal TotalInventario { get; set; }
-
+        //public List<EquipoDisponibleDTO> EquipoDisponibleDTOs { get; set; }
     }
     public class EquipoDisponibleFilterDTO 
     {

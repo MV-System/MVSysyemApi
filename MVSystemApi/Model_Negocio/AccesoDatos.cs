@@ -584,6 +584,7 @@ namespace MVSystemApi.Model
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
+                cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
                 cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);

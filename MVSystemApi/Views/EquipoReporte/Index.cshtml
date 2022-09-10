@@ -3,6 +3,12 @@
 
 @{
     Layout = null;
+    string modelosEquals = "";
+
+    var count = Model.EquipoDisponibles.GroupBy(p => p.Descripcion)
+                                       .Where(g => g.Count() > 1)
+                                       .ToDictionary(x=>x.Key, y=>y.Count());
+    
 }
 
 <!DOCTYPE html>
@@ -82,9 +88,16 @@
                 </thead>
 
                 <tbody>
+                 
                     @{
                         foreach (var item in Model.EquipoDisponibles)
                         {
+          
+                                
+                            //var ok = Model.EquipoDisponibles.GroupBy(p => p.Descripcion)
+                                //       .Where(g => g.Count() > 1)
+                                //       .ToDictionary(x=>x.Key, y=>y.Count());
+
                             <tr>
                                 <td>@item.Imei</td>
                                 <td>@item.Descripcion</td>
@@ -96,6 +109,19 @@
                                 <td>@item.ComisionDetalle</td>
                                 <td>@item.ComisionPorMayor</td>
                             </tr>
+             
+                            <tr>
+                                <td><b>TOTAL MODELOS </b></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                           
                         }
                     }
                 </tbody>

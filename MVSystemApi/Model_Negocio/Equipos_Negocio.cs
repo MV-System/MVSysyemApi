@@ -143,14 +143,22 @@ namespace MVSystemApi.Model
                           select new Equipo_return_Imei
                           {
                               Imei = Convert.ToString(dt["Imei"]),
+                              CondicionId = Convert.ToInt32(dt["Condicion Id"]),
+                              CondicionDescripcion = Convert.ToString(dt["Condicion Descripcion"]),
                               CostoEquipo = Convert.ToDecimal(dt["Costo"]),
                               PrecioDetalle = Convert.ToDecimal(dt["Al Detalle"]),
                               PrecioPorMayor = Convert.ToDecimal(dt["Por Mayor"]),
                               ComisionDetalle = Convert.ToDecimal(dt["Comision Detalle"]),
                               ComisionMayor = Convert.ToDecimal(dt["Comision Por Mayor"]),
-                              EstadoBloqueo = Convert.ToString(dt["Descripcion_Estado_Bloqueo"])
+                              EstadoBloqueoId = Convert.ToInt32(dt["Estado Bloqueo Id"]),
+                              EstadoBloqueoDescripcion = Convert.ToString(dt["Descripcion_Estado_Bloqueo"])
                           }).ToList().FirstOrDefault();
             return result;
+        }
+
+        internal void ModificarEquipo(Equipo_return_Imei equipo)
+        {
+            Ac.ModificarEquipo(equipo);
         }
     }
 }

@@ -116,6 +116,21 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        [HttpPut]
+        [Route("ModificarEquipo")]
+        public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
+        {
+            try
+            {
+                AD.ModificarEquipo(equipo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet]
         [Route("Numero_Registro")]
         public ActionResult<Equipos> Numero_Registro()

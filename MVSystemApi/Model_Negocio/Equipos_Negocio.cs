@@ -136,5 +136,21 @@ namespace MVSystemApi.Model
 
             return result;
         }
+
+        internal object GetEquipoByImei(string imei)
+        {
+            var result = (from dt in Ac.GetEquipoByImei(imei).AsEnumerable()
+                          select new Equipo_return_Imei
+                          {
+                              Imei = Convert.ToString(dt["Imei"]),
+                              CostoEquipo = Convert.ToDecimal(dt["Costo"]),
+                              PrecioDetalle = Convert.ToDecimal(dt["Al Detalle"]),
+                              PrecioPorMayor = Convert.ToDecimal(dt["Por Mayor"]),
+                              ComisionDetalle = Convert.ToDecimal(dt["Comision Detalle"]),
+                              ComisionMayor = Convert.ToDecimal(dt["Comision Por Mayor"]),
+                              EstadoBloqueo = Convert.ToString(dt["Descripcion_Estado_Bloqueo"])
+                          }).ToList().FirstOrDefault();
+            return result;
+        }
     }
 }

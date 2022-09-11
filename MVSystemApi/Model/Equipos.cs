@@ -45,6 +45,18 @@ namespace MVSystemApi.Model
         public string Mensaje { get;  set; }
     }
 
+
+    public class Equipo_return_Imei
+    {
+        public string Imei { get; set; }
+        public decimal CostoEquipo { get; set; }
+        public decimal ComisionDetalle { get; set; }
+        public decimal ComisionMayor { get; set; }
+        public decimal PrecioPorMayor { get; set; }
+        public decimal PrecioDetalle { get; set; }
+        public string EstadoBloqueo { get; set; }
+    }
+
     public class Numero_registro
     {
         public int Numero_Registro { get; internal set; }

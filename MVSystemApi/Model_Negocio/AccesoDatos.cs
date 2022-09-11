@@ -797,6 +797,30 @@ namespace MVSystemApi.Model
 
 
         }
+
+        public DataTable GetEquipoByImei(string imei)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipo_Consulta_Imei";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@criterio", imei);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public DataTable Marca_Insert(Marcas Marca)
         {
             cn.Open();
@@ -818,5 +842,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+
+        
     }
 }

@@ -1,7 +1,5 @@
 ﻿using DTO;
 using MVSystemApi.Interfaz;
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -569,6 +567,7 @@ namespace MVSystemApi.Model
             }
 
         }
+ 
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
         {
             try
@@ -585,6 +584,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
                 cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
+                cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
                 cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);

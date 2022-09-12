@@ -1,9 +1,6 @@
 ﻿using DTO;
 using MVSystemApi.Interfaz;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 
 namespace MVSystemApi.Model
 {
@@ -48,8 +45,8 @@ namespace MVSystemApi.Model
 
             return result;
         }
-  
-        internal  object GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
+     
+        internal object GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
 
 
@@ -107,6 +104,7 @@ namespace MVSystemApi.Model
                               Vendedor = Convert.ToString(dt["Vendedor"]),
                               Cliente = Convert.ToString(dt["Cliente"]),
                               CostoEquipo = Convert.ToDecimal(dt["Costo"]),
+                              Itbis = Convert.ToDecimal(dt["Itbis"]),
                               IsDesbloqueado = Convert.ToString(dt["Desb"]),
                               NotaAdicional = Convert.ToString(dt["Nota"]),
                               //IdAlmacen = Convert.ToInt32(dt["ID_Almacen"]),

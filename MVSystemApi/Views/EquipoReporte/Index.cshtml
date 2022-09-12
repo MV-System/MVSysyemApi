@@ -1,14 +1,8 @@
-﻿@*@model  IEnumerable< DTO.EquipoDisponibleDTO>*@
-@model   DTO.EquipoReporte
+﻿@model   DTO.EquipoReporte
 
 @{
     Layout = null;
-    string modelosEquals = "";
-
-    var count = Model.EquipoDisponibles.GroupBy(p => p.Descripcion)
-                                       .Where(g => g.Count() > 1)
-                                       .ToDictionary(x=>x.Key, y=>y.Count());
-    
+   
 }
 
 <!DOCTYPE html>
@@ -43,33 +37,14 @@
         <p> <b> RNC: 132307382 </b> </p>
     </div>
 
-@*    <div class="container border border-dark">
-        <div class="row">
-            <div class="col-6 border border-dark">
-                <b>Cliente</b><br>
-                <b>Código: </b>@Model.Cliente.Id_Cliente<br>
-                <b>Nombre: </b>@Model.Cliente.Nombres @Model.Cliente.Apellidos<br>
-                <b>Teléfono: </b>@Model.Cliente.Numero_Telefono<br>
-                <b>Vendedor: </b>@Model.VendedorNombre<br>
-            </div>
-
-            <div class="col-6 border border-dark">
-                <b>Factura No.: P @Model.Factura.NumeroFactura</b><br>
-                <b>Tipo de factura: </b> Al por mayor<br>
-                <b>Tipo de pago: </b> Efectivo<br>
-                <b>Fecha: </b> @Model.Factura.FechaRegistro<br>
-                <b>NCF: </b>
-            </div>
-        </div>
-    </div>*@
 
     <div class="container mt-5">
         <div class="row text-center">
             <b>
-                EQUIPOS DISPONIBLES
+              DETALLE DE EQUIPOS DISPONIBLES
             </b>
         </div>
-
+        <hr />
         <div class="row">
             <table class="table table-bordered">
                 <thead>
@@ -88,16 +63,11 @@
                 </thead>
 
                 <tbody>
-                 
+                                   
                     @{
                         foreach (var item in Model.EquipoDisponibles)
                         {
-          
-                                
-                            //var ok = Model.EquipoDisponibles.GroupBy(p => p.Descripcion)
-                                //       .Where(g => g.Count() > 1)
-                                //       .ToDictionary(x=>x.Key, y=>y.Count());
-
+         
                             <tr>
                                 <td>@item.Imei</td>
                                 <td>@item.Descripcion</td>
@@ -109,19 +79,7 @@
                                 <td>@item.ComisionDetalle</td>
                                 <td>@item.ComisionPorMayor</td>
                             </tr>
-             
-                            <tr>
-                                <td><b>TOTAL MODELOS </b></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                           
+                    
                         }
                     }
                 </tbody>
@@ -139,16 +97,6 @@
             <p>Nota: Jose Luis Jimenez</p>
         </div>
 
-      @*  <div class="row">
-            <p>
-                <b>NOTA: </b>
-                TODOS LOS EQUIPOS TIENEN 30 DIAS DE GARANTIA , NO TIENEN GARANTIA EN PANTALLA Y
-                TOUCH NO SE REEMBOLSA DINERO, SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
-                CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTIA Y CONDICIONES IGUAL AL
-                MOMENTO DE LA COMPRA. LOS TELEFONOS TENDRAN SELLOS DE GARANTIAS, SI SON VIOLADOS LA
-                GARANTIA TERMINARA.
-            </p>
-        </div>*@
     </div>
 
     <br />

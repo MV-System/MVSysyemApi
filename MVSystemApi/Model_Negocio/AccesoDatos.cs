@@ -9,11 +9,16 @@ namespace MVSystemApi.Model
     {
         private readonly SqlConnection cn;
         public static int Numero_Registro;
+        private readonly string _connectionStrings;
 
-        public AccesoDatos(string ConnectionStrings) =>
+        public AccesoDatos(string ConnectionStrings)
+        {
             cn = new SqlConnection(ConnectionStrings);
+            _connectionStrings = ConnectionStrings;
+        }
 
         public static Int64 codigo;
+
 
         public DataTable Accesorio_Insert(Accesorio Accesorio)
         {
@@ -708,6 +713,42 @@ namespace MVSystemApi.Model
             return dt;
 
         }
+
+        private static List<T> BindList<T>(DataTable dt) where T : new()
+        {
+            var props = typeof(T).GetProperties();
+            var l = new List<T>();
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                var ob = new T();
+
+                foreach (var p in props)
+                {
+                    foreach (DataColumn dc in dt.Columns)
+                    {
+                        // Matching the columns with fields
+                        if (p.Name == dc.ColumnName)
+                        {
+                            // Get the value from the datatable cell
+                            object value = dr[dc.ColumnName];
+
+                            if (value is DBNull)
+                                break;
+
+                            // Set the value into the object
+                            p.SetValue(ob, value);
+                            break;
+                        }
+                    }
+                }
+
+                l.Add(ob);
+            }
+
+            return l;
+        }
+
         public Facturas PostFactura(Facturas Factura)
         {
             try
@@ -818,6 +859,27 @@ namespace MVSystemApi.Model
             {
                 throw ex;
             }
+        }
+
+        public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal)
+        {
+            using var cn = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("SP_Reporte_Factura", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            //cmd.CommandType = CommandType.StoredProcedure;
+            //cmd.CommandText = "facturas_Insert";
+
+            cmd.Parameters.AddWithValue("@Cod_Factura", codigoFactura);
+            cmd.Parameters.AddWithValue("@sucursal", sucursal);
+            cn.Open();
+
+            var dt = new DataTable();
+            da.Fill(dt);
+            cn.Close();
+
+            return BindList<FacturaReporte>(dt);
         }
     }
 }

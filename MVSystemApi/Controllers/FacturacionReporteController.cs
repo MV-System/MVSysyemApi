@@ -30,6 +30,7 @@ namespace MVSystemApi.Controllers
             if (result == null)
                 return NotFound();
 
+            var facturaReporte = _accesoDatos.ObtenerFacturaReporte(result.NumeroFactura, 1);
             var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
             var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
 
@@ -37,6 +38,7 @@ namespace MVSystemApi.Controllers
             {
                 Cliente = cliente,
                 Factura = factura,
+                FacturaReporte = facturaReporte,
                 VendedorNombre = vendedor,
             };
 

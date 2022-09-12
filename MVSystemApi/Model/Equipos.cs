@@ -50,10 +50,23 @@ namespace MVSystemApi.Model
         public int Numero_Registro { get; internal set; }
 
     }
+    //public class EquipoFilter
+    //{
+    //    public int Almacen{ get; set; }
+    //    public string Modelo { get; set; }
+    //    public string Suplidor{ get; set; }
+    //    public string Vendedor{ get; set; }
+    //    public string FechaRegistro{ get; set; }
+    //    public int PageIndex{ get; set; }
+    //    public int PageSize{ get; set; }
+    //    public string FechaInicio{ get; set; }
+    //    public string FechaFinal{ get; set; }
+    //}
     public class EquipoVendidoReporte
     {
         public List<EquipoVendido> EquipoVendidos { get; set; }
         public string FechaImpresion { get; set; }
+        public EquipoVendidoFilter EquipoFilter { get; set; }
     }
     public class EquipoVendido : PagingDTO
     { 
@@ -91,6 +104,7 @@ namespace MVSystemApi.Model
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
         public string? Suplidor { get; set; }
+        public string? Vendedor { get; set; }
         public string? FechaRegistro { get; set; }
         public string? Modelo { get; set; }
         public string? FechaInicio { get; set; }

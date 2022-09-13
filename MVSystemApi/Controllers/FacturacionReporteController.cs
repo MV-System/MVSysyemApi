@@ -23,26 +23,14 @@ namespace MVSystemApi.Controllers
         [Route("FacturacionReporte/PostFactura")]
         public IActionResult Index(Facturas factura)
         {
-            try
-            {
-                if (factura.Cliente != null)
-                    factura.IdCliente = _clientes_Negocio.Cliente_Insert(factura.Cliente).ID_Cliente;
+            if (factura.Cliente != null)
+                factura.IdCliente = _clientes_Negocio.Cliente_Insert(factura.Cliente).ID_Cliente;
 
-                var result = _accesoDatos.PostFactura(factura);
-                if (result == null)
-                    return NotFound();
+            var result = _accesoDatos.PostFactura(factura);
+            if (result == null)
+                return NotFound();
 
-<<<<<<< HEAD
-                var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
-                var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
 
-                var data = new FacturaCliente
-                {
-                    Cliente = cliente,
-                    Factura = factura,
-                    VendedorNombre = vendedor,
-                };
-=======
             var facturaReporte = _accesoDatos.ObtenerFacturaReporte(result.NumeroFactura, 1);
             var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
             var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
@@ -54,14 +42,8 @@ namespace MVSystemApi.Controllers
                 FacturaReporte = facturaReporte,
                 VendedorNombre = vendedor,
             };
->>>>>>> 6b88025f62e9568def964e4c6b936918970cb1ec
 
-                return new ViewAsPdf(data);
-            }
-            catch (Exception ex)
-            {
-                return Ok(ex);
-            }
+            return new ViewAsPdf(data);
         }
     }
 }

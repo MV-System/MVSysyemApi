@@ -7,7 +7,7 @@ using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
 {
-    [Route("[controller]")]
+    [Route("EquipoDisponibleReporte")]
     [ApiController]
     public class EquipoDisponibleReporteController : ControllerBase
     {
@@ -19,7 +19,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpPost]
-        [Route("EquipoDisponibleReporte/GetEquiposDisponible")]
+        [Route("/GetEquiposDisponible")]
         public IActionResult Index([FromQuery] EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
 

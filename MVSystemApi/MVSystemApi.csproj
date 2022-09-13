@@ -3,9 +3,10 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RazorCompileOnPublish>false</RazorCompileOnPublish>
   </PropertyGroup>
 
-  <ItemGroup>
+   <ItemGroup>
 	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="6.0.8" />
 	  <PackageReference Include="Rotativa.AspNetCore" Version="1.2.0" />
 	  <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
@@ -34,5 +35,13 @@
   <ItemGroup>
     <Folder Include="wwwroot\Rotativa\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Views\EquipoDisponibleReporte\Index.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

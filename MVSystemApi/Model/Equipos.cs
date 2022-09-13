@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace MVSystemApi.Model
 {
+ 
     public class Equipos
     {
         public string Imei { get; set; }
@@ -50,6 +51,25 @@ namespace MVSystemApi.Model
         public int Numero_Registro { get; internal set; }
 
     }
+    //public class EquipoFilter
+    //{
+    //    public int Almacen{ get; set; }
+    //    public string Modelo { get; set; }
+    //    public string Suplidor{ get; set; }
+    //    public string Vendedor{ get; set; }
+    //    public string FechaRegistro{ get; set; }
+    //    public int PageIndex{ get; set; }
+    //    public int PageSize{ get; set; }
+    //    public string FechaInicio{ get; set; }
+    //    public string FechaFinal{ get; set; }
+    //}
+    public class EquipoVendidoReporte
+    {
+        public List<EquipoVendido> EquipoVendidos { get; set; }
+        public string FechaImpresion { get; set; }
+        public EquipoVendidoFilter EquipoFilter { get; set; }
+    }
+
     public class EquipoVendido : PagingDTO
     { 
 
@@ -59,9 +79,11 @@ namespace MVSystemApi.Model
         public decimal PrecioVendido { get; set; }
         public decimal PrecioDetalle { get; set; }
         public decimal CostoEquipo { get; set; }
+        public decimal Itbis { get; set; }
         public decimal ComisionDetalle { get; set; }
         public decimal ComisionPorMayor { get; set; }
         public string TipoFactura { get; set; }
+        public string Factura { get; set; }
         public string IsDesbloqueado { get; set; }
         public string NotaAdicional { get; set; }
         public string DescripcionAlmacen { get; set; }
@@ -75,6 +97,8 @@ namespace MVSystemApi.Model
         public decimal TotalInventario { get; set; }
         public decimal TotalFacturado{ get; set; }
         public decimal TotalGanancia { get; set; }
+        public decimal TotalComisionDetalle { get; set; }
+        public decimal TotalComisionXMayor { get; set; }
 
 
     }
@@ -85,7 +109,9 @@ namespace MVSystemApi.Model
         [Required]
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
+        public Int64? Telefono { get; set; }
         public string? Suplidor { get; set; }
+        public string? Vendedor { get; set; }
         public string? FechaRegistro { get; set; }
         public string? Modelo { get; set; }
         public string? FechaInicio { get; set; }

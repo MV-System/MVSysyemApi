@@ -10,7 +10,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link href="~/assets/bootstrap.min.css" rel="stylesheet" />
+    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
 
     <title>Factura</title>
 
@@ -79,16 +79,16 @@
 
                 <tbody>
                     @{
-                        foreach (var item in Model.Factura.DetalleFacturaList)
+                        foreach (var item in Model.FacturaReporte)
                         {
                             <tr>
                                 <td>---</td>
-                                <td>@item.Descripcion</td>
-                                <td>@item.Cantidad.ToString("N0")</td>
-                                <td>@item.Precio.ToString("N2")</td>
-                                <td>@item.SubTotal.ToString("N2")</td>
-                                <td>@item.Descuento.ToString("N2")</td>
-                                <td>@item.Total.ToString("N2")</td>
+                                <td>@item.PRODUCTO</td>
+                                <td>@item.CANTIDAD_PROD.ToString("N0")</td>
+                                <td>@item.PRECIO_PROD.ToString("N2")</td>
+                                <td>@item.SUBTOTAL_PROD.ToString("N2")</td>
+                                <td>@item.DESCUENTO_PROD.ToString("N2")</td>
+                                <td>@item.TOTAL_PROD.ToString("N2")</td>
                             </tr>
                         }
                     }

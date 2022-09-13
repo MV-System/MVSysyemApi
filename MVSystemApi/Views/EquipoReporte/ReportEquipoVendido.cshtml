@@ -1,0 +1,144 @@
+﻿@model   MVSystemApi.Model.EquipoVendidoReporte
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="~/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Detalle Equipos Vendidos</title>
+
+    <style>
+        .p0 p {
+            padding: 0%;
+            margin: 0%;
+        }
+
+        .notBorder td {border: 0; border-bottom:1px solid #000}
+    </style>
+</head>
+
+<body>
+    <div class="container text-center">
+        <img src="/assets/logo.png" />
+    </div>
+
+    <div class="container text-center p0">
+        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
+        <p>
+            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
+            Tel.:809-908-6952 Cel.: 809-883-8858
+        </p>
+        <p> <b> RNC: 132307382 </b> </p>
+    </div>
+      <div  class="container text-center">
+        <h1><b> REPORTE DE EQUIPOS VENDIDOS</b></h1>
+    </div>
+
+    <div class="container mt-5">
+
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>                       
+                        <th scope="col">IMEI</th>
+                        <th scope="col">DESCRIPCIÓN</th>
+                        <th scope="col">TIPO FACTURA</th>
+                        <th scope="col">VENDEDOR</th>
+                        <th scope="col">PRECIO VENDIDO</th>
+                        <th scope="col">ALMACEN</th>
+                        <th scope="col">COMISION DETALLE</th>
+                        <th scope="col">COMISION POR MAYOR</th>
+                        <th scope="col">FECHA FACTURADO</th>
+                        <th scope="col">FACTURA</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @{
+                        foreach (var item in Model.EquipoVendidos)
+                        {
+                            <tr>
+                                <td>@item.Imei</td>
+                                <td>@item.Descripcion</td>
+                                <td>@item.TipoFactura</td>
+                                <td>@item.Vendedor</td>
+                                <td>@item.PrecioVendido</td>
+                                <td>@item.DescripcionAlmacen</td>
+                                <td>@item.ComisionDetalle</td>
+                                <td>@item.ComisionPorMayor</td>
+                                <td>@item.FechaFacturado</td>
+                                <td>@item.Factura</td>
+                               @* <td>@item.CostoEquipo</td>
+                                <td>@item.IsDesbloqueado</td>
+                                <td>@item.NotaAdicional</td>
+                                <td>@item.DescripcionAlmacen</td>
+                                <td>@item.Suplidor</td>
+                                <td>@item.Cliente</td>*@
+                         
+                            </tr>
+                                //<td>@item.PrecioPorMayor.ToString("N2")</td>
+                                //<td>@item.PrecioDetalle.ToString("N2")</td>
+                        }
+                        <tr class="notBorder">
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalFacturado).FirstOrDefault()</b></td>
+                            <td></td>
+                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalComisionDetalle).FirstOrDefault()</b></td>
+                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalComisionXMayor).FirstOrDefault()</b></td>
+                            <td></td>
+                            <td></td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container text-right mt-4">
+ 
+        <div><b>TOTAL EQUIPOS: @Model.EquipoVendidos.Select(x=>x.TotalRecord).FirstOrDefault().ToString("D")</b></div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <p>Nota: Jose Luis Jimenez</p>
+        </div>
+    </div>
+
+    <br />
+    <br />
+
+    <div class="container">
+        <div class="row">
+            <div class="col-6 text-center">
+                <hr>
+                <b>Entregado por</b>
+            </div>
+
+            <div class="col-6 text-center">
+                <hr>
+                <b>Recibido por</b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class=" text-right">
+            Fecha de Impresión:
+            @Model.FechaImpresion
+        </div>
+    </div>
+</body>
+
+</html>

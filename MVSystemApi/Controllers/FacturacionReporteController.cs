@@ -32,6 +32,7 @@ namespace MVSystemApi.Controllers
                 if (result == null)
                     return NotFound();
 
+<<<<<<< HEAD
                 var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
                 var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
 
@@ -41,6 +42,19 @@ namespace MVSystemApi.Controllers
                     Factura = factura,
                     VendedorNombre = vendedor,
                 };
+=======
+            var facturaReporte = _accesoDatos.ObtenerFacturaReporte(result.NumeroFactura, 1);
+            var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
+            var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
+
+            var data = new FacturaCliente
+            {
+                Cliente = cliente,
+                Factura = factura,
+                FacturaReporte = facturaReporte,
+                VendedorNombre = vendedor,
+            };
+>>>>>>> 6b88025f62e9568def964e4c6b936918970cb1ec
 
                 return new ViewAsPdf(data);
             }

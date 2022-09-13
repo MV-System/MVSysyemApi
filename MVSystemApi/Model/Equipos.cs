@@ -83,6 +83,7 @@ namespace MVSystemApi.Model
         public decimal ComisionDetalle { get; set; }
         public decimal ComisionPorMayor { get; set; }
         public string TipoFactura { get; set; }
+        public string Factura { get; set; }
         public string IsDesbloqueado { get; set; }
         public string NotaAdicional { get; set; }
         public string DescripcionAlmacen { get; set; }
@@ -96,6 +97,8 @@ namespace MVSystemApi.Model
         public decimal TotalInventario { get; set; }
         public decimal TotalFacturado{ get; set; }
         public decimal TotalGanancia { get; set; }
+        public decimal TotalComisionDetalle { get; set; }
+        public decimal TotalComisionXMayor { get; set; }
 
 
     }

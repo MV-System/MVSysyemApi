@@ -95,6 +95,7 @@ namespace MVSystemApi.Model
                               Descripcion = Convert.ToString(dt["Descripcion"]),
                               PrecioVendido = Convert.ToDecimal(dt["Precio Vendido"]),
                               TipoFactura = Convert.ToString(dt["Tipo Factura"]),
+                              Factura = Convert.ToString(dt["Factura"]),
                               PrecioPorMayor = Convert.ToDecimal(dt["Por Mayor"]),
                               PrecioDetalle = Convert.ToDecimal(dt["Al Detalle"]),
                               ComisionDetalle = Convert.ToDecimal(dt["Comision Detalle"]),
@@ -118,6 +119,8 @@ namespace MVSystemApi.Model
                               TotalInventario = Convert.ToDecimal(dt["TotalInventario"]),
                               TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"]),
                               TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
+                              TotalComisionDetalle = Convert.ToDecimal(dt["TotalComisionDetalle"]),
+                              TotalComisionXMayor = Convert.ToDecimal(dt["TotalComisionXMayor"])
 
                           }).ToList();
 

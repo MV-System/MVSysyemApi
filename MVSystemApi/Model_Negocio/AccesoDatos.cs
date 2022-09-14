@@ -590,7 +590,6 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
                 cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
-                cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
                 cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
                 cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);

@@ -110,6 +110,7 @@ namespace MVSystemApi.Model
         [Required]
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
+        public string Imei { get; set; }        
         public Int64? Telefono { get; set; }
         public string? Suplidor { get; set; }
         public string? Vendedor { get; set; }

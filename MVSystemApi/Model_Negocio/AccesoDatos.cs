@@ -587,6 +587,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Equipo_Consulta_Vendidos";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
+                cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
                 cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
                 cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);

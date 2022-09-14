@@ -589,13 +589,16 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
                 cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
+                cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
                 cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
                 cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);
-                cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
+                //cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoVendidoFilter.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", equipoVendidoFilter.FechaFinal);
+                cmd.Parameters.AddWithValue("@Fecha_factura_Inicial", equipoVendidoFilter.FechaInicioFactura);
+                cmd.Parameters.AddWithValue("@Fecha_factura_Final", equipoVendidoFilter.FechaFinalFactura);
 
                 //cmd.Parameters.AddWithValue("@criterio", criterio);
                 cmd.ExecuteNonQuery();

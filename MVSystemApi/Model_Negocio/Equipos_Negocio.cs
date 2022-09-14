@@ -120,7 +120,8 @@ namespace MVSystemApi.Model
                               TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"]),
                               TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
                               TotalComisionDetalle = Convert.ToDecimal(dt["TotalComisionDetalle"]),
-                              TotalComisionXMayor = Convert.ToDecimal(dt["TotalComisionXMayor"])
+                              TotalComisionXMayor = Convert.ToDecimal(dt["TotalComisionXMayor"]),
+                              TotalItbis = Convert.ToDecimal(dt["TotalItbis"])
 
                           }).ToList();
 

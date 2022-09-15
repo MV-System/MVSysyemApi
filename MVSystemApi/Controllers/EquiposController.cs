@@ -98,7 +98,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetEquipoByImei")]
-        public ActionResult<object> GetEquipoByImei([FromQuery] string imei)
+        public ActionResult<Equipo_return_Imei> GetEquipoByImei([FromQuery] string imei)
         {
             try
             {
@@ -117,7 +117,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpPut]
-        [Route("ModificarEquipo")]
+        [Route("ModificarEstatusEquipo")]
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
         {
             try

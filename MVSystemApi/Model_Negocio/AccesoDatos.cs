@@ -645,7 +645,7 @@ namespace MVSystemApi.Model
         }
 
 
-        public DataTable GetArticuloByImei(string imei)
+        public DataTable GetEquipoByImei(string imei)
         {
             try
             {

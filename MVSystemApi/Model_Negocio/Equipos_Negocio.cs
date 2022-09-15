@@ -138,5 +138,19 @@ namespace MVSystemApi.Model
 
             return result;
         }
+        internal object GetEquipoByImei(string imei)
+        {
+            var result = (from dt in Ac.GetEquipoByImei(imei).AsEnumerable()
+                          select new EquipoImei
+                          {
+                              Id = Convert.ToInt32(dt["Id"]) + 1,
+                              Imei = Convert.ToString(dt["imei"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              Mensaje = Convert.ToString(dt["Mensaje"]),
+
+                          }).ToList();
+
+            return result;
+        }
     }
 }

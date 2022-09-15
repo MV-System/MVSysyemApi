@@ -114,6 +114,25 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }     
+        [HttpGet]
+        [Route("GetEquipoByImei")]
+        public ActionResult<EquipoImei> GetEquipoByImei(string imei)
+        {
+            try
+            {
+
+                var result = AD.GetEquipoByImei(imei);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

@@ -490,6 +490,8 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
+        #region Equipos
+        
         public DataTable Equipo_Insert(Equipos Equipo)
         {
             try
@@ -641,6 +643,32 @@ namespace MVSystemApi.Model
             }
 
         }
+
+
+        public DataTable GetArticuloByImei(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Imei_Transfiere_Consulta", cn);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("imei", imei);
+
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
+        #endregion
         public DataTable GetComprobantes_Combo()
         {
             cn.Open();

@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace MVSystemApi.Model
 {
- 
+
     public class Equipos
     {
         public string Imei { get; set; }
@@ -44,13 +40,16 @@ namespace MVSystemApi.Model
         public int AlmacenSalidaId { get; set; }
             
     }  
-    public class EquipoTranferencia
+    public class EquipoTransferencia
     {
         public int Id { get; set; }
         public string Imei { get; set; }
+        public string? Modelo { get; set; }
+
         public string AlmacenSalida { get; set; }
         public string AlmacenDestino { get; set; }
         public int CantidadEquipos { get; set; }
+        public string Usuario { get; set; }
             
     }   
 
@@ -70,18 +69,16 @@ namespace MVSystemApi.Model
         public int Numero_Registro { get; internal set; }
 
     }
-    //public class EquipoFilter
-    //{
-    //    public int Almacen{ get; set; }
-    //    public string Modelo { get; set; }
-    //    public string Suplidor{ get; set; }
-    //    public string Vendedor{ get; set; }
-    //    public string FechaRegistro{ get; set; }
-    //    public int PageIndex{ get; set; }
-    //    public int PageSize{ get; set; }
-    //    public string FechaInicio{ get; set; }
-    //    public string FechaFinal{ get; set; }
-    //}
+    public class EquipoTranferenciaReporte
+    {
+        public int IdTransferencia { get; set; }
+        public List<EquipoTransferencia> EquipoTransferencias { get; set; }
+        public string FechaTransferencia { get; set; }
+
+        public string Usuario { get; set; }
+        public int Total { get; set; }
+    }
+
     public class EquipoVendidoReporte
     {
         public List<EquipoVendido> EquipoVendidos { get; set; }

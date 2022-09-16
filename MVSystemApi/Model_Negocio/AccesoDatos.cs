@@ -687,7 +687,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }   
-        public DataTable PostEquipoTransferencia(EquipoTranferencia tranferencia)
+        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try
             {
@@ -702,6 +702,8 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
                 cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
                 cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
+                cmd.Parameters.AddWithValue("@Usuario", "Xavier");
+                //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
 
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);

@@ -155,7 +155,7 @@ namespace MVSystemApi.Controllers
         }     
         [HttpPost]
         [Route("PostEquipoTransferencia")]
-        public ActionResult<EquipoTranferencia> PostEquipoTransferencia([FromBody] EquipoTranferencia tranferencia)
+        public ActionResult<EquipoTransferencia> PostEquipoTransferencia([FromBody] EquipoTransferencia tranferencia)
         {
             try
             {

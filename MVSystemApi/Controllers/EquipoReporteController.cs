@@ -7,7 +7,7 @@ using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
 {
-    //[Route("[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class EquipoReporteController : ControllerBase
     {
@@ -43,14 +43,15 @@ namespace MVSystemApi.Controllers
             return new ViewAsPdf(equipoReporte);
         }
 
-        //[HttpPost]
-        //[Route("EquipoVendidoReporte/GetEquiposVendidos")]
-        //public IActionResult ReportEquipoVendido(EquipoVendidoReporte equipoReporte)
-        //{
-        //    if (equipoReporte == null)
-        //        return NotFound();
-        //    return new ViewAsPdf(equipoReporte);
-        //}
 
+        [HttpPost]
+        [Route("EquipoTransferenciaReporte")]
+        public IActionResult EquipoTransferenciaReporte(EquipoTranferenciaReporte equipoReporte)
+        {
+
+            if (equipoReporte == null)
+                return NotFound();
+            return new ViewAsPdf(equipoReporte);
+        }
     }
 }

@@ -27,7 +27,7 @@ namespace MVSystemApi.Interfaz
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
 
-        public DataTable PostEquipoTransferencia(EquipoTranferencia tranferencia);
+        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 
 
 

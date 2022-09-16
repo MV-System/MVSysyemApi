@@ -490,6 +490,7 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
+
         #region Equipos
         
         public DataTable Equipo_Insert(Equipos Equipo)
@@ -656,6 +657,51 @@ namespace MVSystemApi.Model
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("imei", imei);
+
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }     
+        public SqlDataReader GetEquipoUltimoIdTransferencia()
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Ultimo_Consulta", cn);
+    
+                SqlDataReader dr = cmd.ExecuteReader();
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                return dr;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }   
+        public DataTable PostEquipoTransferencia(EquipoTranferencia tranferencia)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Guarda", cn);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.Id);
+                cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
+                cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
+                cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
+                cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
 
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);

@@ -25,7 +25,9 @@ namespace MVSystemApi.Interfaz
 
         public DataTable GetEquipoByImei(string imei);
 
+        public SqlDataReader GetEquipoUltimoIdTransferencia();
 
+        public DataTable PostEquipoTransferencia(EquipoTranferencia tranferencia);
 
 
 

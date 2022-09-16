@@ -143,14 +143,29 @@ namespace MVSystemApi.Model
             var result = (from dt in Ac.GetEquipoByImei(imei).AsEnumerable()
                           select new EquipoImei
                           {
-                              Id = Convert.ToInt32(dt["Id"]) + 1,
+                              Id = Convert.ToInt32(dt["Id"]),
                               Imei = Convert.ToString(dt["imei"]),
                               Modelo = Convert.ToString(dt["Modelo"]),
                               Mensaje = Convert.ToString(dt["Mensaje"]),
+                              AlmacenSalida = Convert.ToString(dt["Almacen"]),
+                              AlmacenSalidaId = Convert.ToInt32(dt["ID_Almacen"]),
 
                           }).ToList();
 
             return result;
-        }
+        }  
+        internal object GetEquipoUltimoIdTransferencia()
+        {
+            int id = 0;
+            var dataReader = Ac.GetEquipoUltimoIdTransferencia();
+            while (dataReader.Read())
+            {
+                id = Convert.ToInt32(dataReader["Ultimo_Id"]);
+            }
+
+
+            return id;
+        }    
+
     }
 }

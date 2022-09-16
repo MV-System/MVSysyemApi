@@ -34,14 +34,26 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
 
     }
-       public class EquipoImei
-        {
-            public int Id { get; set; }
-            public string Imei { get; set; }
-            public string Modelo { get; set; }
-            public string Mensaje { get; set; }
+    public class EquipoImei
+    {
+        public int Id { get; set; }
+        public string Imei { get; set; }
+        public string Modelo { get; set; }
+        public string Mensaje { get; set; }
+        public string AlmacenSalida { get; set; }
+        public int AlmacenSalidaId { get; set; }
             
-        }
+    }  
+    public class EquipoTranferencia
+    {
+        public int Id { get; set; }
+        public string Imei { get; set; }
+        public string AlmacenSalida { get; set; }
+        public string AlmacenDestino { get; set; }
+        public int CantidadEquipos { get; set; }
+            
+    }   
+
     public class Equipo_return
     {
         public string Imei { get; internal set; }

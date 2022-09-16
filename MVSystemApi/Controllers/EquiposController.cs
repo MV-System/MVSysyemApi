@@ -133,6 +133,44 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }    
+        [HttpGet]
+        [Route("GetEquipoUltimoIdTransferencia")]
+        public ActionResult<int> GetEquipoUltimoIdTransferencia()
+        {
+            try
+            {
+
+                var result = AD.GetEquipoUltimoIdTransferencia();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }     
+        [HttpPost]
+        [Route("PostEquipoTransferencia")]
+        public ActionResult<EquipoTranferencia> PostEquipoTransferencia([FromBody] EquipoTranferencia tranferencia)
+        {
+            try
+            {
+
+                var result = _accesoDatos.PostEquipoTransferencia(tranferencia);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

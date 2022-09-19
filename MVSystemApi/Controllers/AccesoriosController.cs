@@ -54,5 +54,25 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet("GetAllAccesorios")]
+        public ActionResult<Accesorio> GetAllAccesorios([FromQuery] Paginate paginate, string accesorio, int almacen)
+        {
+
+            try
+            {
+                var lista = AD.GetAllAccesorios(paginate,accesorio,almacen);
+                if (lista == null)
+                {
+                    return NotFound();
+                }
+                return Ok(lista);
+            }
+
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

@@ -19,7 +19,27 @@ namespace MVSystemApi.Model
 
         public static Int64 codigo;
 
+        #region Accesorios
 
+        public SqlDataReader GetAllAccesorios(string accesorio, int almacen)
+        {
+            accesorio ="";
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Accesorios_Consulta", cn);
+                cmd.Parameters.AddWithValue("@Accesorio", accesorio);
+                cmd.Parameters.AddWithValue("@Almacen", almacen);
+                SqlDataReader dr = cmd.ExecuteReader();
+                cmd.CommandType = CommandType.StoredProcedure;
+                return dr;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
         public DataTable Accesorio_Insert(Accesorio Accesorio)
         {
             try
@@ -87,6 +107,8 @@ namespace MVSystemApi.Model
             }
 
         }
+
+        #endregion
         public DataTable Suplidor_Insert(Suplidor Suplidor)
         {
             cn.Open();

@@ -69,6 +69,7 @@ namespace MVSystemApi.Interfaz
         DataTable Accesorio_Insert(Accesorio Accesorio);
         DataTable ConsultaAccesorio(int Codigo);
         DataTable Equipo_Consulta_Ultimo_Registro();
+        public SqlDataReader GetAllAccesorios(string accesorio, int almacen);
 
 
         #endregion

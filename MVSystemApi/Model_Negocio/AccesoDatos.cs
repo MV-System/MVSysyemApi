@@ -1,7 +1,5 @@
 ﻿using DTO;
 using MVSystemApi.Interfaz;
-using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -11,11 +9,16 @@ namespace MVSystemApi.Model
     {
         private readonly SqlConnection cn;
         public static int Numero_Registro;
+        private readonly string _connectionStrings;
 
-        public AccesoDatos(string ConnectionStrings) =>
+        public AccesoDatos(string ConnectionStrings)
+        {
             cn = new SqlConnection(ConnectionStrings);
+            _connectionStrings = ConnectionStrings;
+        }
 
         public static Int64 codigo;
+
 
         public DataTable Accesorio_Insert(Accesorio Accesorio)
         {
@@ -487,6 +490,9 @@ namespace MVSystemApi.Model
             cn.Close();
             return dt;
         }
+
+        #region Equipos
+        
         public DataTable Equipo_Insert(Equipos Equipo)
         {
             try
@@ -569,6 +575,7 @@ namespace MVSystemApi.Model
             }
 
         }
+ 
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
         {
             try
@@ -583,13 +590,18 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Equipo_Consulta_Vendidos";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
+                cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
+                cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
+                cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
                 cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);
-                cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
+                //cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoVendidoFilter.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", equipoVendidoFilter.FechaFinal);
+                cmd.Parameters.AddWithValue("@Fecha_factura_Inicial", equipoVendidoFilter.FechaInicioFactura);
+                cmd.Parameters.AddWithValue("@Fecha_factura_Final", equipoVendidoFilter.FechaFinalFactura);
 
                 //cmd.Parameters.AddWithValue("@criterio", criterio);
                 cmd.ExecuteNonQuery();
@@ -632,6 +644,79 @@ namespace MVSystemApi.Model
             }
 
         }
+
+
+        public DataTable GetEquipoByImei(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Imei_Transfiere_Consulta", cn);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("imei", imei);
+
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }     
+        public SqlDataReader GetEquipoUltimoIdTransferencia()
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Ultimo_Consulta", cn);
+    
+                SqlDataReader dr = cmd.ExecuteReader();
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                return dr;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }   
+        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Guarda", cn);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.Id);
+                cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
+                cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
+                cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
+                cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
+                cmd.Parameters.AddWithValue("@Usuario", "Xavier");
+                //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
+
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
+        #endregion
         public DataTable GetComprobantes_Combo()
         {
             cn.Open();
@@ -707,6 +792,42 @@ namespace MVSystemApi.Model
             return dt;
 
         }
+
+        private static List<T> BindList<T>(DataTable dt) where T : new()
+        {
+            var props = typeof(T).GetProperties();
+            var l = new List<T>();
+
+            foreach (DataRow dr in dt.Rows)
+            {
+                var ob = new T();
+
+                foreach (var p in props)
+                {
+                    foreach (DataColumn dc in dt.Columns)
+                    {
+                        // Matching the columns with fields
+                        if (p.Name == dc.ColumnName)
+                        {
+                            // Get the value from the datatable cell
+                            object value = dr[dc.ColumnName];
+
+                            if (value is DBNull)
+                                break;
+
+                            // Set the value into the object
+                            p.SetValue(ob, value);
+                            break;
+                        }
+                    }
+                }
+
+                l.Add(ob);
+            }
+
+            return l;
+        }
+
         public Facturas PostFactura(Facturas Factura)
         {
             try
@@ -798,7 +919,7 @@ namespace MVSystemApi.Model
 
         }
 
-        public DataTable GetEquipoByImei(string imei)
+        public DataTable GetEquipoPreciosEstatusByImei(string imei)
         {
             cn.Open();
 
@@ -870,6 +991,25 @@ namespace MVSystemApi.Model
             }
         }
 
-        
+        public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal)
+        {
+            using var cn = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("SP_Reporte_Factura", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            //cmd.CommandType = CommandType.StoredProcedure;
+            //cmd.CommandText = "facturas_Insert";
+
+            cmd.Parameters.AddWithValue("@Cod_Factura", codigoFactura);
+            cmd.Parameters.AddWithValue("@sucursal", sucursal);
+            cn.Open();
+
+            var dt = new DataTable();
+            da.Fill(dt);
+            cn.Close();
+
+            return BindList<FacturaReporte>(dt);
+        }
     }
 }

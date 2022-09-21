@@ -19,6 +19,8 @@
             padding: 0%;
             margin: 0%;
         }
+
+        .notBorder td {border: 0; border-bottom:1px solid #000}
     </style>
 </head>
 
@@ -35,35 +37,26 @@
         </p>
         <p> <b> RNC: 132307382 </b> </p>
     </div>
-
+      <div  class="container text-center">
+        <h1><b> REPORTE DE EQUIPOS VENDIDOS</b></h1>
+    </div>
 
     <div class="container mt-5">
-        <div class="row text-center">
-            <b>
-                EQUIPOS VENDIDOS
-            </b>
-        </div>
 
         <div class="row">
             <table class="table table-bordered">
                 <thead>
-                    <tr>
-                        
+                    <tr>                       
                         <th scope="col">IMEI</th>
                         <th scope="col">DESCRIPCIÓN</th>
-                        @*<th scope="col">P POR MAYOR</th>*@
-                        @*<th scope="col">P DETALLE</th>*@
-                        <th scope="col">COSTO</th>
-                        <th scope="col">PRECIO VENDIDO</th>
                         <th scope="col">TIPO FACTURA</th>
-                        <th scope="col">DESBLOQ.</th>
-                        <th scope="col">NOTA</th>
-                        <th scope="col">ALMACEN</th>
-                        <th scope="col">SUPLIDOR</th>
                         <th scope="col">VENDEDOR</th>
-                        <th scope="col">CLIENTE</th>
+                        <th scope="col">PRECIO VENDIDO</th>
+                        <th scope="col">ALMACEN</th>
                         <th scope="col">COMISION DETALLE</th>
                         <th scope="col">COMISION POR MAYOR</th>
+                        <th scope="col">FECHA FACTURADO</th>
+                        <th scope="col">FACTURA</th>
                     </tr>
                 </thead>
 
@@ -74,29 +67,45 @@
                             <tr>
                                 <td>@item.Imei</td>
                                 <td>@item.Descripcion</td>
-                                <td>@item.CostoEquipo</td>
-                                <td>@item.PrecioVendido</td>
                                 <td>@item.TipoFactura</td>
+                                <td>@item.Vendedor</td>
+                                <td>@item.PrecioVendido</td>
+                                <td>@item.DescripcionAlmacen</td>
+                                <td>@item.ComisionDetalle</td>
+                                <td>@item.ComisionPorMayor</td>
+                                <td>@item.FechaFacturado</td>
+                                <td>@item.Factura</td>
+                               @* <td>@item.CostoEquipo</td>
                                 <td>@item.IsDesbloqueado</td>
                                 <td>@item.NotaAdicional</td>
                                 <td>@item.DescripcionAlmacen</td>
                                 <td>@item.Suplidor</td>
-                                <td>@item.Vendedor</td>
-                                <td>@item.Cliente</td>
+                                <td>@item.Cliente</td>*@
                          
-                                <td>@item.ComisionDetalle</td>
-                                <td>@item.ComisionPorMayor</td>
                             </tr>
                                 //<td>@item.PrecioPorMayor.ToString("N2")</td>
                                 //<td>@item.PrecioDetalle.ToString("N2")</td>
                         }
+                        <tr class="notBorder">
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalFacturado).FirstOrDefault()</b></td>
+                            <td></td>
+                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalComisionDetalle).FirstOrDefault()</b></td>
+                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalComisionXMayor).FirstOrDefault()</b></td>
+                            <td></td>
+                            <td></td>
+
+                        </tr>
                     }
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div class="container text-right">
+    <div class="container text-right mt-4">
  
         <div><b>TOTAL EQUIPOS: @Model.EquipoVendidos.Select(x=>x.TotalRecord).FirstOrDefault().ToString("D")</b></div>
     </div>
@@ -105,17 +114,6 @@
         <div class="row">
             <p>Nota: Jose Luis Jimenez</p>
         </div>
-
-      @*  <div class="row">
-            <p>
-                <b>NOTA: </b>
-                TODOS LOS EQUIPOS TIENEN 30 DIAS DE GARANTIA , NO TIENEN GARANTIA EN PANTALLA Y
-                TOUCH NO SE REEMBOLSA DINERO, SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
-                CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTIA Y CONDICIONES IGUAL AL
-                MOMENTO DE LA COMPRA. LOS TELEFONOS TENDRAN SELLOS DE GARANTIAS, SI SON VIOLADOS LA
-                GARANTIA TERMINARA.
-            </p>
-        </div>*@
     </div>
 
     <br />

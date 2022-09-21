@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace MVSystemApi.Model
 {
+
     public class Equipos
     {
         public string Imei { get; set; }
@@ -33,7 +30,29 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
 
     }
-   
+    public class EquipoImei
+    {
+        public int Id { get; set; }
+        public string Imei { get; set; }
+        public string Modelo { get; set; }
+        public string Mensaje { get; set; }
+        public string AlmacenSalida { get; set; }
+        public int AlmacenSalidaId { get; set; }
+            
+    }  
+    public class EquipoTransferencia
+    {
+        public int Id { get; set; }
+        public string Imei { get; set; }
+        public string? Modelo { get; set; }
+
+        public string AlmacenSalida { get; set; }
+        public string AlmacenDestino { get; set; }
+        public int CantidadEquipos { get; set; }
+        public string Usuario { get; set; }
+            
+    }   
+
     public class Equipo_return
     {
         public string Imei { get; internal set; }
@@ -65,11 +84,23 @@ namespace MVSystemApi.Model
         public int Numero_Registro { get; internal set; }
 
     }
+    public class EquipoTranferenciaReporte
+    {
+        public int IdTransferencia { get; set; }
+        public List<EquipoTransferencia> EquipoTransferencias { get; set; }
+        public string FechaTransferencia { get; set; }
+
+        public string Usuario { get; set; }
+        public int Total { get; set; }
+    }
+
     public class EquipoVendidoReporte
     {
         public List<EquipoVendido> EquipoVendidos { get; set; }
         public string FechaImpresion { get; set; }
+        public EquipoVendidoFilter EquipoFilter { get; set; }
     }
+
     public class EquipoVendido : PagingDTO
     { 
 
@@ -79,9 +110,11 @@ namespace MVSystemApi.Model
         public decimal PrecioVendido { get; set; }
         public decimal PrecioDetalle { get; set; }
         public decimal CostoEquipo { get; set; }
+        public decimal Itbis { get; set; }
         public decimal ComisionDetalle { get; set; }
         public decimal ComisionPorMayor { get; set; }
         public string TipoFactura { get; set; }
+        public string Factura { get; set; }
         public string IsDesbloqueado { get; set; }
         public string NotaAdicional { get; set; }
         public string DescripcionAlmacen { get; set; }
@@ -95,6 +128,9 @@ namespace MVSystemApi.Model
         public decimal TotalInventario { get; set; }
         public decimal TotalFacturado{ get; set; }
         public decimal TotalGanancia { get; set; }
+        public decimal TotalComisionDetalle { get; set; }
+        public decimal TotalComisionXMayor { get; set; }
+        public decimal TotalItbis { get; set; }
 
 
     }
@@ -105,10 +141,15 @@ namespace MVSystemApi.Model
         [Required]
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
+        public Int64? Telefono { get; set; }
         public string? Suplidor { get; set; }
+        public string? Vendedor { get; set; }
+        public string? Imei { get; set; }
         public string? FechaRegistro { get; set; }
         public string? Modelo { get; set; }
         public string? FechaInicio { get; set; }
         public string? FechaFinal { get; set; }
+        public string? FechaInicioFactura { get; set; }
+        public string? FechaFinalFactura { get; set; }
     }
 }

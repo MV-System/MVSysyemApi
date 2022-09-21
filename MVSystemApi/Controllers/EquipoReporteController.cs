@@ -7,15 +7,26 @@ using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
 {
-    //[Route("[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class EquipoReporteController : ControllerBase
     {
+        private readonly Equipos_Negocio _equipos_Negocio;
+        public EquipoReporteController(Equipos_Negocio equipos_Negocio)
+        {
+            _equipos_Negocio = equipos_Negocio;
+        }
 
         [HttpPost]
         [Route("EquipoDisponibleReporte/GetEquiposDisponible")]
         public IActionResult Index(EquipoReporte equipoReporte)
         {
+
+            equipoReporte.EquipoFilter.PageSize =int.MaxValue ;
+
+            equipoReporte.EquipoDisponibles = ((List<EquipoDisponibleDTO>)_equipos_Negocio.GetEquiposDisponible(equipoReporte.EquipoFilter));
+
+        
             if (equipoReporte == null)
                 return NotFound();
             return new ViewAsPdf(equipoReporte);
@@ -24,10 +35,23 @@ namespace MVSystemApi.Controllers
         [Route("EquipoVendidoReporte/GetEquiposVendidos")]
         public IActionResult ReportEquipoVendido(EquipoVendidoReporte equipoReporte)
         {
+            equipoReporte.EquipoFilter.PageSize = int.MaxValue;
+            equipoReporte.EquipoVendidos = (List<EquipoVendido>)_equipos_Negocio.GetEquiposVendidos(equipoReporte.EquipoFilter);
+
             if (equipoReporte == null)
                 return NotFound();
             return new ViewAsPdf(equipoReporte);
         }
 
+
+        [HttpPost]
+        [Route("EquipoTransferenciaReporte")]
+        public IActionResult EquipoTransferenciaReporte(EquipoTranferenciaReporte equipoReporte)
+        {
+
+            if (equipoReporte == null)
+                return NotFound();
+            return new ViewAsPdf(equipoReporte);
+        }
     }
 }

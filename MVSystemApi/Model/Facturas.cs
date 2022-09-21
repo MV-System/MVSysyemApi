@@ -8,8 +8,43 @@ namespace MVSystemApi.Model
     public class FacturaCliente
     {
         public Facturas Factura { get; set; }
+        public List<FacturaReporte> FacturaReporte { get; set; }
         public Clientes_consulta Cliente { get; set; }
         public string VendedorNombre { get; set; }
+    }
+
+    public class FacturaReporte
+    {
+        //public string FACTURA_NUMERO { get; set; }
+        //public string NCF { get; set; }
+        //public string RNC { get; set; }
+        //public string FECHA { get; set; }
+        //public string FECHA_VENCE { get; set; }
+        //public string ID_VEND { get; set; }
+        //public string VENDEDOR { get; set; }
+        //public string TIPO_FACTURA { get; set; }
+        //public string TIPO_PAGO { get; set; }
+        //public string ID_CLI { get; set; }
+        //public string CLIENTE { get; set; }
+        //public string DIRECCION { get; set; }
+        //public string TELEFONO { get; set; }
+        //public string SUBTOTAL_FACT { get; set; }
+        //public string DESCUENTO_FACT { get; set; }
+        //public string ITBIS_FACT { get; set; }
+        //public string TOTAL_FACT { get; set; }
+        //public string ABONADO { get; set; }
+        //public string NOTA { get; set; }
+        //public string ID_PROD { get; set; }
+        public string PRODUCTO { get; set; }
+        //public string MARCA { get; set; }
+        //public string MODELO { get; set; }
+        public int CANTIDAD_PROD { get; set; }
+        public decimal PRECIO_PROD { get; set; }
+        public decimal SUBTOTAL_PROD { get; set; }
+        public decimal DESCUENTO_PROD { get; set; }
+        public decimal TOTAL_PROD { get; set; }
+        //public decimal ITBIS_PROD { get; set; }
+        //public string NFCTipoDescripcion { get; set; }
     }
 
     public class Facturas

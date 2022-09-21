@@ -25,9 +25,11 @@ namespace MVSystemApi.Interfaz
         public DataTable GetEquipoByImei(string imei);
         public void ModificarEquipo(Equipo_return_Imei imei);
 
+        internal DataTable GetEquipoPreciosEstatusByImei(string imei);
 
+        public SqlDataReader GetEquipoUltimoIdTransferencia();
 
-
+        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 
 
 
@@ -60,6 +62,7 @@ namespace MVSystemApi.Interfaz
         //DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null); // trae la lista de comprobantes
 
         public Facturas PostFactura(Facturas Factura);
+        public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal);
 
 
         #endregion

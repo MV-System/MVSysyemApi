@@ -116,6 +116,26 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("GetEquipoPreciosEstatusByImei")]
+        public ActionResult<Equipo_return_Imei> GetEquipoPreciosEstatusByImei([FromQuery] string imei)
+        {
+            try
+            {
+                var result = AD.GetEquipoPreciosEstatusByImei(imei);
+
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPut]
         [Route("ModificarEstatusEquipo")]
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
@@ -139,6 +159,45 @@ namespace MVSystemApi.Controllers
             {
 
                 var result = AD.Numero_Registro();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }     
+         
+        [HttpGet]
+        [Route("GetEquipoUltimoIdTransferencia")]
+        public ActionResult<int> GetEquipoUltimoIdTransferencia()
+        {
+            try
+            {
+
+                var result = AD.GetEquipoUltimoIdTransferencia();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }     
+        [HttpPost]
+        [Route("PostEquipoTransferencia")]
+        public ActionResult<EquipoTransferencia> PostEquipoTransferencia([FromBody] EquipoTransferencia tranferencia)
+        {
+            try
+            {
+
+                var result = _accesoDatos.PostEquipoTransferencia(tranferencia);
                 if (result == null)
                 {
                     return NotFound();

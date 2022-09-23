@@ -19,7 +19,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("EquipoDisponibleReporte/GetEquiposDisponible")]
-        public IActionResult Index(EquipoReporte equipoReporte)
+        public IActionResult ReporteEquiposDisponibles(EquipoReporte equipoReporte)
         {
 
             equipoReporte.EquipoFilter.PageSize =int.MaxValue ;

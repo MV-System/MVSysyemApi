@@ -18,7 +18,7 @@
     <style>
         .p0 p {
             padding: 0%;
-            margin: 0%;
+            margin: 0%;                       
         }
     </style>
 </head>
@@ -66,17 +66,17 @@
                         foreach (var item in Model.EquipoDisponibles)
                         {
          
-                            <tr>
-                                <td>@item.Imei</td>
-                                <td>@item.Descripcion</td>
-                                <td>@item.PrecioPorMayor.ToString("N2")</td>
-                                <td>@item.PrecioDetalle.ToString("N2")</td>
-                                <td>@item.IsDesbloqueado</td>
-                                <td>@item.DescripcionAlmacen</td>
-                                <td>@item.Suplidor</td>
-                                <td>@item.ComisionDetalle</td>
-                                <td>@item.ComisionPorMayor</td>
-                            </tr>
+                                    <tr>
+                                        <td>@item.Imei</td>
+                                        <td>@item.Descripcion</td>
+                                        <td>@item.PrecioPorMayor.ToString("N2")</td>
+                                        <td>@item.PrecioDetalle.ToString("N2")</td>
+                                        <td>@item.IsDesbloqueado</td>
+                                        <td>@item.DescripcionAlmacen</td>
+                                        <td>@item.Suplidor</td>
+                                        <td>@item.ComisionDetalle</td>
+                                        <td>@item.ComisionPorMayor</td>
+                                    </tr>
                     
                         }
                     }

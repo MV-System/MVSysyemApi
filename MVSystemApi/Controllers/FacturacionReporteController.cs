@@ -21,7 +21,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("FacturacionReporte/PostFactura")]
-        public IActionResult Index(Facturas factura)
+        public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)
                 factura.IdCliente = _clientes_Negocio.Cliente_Insert(factura.Cliente).ID_Cliente;

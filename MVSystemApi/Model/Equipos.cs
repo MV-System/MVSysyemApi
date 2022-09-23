@@ -142,14 +142,14 @@ namespace MVSystemApi.Model
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
         public Int64? Telefono { get; set; }
-        public string? Suplidor { get; set; }
-        public string? Vendedor { get; set; }
-        public string? Imei { get; set; }
-        public string? FechaRegistro { get; set; }
-        public string? Modelo { get; set; }
-        public string? FechaInicio { get; set; }
-        public string? FechaFinal { get; set; }
-        public string? FechaInicioFactura { get; set; }
-        public string? FechaFinalFactura { get; set; }
+        public string Suplidor { get; set; }
+        public string Vendedor { get; set; }
+        public string Imei { get; set; }
+        public string FechaRegistro { get; set; }
+        public string Modelo { get; set; }
+        public string FechaInicio { get; set; }
+        public string FechaFinal { get; set; }
+        public string FechaInicioFactura { get; set; }
+        public string FechaFinalFactura { get; set; }
     }
 }

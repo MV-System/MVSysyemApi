@@ -97,6 +97,61 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet]
+        [Route("GetEquipoByImei")]
+        public ActionResult<Equipo_return_Imei> GetEquipoByImei([FromQuery] string imei)
+        {
+            try
+            {
+                var result = AD.GetEquipoByImei(imei);
+
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetEquipoPreciosEstatusByImei")]
+        public ActionResult<Equipo_return_Imei> GetEquipoPreciosEstatusByImei([FromQuery] string imei)
+        {
+            try
+            {
+                var result = AD.GetEquipoPreciosEstatusByImei(imei);
+
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut]
+        [Route("ModificarEstatusEquipo")]
+        public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
+        {
+            try
+            {
+                AD.ModificarEquipo(equipo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet]
         [Route("Numero_Registro")]
         public ActionResult<Equipos> Numero_Registro()
         {
@@ -115,25 +170,7 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }     
-        [HttpGet]
-        [Route("GetEquipoByImei")]
-        public ActionResult<EquipoImei> GetEquipoByImei(string imei)
-        {
-            try
-            {
-
-                var result = AD.GetEquipoByImei(imei);
-                if (result == null)
-                {
-                    return NotFound();
-                }
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }    
+         
         [HttpGet]
         [Route("GetEquipoUltimoIdTransferencia")]
         public ActionResult<int> GetEquipoUltimoIdTransferencia()

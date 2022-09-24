@@ -22,8 +22,10 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Suplidor_Combo();
         public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO);
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter);
-
         public DataTable GetEquipoByImei(string imei);
+        public void ModificarEquipo(Equipo_return_Imei imei);
+
+        internal DataTable GetEquipoPreciosEstatusByImei(string imei);
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
 

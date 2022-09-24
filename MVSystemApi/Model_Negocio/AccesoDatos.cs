@@ -940,6 +940,57 @@ namespace MVSystemApi.Model
 
 
         }
+
+        public DataTable GetEquipoPreciosEstatusByImei(string imei)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipo_Consulta_Imei";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@criterio", imei);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        } 
+        public void ModificarEquipo(Equipo_return_Imei equipo)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipo_Actualiza_Estado_y_precio";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", equipo.Imei);
+                cmd.Parameters.AddWithValue("@Id_Condicion", equipo.CondicionId);
+                cmd.Parameters.AddWithValue("@Costo_Equipo", equipo.CostoEquipo);
+                cmd.Parameters.AddWithValue("@Precio_Por_Mayor", equipo.PrecioPorMayor);
+                cmd.Parameters.AddWithValue("@Precio_Detalle", equipo.PrecioDetalle);
+                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.Parameters.AddWithValue("@Comision_Detalle", equipo.ComisionDetalle);
+                cmd.Parameters.AddWithValue("@Comision_Por_Mayor", equipo.ComisionMayor);
+                cmd.Parameters.AddWithValue("@Id_estado_Bloqueo", equipo.EstadoBloqueoId);
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public DataTable Marca_Insert(Marcas Marca)
         {
             cn.Open();

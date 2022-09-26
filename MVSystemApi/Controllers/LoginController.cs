@@ -7,6 +7,7 @@ namespace MVSystemApi.Controllers
 {
     [Route("login")]
     [ApiController]
+    [AllowAnonymous]
     public class LoginController : ControllerBase
     {
         private readonly SeguridadService _seguridadService;
@@ -18,7 +19,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("login")]
-        public async Task<IActionResult> Cliente_Insert([FromBody] UsuarioDTO usuario)
+        public async Task<IActionResult> Login([FromBody] UsuarioDTO usuario)
         {
             return Ok(await _seguridadService.Login(usuario));
         }

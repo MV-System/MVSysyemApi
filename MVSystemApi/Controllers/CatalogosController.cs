@@ -7,7 +7,6 @@ namespace MVSystemApi.Controllers
 {
     [Route("Catalogos")]
     [ApiController]
-    //[Authorize]
     public class CatalogosController : ControllerBase
     {
         private readonly Catalogos_Negocio AD;

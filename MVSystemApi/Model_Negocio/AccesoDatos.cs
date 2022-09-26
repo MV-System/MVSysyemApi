@@ -1,5 +1,6 @@
 ﻿using DTO;
 using MVSystemApi.Interfaz;
+using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
 
@@ -11,10 +12,10 @@ namespace MVSystemApi.Model
         public static int Numero_Registro;
         private readonly string _connectionStrings;
 
-        public AccesoDatos(string ConnectionStrings)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad)
         {
-            cn = new SqlConnection(ConnectionStrings);
-            _connectionStrings = ConnectionStrings;
+            _connectionStrings = seguridad.GetConnStringByUser(httpContextAccessor.HttpContext.User.Identity.Name);
+            cn = new SqlConnection(_connectionStrings);
         }
 
         public static Int64 codigo;

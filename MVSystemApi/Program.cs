@@ -36,9 +36,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     ClockSkew = TimeSpan.Zero,
 });
 
+builder.Services.AddHttpContextAccessor();
+
 
 #region CONFIGURE SERVICES
-builder.Services.AddTransient<IAccesoDatos>(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
+//(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
+builder.Services.AddTransient<IAccesoDatos, AccesoDatos>();
 builder.Services.AddScoped<Catalogos_Negocio>();
 builder.Services.AddScoped<Clientes_Negocio>();
 builder.Services.AddScoped<Vendedores_Negocio>();

@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 
@@ -6,6 +7,7 @@ namespace MVSystemApi.Controllers
 {
     [Route("Catalogos")]
     [ApiController]
+    //[Authorize]
     public class CatalogosController : ControllerBase
     {
         private readonly Catalogos_Negocio AD;

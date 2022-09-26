@@ -24,8 +24,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         {
             var claims = new[]
             {
-                new Claim("empresa", user.Empresa.ToString()),
-                new Claim("username", user.Login),
+                new Claim("name", user.Login),
             };
 
             var expires = DateTime.UtcNow.AddYears(2);

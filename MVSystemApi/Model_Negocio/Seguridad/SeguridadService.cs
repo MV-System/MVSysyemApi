@@ -14,7 +14,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         private readonly string ConnectionStrings;
         private readonly JwtService jwtService;
 
-        public SeguridadService(IConfiguration configuration , JwtService jwtService)
+        public SeguridadService(IConfiguration configuration, JwtService jwtService)
         {
             ConnectionStrings = configuration.GetConnectionString("MVSystemSeguridad");
             this.jwtService = jwtService;
@@ -27,7 +27,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             using var conn = new SqlConnection(ConnectionStrings);
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand("SELECT * FROM Usuarios WHERE [Login] = @userName AND [Estado] = 1", conn);
+            using var cmd = new SqlCommand("SELECT TOP (1) * FROM Usuarios WHERE [Login] = @userName AND [Estado] = 1", conn);
             cmd.Parameters.AddWithValue("@userName", usarioIn.UserName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
@@ -41,6 +41,22 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return jwtService.BuildToken(usuarioDb);
         }
 
+        public string GetConnStringByUser(string userName)
+        {
+            using var dataTable = new DataTable();
+
+            using var conn = new SqlConnection(ConnectionStrings);
+            conn.Open();
+
+            using var cmd = new SqlCommand("SELECT TOP (1) StringCon FROM Empresas E JOIN Usuarios U ON U.Empresa = E.ID_Empresa WHERE U.Login = @userName", conn);
+            cmd.Parameters.AddWithValue("@userName", userName);
+
+            using var dataAdapter = new SqlDataAdapter(cmd);
+            dataAdapter.Fill(dataTable);
+
+            var dataEnum = dataTable.AsEnumerable();
+            return dataEnum.First()["StringCon"].ToString();
+        }
     }
 
     public static class AES

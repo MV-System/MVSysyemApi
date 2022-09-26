@@ -81,12 +81,12 @@ app.UseHttpsRedirection();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Films}/{action=Index}/{id?}");
+    pattern: "{controller=Films}/{action=Index}/{id?}").RequireAuthorization();
 
-//app.UseEndpoints(endpoints =>
-//{
-//    endpoints.MapControllers();
-//});
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers().RequireAuthorization();
+});
 
 RotativaConfiguration.Setup((Microsoft.AspNetCore.Hosting.IHostingEnvironment)app.Environment);
 

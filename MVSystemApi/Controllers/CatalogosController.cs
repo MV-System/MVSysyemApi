@@ -1,6 +1,4 @@
-﻿using System;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 
 namespace MVSystemApi.Controllers
@@ -14,7 +12,7 @@ namespace MVSystemApi.Controllers
         {
             AD = _ad;
         }
-       
+
         [HttpGet()]
         [Route("Tipos_Pagos_Combo")]
         public ActionResult<Vendedores_Combo> Tipos_Pagos_Combo()
@@ -64,7 +62,7 @@ namespace MVSystemApi.Controllers
 
             try
             {
-                var lista = AD.GetAccesorios_Facturacion_Lista(Id_accesorio,id_sucu);
+                var lista = AD.GetAccesorios_Facturacion_Lista(Id_accesorio, id_sucu);
                 if (lista == null)
                 {
                     return NotFound();
@@ -200,7 +198,7 @@ namespace MVSystemApi.Controllers
 
                 return BadRequest(ex.Message);
             }
-            
+
         }
 
         [HttpGet]
@@ -210,7 +208,7 @@ namespace MVSystemApi.Controllers
             try
             {
                 var result = AD.GetTecnologia_Combo();
-                if (result==null)
+                if (result == null)
                 {
                     return NotFound();
                 }
@@ -221,7 +219,7 @@ namespace MVSystemApi.Controllers
 
                 return BadRequest(ex.Message);
             }
-        
+
         }
 
         [HttpGet]
@@ -239,7 +237,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);                
+                return BadRequest(ex.Message);
             }
         }
 
@@ -260,7 +258,7 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        
+
         }
         [HttpGet]
         [Route("Suplidor_Combo")]
@@ -361,6 +359,6 @@ namespace MVSystemApi.Controllers
         }
 
     }
-   
+
 
 }

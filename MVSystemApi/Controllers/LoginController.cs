@@ -1,6 +1,7 @@
 ﻿using DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MVSystemApi.Model_Negocio;
+using MVSystemApi.Model_Negocio.Seguridad;
 
 namespace MVSystemApi.Controllers
 {

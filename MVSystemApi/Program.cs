@@ -1,8 +1,12 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using MVSystemApi.Model_Negocio.Seguridad;
 using Rotativa.AspNetCore;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +24,18 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwtBearerOptions => jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+{
+    ValidateLifetime = true,
+    ValidateIssuer = true,
+    ValidateAudience = true,
+    ValidateIssuerSigningKey = true,
+    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+    ValidAudience = builder.Configuration["Jwt:Issuer"],
+    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+    ClockSkew = TimeSpan.Zero,
+});
+
 
 #region CONFIGURE SERVICES
 builder.Services.AddTransient<IAccesoDatos>(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
@@ -31,7 +47,8 @@ builder.Services.AddScoped<Accesorios_Negocio>();
 builder.Services.AddScoped<Equipos_Negocio>();
 builder.Services.AddScoped<Facturas_Negocio>();
 builder.Services.AddScoped<Marcas_Negocio>();
-builder.Services.AddScoped(_ => new SeguridadService(builder.Configuration.GetConnectionString("MVSystemSeguridad")));
+builder.Services.AddScoped<SeguridadService>();
+builder.Services.AddScoped<JwtService>();
 #endregion
 
 var app = builder.Build();
@@ -53,6 +70,10 @@ else
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT").AllowAnyHeader());
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseHttpsRedirection();
 
 app.MapControllerRoute(

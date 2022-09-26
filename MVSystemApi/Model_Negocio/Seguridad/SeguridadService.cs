@@ -1,4 +1,5 @@
-﻿using DTO;
+﻿using APIPartNet.DTOs.Auth;
+using DTO;
 using Microsoft.Data.SqlClient;
 using MVSystemApi.Model;
 using MVSystemApi.Model.Seguridad;
@@ -6,18 +7,20 @@ using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace MVSystemApi.Model_Negocio
+namespace MVSystemApi.Model_Negocio.Seguridad
 {
     public class SeguridadService
     {
         private readonly string ConnectionStrings;
+        private readonly JwtService jwtService;
 
-        public SeguridadService(string ConnectionStrings)
+        public SeguridadService(IConfiguration configuration , JwtService jwtService)
         {
-            this.ConnectionStrings = ConnectionStrings;
+            ConnectionStrings = configuration.GetConnectionString("MVSystemSeguridad");
+            this.jwtService = jwtService;
         }
 
-        public async Task<bool> Login(UsuarioDTO usarioIn)
+        public async Task<CredentialsDTO> Login(UsuarioDTO usarioIn)
         {
             using var dataTable = new DataTable();
 
@@ -31,10 +34,11 @@ namespace MVSystemApi.Model_Negocio
             dataAdapter.Fill(dataTable);
 
             var usuarioDb = AccesoDatos.BindList<Usuario>(dataTable).FirstOrDefault();
-            if (usuarioDb == default)
-                return false;
 
-            return usarioIn.Password == AES.Decrypt(usuarioDb.Password);
+            if (usuarioDb == default || usarioIn.Password != AES.Decrypt(usuarioDb.Password))
+                return default;
+
+            return jwtService.BuildToken(usuarioDb);
         }
 
     }
@@ -182,7 +186,7 @@ namespace MVSystemApi.Model_Negocio
         public static byte[] GetRandomBytes(int length)
         {
             byte[] ba = new byte[length];
-            RNGCryptoServiceProvider.Create().GetBytes(ba);
+            RandomNumberGenerator.Create().GetBytes(ba);
             return ba;
         }
 
@@ -191,7 +195,7 @@ namespace MVSystemApi.Model_Negocio
             byte[] ba = null;
 
             ba = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
-            return System.Security.Cryptography.SHA256.Create().ComputeHash(ba);
+            return SHA256.Create().ComputeHash(ba);
         }
 
         public static void Main()

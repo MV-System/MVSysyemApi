@@ -1,4 +1,5 @@
 ﻿using DTO;
+using Microsoft.Extensions.Caching.Memory;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
@@ -11,10 +12,22 @@ namespace MVSystemApi.Model
         private readonly SqlConnection cn;
         public static int Numero_Registro;
         private readonly string _connectionStrings;
+        private readonly IMemoryCache _memoryCache;
 
-        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache)
         {
-            _connectionStrings = seguridad.GetConnStringByUser(httpContextAccessor.HttpContext.User.Identity.Name);
+            _memoryCache = memoryCache;
+            var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
+
+            if (_memoryCache.TryGetValue(keyConnString, out var value))
+                _connectionStrings = (string)value;
+            else
+            {
+                var conn = seguridad.GetConnStringByUser(httpContextAccessor.HttpContext.User.Identity.Name);
+                _memoryCache.Set(keyConnString, conn, TimeSpan.FromMinutes(13));
+                _connectionStrings = conn;
+            }
+
             cn = new SqlConnection(_connectionStrings);
         }
 

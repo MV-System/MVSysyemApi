@@ -23,7 +23,7 @@ namespace MVSystemApi.Model
 
         public SqlDataReader GetAllAccesorios(string accesorio, int almacen)
         {
-            accesorio ="";
+            accesorio = "";
             try
             {
                 cn.Open();
@@ -514,7 +514,7 @@ namespace MVSystemApi.Model
         }
 
         #region Equipos
-        
+
         public DataTable Equipo_Insert(Equipos Equipo)
         {
             try
@@ -597,7 +597,7 @@ namespace MVSystemApi.Model
             }
 
         }
- 
+
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
         {
             try
@@ -690,14 +690,14 @@ namespace MVSystemApi.Model
 
                 throw ex;
             }
-        }     
+        }
         public SqlDataReader GetEquipoUltimoIdTransferencia()
         {
             try
             {
                 cn.Open();
                 SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Ultimo_Consulta", cn);
-    
+
                 SqlDataReader dr = cmd.ExecuteReader();
 
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -708,7 +708,7 @@ namespace MVSystemApi.Model
 
                 throw ex;
             }
-        }   
+        }
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try
@@ -815,7 +815,7 @@ namespace MVSystemApi.Model
 
         }
 
-        private static List<T> BindList<T>(DataTable dt) where T : new()
+        public static List<T> BindList<T>(DataTable dt) where T : new()
         {
             var props = typeof(T).GetProperties();
             var l = new List<T>();
@@ -962,7 +962,7 @@ namespace MVSystemApi.Model
             {
                 throw ex;
             }
-        } 
+        }
         public void ModificarEquipo(Equipo_return_Imei equipo)
         {
             cn.Open();

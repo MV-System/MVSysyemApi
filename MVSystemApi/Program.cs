@@ -31,6 +31,7 @@ builder.Services.AddScoped<Accesorios_Negocio>();
 builder.Services.AddScoped<Equipos_Negocio>();
 builder.Services.AddScoped<Facturas_Negocio>();
 builder.Services.AddScoped<Marcas_Negocio>();
+builder.Services.AddScoped(_ => new SeguridadService(builder.Configuration.GetConnectionString("MVSystemSeguridad")));
 #endregion
 
 var app = builder.Build();

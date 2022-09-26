@@ -19,8 +19,8 @@ namespace MVSystemApi.Model
             _memoryCache = memoryCache;
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
-            if (_memoryCache.TryGetValue(keyConnString, out var value))
-                _connectionStrings = (string)value;
+            if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
+                _connectionStrings = value;
             else
             {
                 var conn = seguridad.GetConnStringByUser(httpContextAccessor.HttpContext.User.Identity.Name);

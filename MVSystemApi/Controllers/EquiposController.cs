@@ -1,5 +1,6 @@
 ﻿using System;
 using DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
@@ -21,6 +22,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("Equipo_Insert")]
+        [Authorize("MNU_MANT_EQUIPOS")]
         public ActionResult<Equipos> Equipo_Insert([FromBody]Equipos Equipo)
         {
             try
@@ -40,7 +42,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet]
-        [Route("Equipo_Busca_Disponible")]
+        [Authorize("MNU_MANT_EQUIPOS")]
         public ActionResult<Equipos> Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {
             try
@@ -59,6 +61,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetEquiposVendidos")]
+        [Authorize("equiposVendidosMenu")]
         public ActionResult<EquipoVendido> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
         {
             try
@@ -78,6 +81,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetEquiposDisponible")]
+        [Authorize("MNU_CONS_EQUIPOS")]
         public ActionResult<EquipoDisponibleDTO> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
         {
             try
@@ -117,7 +121,8 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet]
-        [Route("GetEquipoPreciosEstatusByImei")]
+        [Route("GetEquipoPreciosEstatusByImei")] 
+        [Authorize("cambiarEstadoDeEquipoToolStripMenuItem")]
         public ActionResult<Equipo_return_Imei> GetEquipoPreciosEstatusByImei([FromQuery] string imei)
         {
             try
@@ -138,6 +143,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPut]
         [Route("ModificarEstatusEquipo")]
+        [Authorize("cambiarEstadoDeEquipoToolStripMenuItem")]
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
         {
             try
@@ -192,6 +198,7 @@ namespace MVSystemApi.Controllers
         }     
         [HttpPost]
         [Route("PostEquipoTransferencia")]
+        [Authorize("MNTransfiereEquipos")] 
         public ActionResult<EquipoTransferencia> PostEquipoTransferencia([FromBody] EquipoTransferencia tranferencia)
         {
             try

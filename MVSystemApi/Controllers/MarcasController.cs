@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using System;
@@ -22,6 +23,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Marca_Insert")]
+        [Authorize("MNU_MANT_MARCAS")]
         public ActionResult<Marcas> Marca_Insert([FromBody] Marcas Marca)
         {
 

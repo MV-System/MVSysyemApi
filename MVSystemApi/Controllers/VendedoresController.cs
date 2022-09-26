@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
@@ -18,6 +19,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Vendedor_Insert")]
+        [Authorize("MNU_MANT_VENDEDORES")]
         public ActionResult<Vendedor> Vendedor_Insert([FromBody] Vendedor Vendedor)
         {
             try

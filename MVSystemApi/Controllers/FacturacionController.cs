@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
@@ -24,6 +25,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost]
         [Route("PostFactura")]
+        [Authorize("MNU_MANT_FACTURACION")]
         public ActionResult<Facturas> PostFactura(Facturas factura)
         {
             try

@@ -27,7 +27,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 new Claim("name", user.Login),
             };
 
-            var expires = DateTime.UtcNow.AddYears(2);
+            var expires = DateTime.UtcNow.Date.AddDays(1);
+
             var tokenDescriptor = new JwtSecurityToken(_issuer, _issuer, claims, expires: expires, signingCredentials: _credentials);
             var token = new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
             return new CredentialsDTO(expires, token);

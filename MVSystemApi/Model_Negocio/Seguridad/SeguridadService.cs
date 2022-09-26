@@ -38,7 +38,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (usuarioDb == default || usarioIn.Password != AES.Decrypt(usuarioDb.Password))
                 return default;
 
-            return jwtService.BuildToken(usuarioDb);
+            var roles = await GetRoles(usuarioDb.Login);
+            return jwtService.BuildToken(usuarioDb, roles);
         }
 
         public string GetConnStringByUser(string userName)
@@ -56,6 +57,22 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
             var dataEnum = dataTable.AsEnumerable();
             return dataEnum.First()["StringCon"].ToString();
+        }
+
+        public async Task<List<string>> GetRoles(string userName)
+        {
+            using var dataTable = new DataTable();
+
+            using var conn = new SqlConnection(GetConnStringByUser(userName));
+            await conn.OpenAsync();
+
+            using var cmd = new SqlCommand("SELECT P.Nombre FROM [seg].[Usuarios] U JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso WHERE Login = @userName", conn);
+            cmd.Parameters.AddWithValue("@userName", userName);
+
+            using var dataAdapter = new SqlDataAdapter(cmd);
+            dataAdapter.Fill(dataTable);
+
+            return dataTable.AsEnumerable().Select(x => x["Nombre"].ToString()).ToList();
         }
     }
 

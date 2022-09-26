@@ -20,12 +20,16 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             _credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         }
 
-        public CredentialsDTO BuildToken(Usuario user)
+        public CredentialsDTO BuildToken(Usuario user, IEnumerable<string> roles)
         {
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim("name", user.Login),
+                new Claim(JwtRegisteredClaimNames.Name, user.Login),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
+
+            foreach (var rol in roles)
+                claims.Add(new Claim("role", rol));
 
             var expires = DateTime.UtcNow.Date.AddDays(1);
 

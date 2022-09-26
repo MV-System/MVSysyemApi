@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace MVSystemApi.Model
 {
- 
+
     public class Equipos
     {
         public string Imei { get; set; }
@@ -34,7 +30,29 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
 
     }
-   
+    public class EquipoImei
+    {
+        public int Id { get; set; }
+        public string Imei { get; set; }
+        public string Modelo { get; set; }
+        public string Mensaje { get; set; }
+        public string AlmacenSalida { get; set; }
+        public int AlmacenSalidaId { get; set; }
+            
+    }  
+    public class EquipoTransferencia
+    {
+        public int Id { get; set; }
+        public string Imei { get; set; }
+        public string? Modelo { get; set; }
+
+        public string AlmacenSalida { get; set; }
+        public string AlmacenDestino { get; set; }
+        public int CantidadEquipos { get; set; }
+        public string Usuario { get; set; }
+            
+    }   
+
     public class Equipo_return
     {
         public string Imei { get; internal set; }
@@ -46,23 +64,36 @@ namespace MVSystemApi.Model
         public string Mensaje { get;  set; }
     }
 
+
+    public class Equipo_return_Imei
+    {
+        public string Imei { get; set; }
+        public int CondicionId { get; set; }
+        public string CondicionDescripcion { get; set; }
+        public decimal CostoEquipo { get; set; }
+        public decimal ComisionDetalle { get; set; }
+        public decimal ComisionMayor { get; set; }
+        public decimal PrecioPorMayor { get; set; }
+        public decimal PrecioDetalle { get; set; }
+        public int EstadoBloqueoId { get; set; }
+        public string EstadoBloqueoDescripcion { get; set; }
+    }
+
     public class Numero_registro
     {
         public int Numero_Registro { get; internal set; }
 
     }
-    //public class EquipoFilter
-    //{
-    //    public int Almacen{ get; set; }
-    //    public string Modelo { get; set; }
-    //    public string Suplidor{ get; set; }
-    //    public string Vendedor{ get; set; }
-    //    public string FechaRegistro{ get; set; }
-    //    public int PageIndex{ get; set; }
-    //    public int PageSize{ get; set; }
-    //    public string FechaInicio{ get; set; }
-    //    public string FechaFinal{ get; set; }
-    //}
+    public class EquipoTranferenciaReporte
+    {
+        public int IdTransferencia { get; set; }
+        public List<EquipoTransferencia> EquipoTransferencias { get; set; }
+        public string FechaTransferencia { get; set; }
+
+        public string Usuario { get; set; }
+        public int Total { get; set; }
+    }
+
     public class EquipoVendidoReporte
     {
         public List<EquipoVendido> EquipoVendidos { get; set; }
@@ -111,14 +142,14 @@ namespace MVSystemApi.Model
         public int PageSize { get; set; }
         public int? Almacen { get; set; }
         public Int64? Telefono { get; set; }
-        public string? Suplidor { get; set; }
-        public string? Vendedor { get; set; }
-        public string? Imei { get; set; }
-        public string? FechaRegistro { get; set; }
-        public string? Modelo { get; set; }
-        public string? FechaInicio { get; set; }
-        public string? FechaFinal { get; set; }
-        public string? FechaInicioFactura { get; set; }
-        public string? FechaFinalFactura { get; set; }
+        public string Suplidor { get; set; }
+        public string Vendedor { get; set; }
+        public string Imei { get; set; }
+        public string FechaRegistro { get; set; }
+        public string Modelo { get; set; }
+        public string FechaInicio { get; set; }
+        public string FechaFinal { get; set; }
+        public string FechaInicioFactura { get; set; }
+        public string FechaFinalFactura { get; set; }
     }
 }

@@ -18,7 +18,7 @@
     <style>
         .p0 p {
             padding: 0%;
-            margin: 0%;
+            margin: 0%;                       
         }
     </style>
 </head>
@@ -36,14 +36,12 @@
         </p>
         <p> <b> RNC: 132307382 </b> </p>
     </div>
-
+     <div  class="container text-center">
+        <h1><b> REPORTE DE EQUIPOS DISPONIBLES</b></h1>
+    </div>
 
     <div class="container mt-5">
-        <div class="row text-center">
-            <b>
-              REPORTE DE EQUIPO
-            </b>
-        </div>
+ 
         <hr />
         <div class="row">
             <table class="table table-bordered">
@@ -68,17 +66,17 @@
                         foreach (var item in Model.EquipoDisponibles)
                         {
          
-                            <tr>
-                                <td>@item.Imei</td>
-                                <td>@item.Descripcion</td>
-                                <td>@item.PrecioPorMayor.ToString("N2")</td>
-                                <td>@item.PrecioDetalle.ToString("N2")</td>
-                                <td>@item.IsDesbloqueado</td>
-                                <td>@item.DescripcionAlmacen</td>
-                                <td>@item.Suplidor</td>
-                                <td>@item.ComisionDetalle</td>
-                                <td>@item.ComisionPorMayor</td>
-                            </tr>
+                                    <tr>
+                                        <td>@item.Imei</td>
+                                        <td>@item.Descripcion</td>
+                                        <td>@item.PrecioPorMayor.ToString("N2")</td>
+                                        <td>@item.PrecioDetalle.ToString("N2")</td>
+                                        <td>@item.IsDesbloqueado</td>
+                                        <td>@item.DescripcionAlmacen</td>
+                                        <td>@item.Suplidor</td>
+                                        <td>@item.ComisionDetalle</td>
+                                        <td>@item.ComisionPorMayor</td>
+                                    </tr>
                     
                         }
                     }
@@ -89,7 +87,7 @@
 
     <div class="container text-right">
  
-        <div><b>TOTAL EQUIPOS: @Model.EquipoDisponibles.Select(x=>x.TotalRecord).FirstOrDefault().ToString("D")</b></div>
+        <div><b>TOTAL EQUIPOS: @Model.EquipoDisponibles.Select(x=>x.TotalRecord).FirstOrDefault()</b></div>
     </div>
 
     <div class="container">

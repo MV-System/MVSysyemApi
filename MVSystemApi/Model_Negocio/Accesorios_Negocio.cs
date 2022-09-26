@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Data;
+using DTO;
 
 namespace MVSystemApi.Model
 {
@@ -51,6 +52,42 @@ namespace MVSystemApi.Model
                                }).ToList().FirstOrDefault();
 
                 return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        internal object GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
+        {
+            List<AccesorioDTO> accesorios = new List<AccesorioDTO>();
+            try
+            {
+              var dr = Ac.GetAllAccesorios(accesorio, almacen);
+
+                while (dr.Read())
+                {
+                    AccesorioDTO accesorioDTO = new AccesorioDTO
+                    {
+                        ID = Convert.ToInt32(dr["ID_Accesorio"]),
+                        Codigo = Convert.ToString(dr["Codigo"]),
+                        DescripcionAccesorio = Convert.ToString(dr["Descripcion_Accesorio"]),
+                        Modelo = Convert.ToString(dr["Modelo"]),
+                        Cantidad = Convert.ToInt32(dr["Cantidad"]),
+                        CostoEquipo = Convert.ToInt32(dr["Costo_Equipo"]),
+                        PrecioDetalle = Convert.ToInt32(dr["Precio_Detalle"]),
+                        PrecioPorMayor = Convert.ToInt32(dr["Precio_Por_Mayor"]),
+                        Disponible = Convert.ToString(dr["Disponible"]),
+                        DisponibleDetalle = Convert.ToString(dr["Nota"]),
+                        Almacen = Convert.ToString(dr["Almacen"]),
+                        CodBarra = Convert.ToInt32(dr["Codigo_Barra"]),
+                    };
+                    accesorios.Add(accesorioDTO);
+                }
+                
+                return accesorios.Skip((paginate.PageNumber - 1) * paginate.PageSize)
+                                 .Take(paginate.PageSize)
+                                 .ToList();
             }
             catch (Exception ex)
             {

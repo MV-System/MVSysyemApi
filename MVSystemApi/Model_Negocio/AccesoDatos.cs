@@ -610,6 +610,30 @@ namespace MVSystemApi.Model
                 throw ex;
             }
 
+        }  
+        public DataTable GetEquiposTranferidos()
+        {
+            try
+            {
+                cn.Open();
+
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new(cmd);
+                DataTable dt = new();
+
+                cmd.CommandText = "Proc_Equipo_Ultimos_Transferidos_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
         }
 
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)

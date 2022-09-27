@@ -153,6 +153,22 @@ namespace MVSystemApi.Model
                           }).ToList();
 
             return result;
+        }    
+        internal object GetEquiposTranferidos()
+        {
+            var result = (from dt in Ac.GetEquiposTranferidos().AsEnumerable()
+                          select new EquipoTransferencia
+                          {
+                              Id = Convert.ToInt32(dt["Id"]),
+                              Imei = Convert.ToString(dt["Imei"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),
+                              AlmacenDestino = Convert.ToString(dt["Almacen_Destino"]),
+                              CantidadEquipos = Convert.ToInt32(dt["Cantidad_Equipos"]),
+
+                          }).ToList();
+
+            return result;
         }  
         internal object GetEquipoUltimoIdTransferencia()
         {

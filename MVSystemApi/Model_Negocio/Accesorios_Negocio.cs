@@ -81,6 +81,7 @@ namespace MVSystemApi.Model
                         DisponibleDetalle = Convert.ToString(dr["Nota"]),
                         Almacen = Convert.ToString(dr["Almacen"]),
                         CodBarra = Convert.ToInt32(dr["Codigo_Barra"]),
+                        TotalInventario = Convert.ToInt32(dr["TotalInventario"])
                     };
                     accesorios.Add(accesorioDTO);
                 }

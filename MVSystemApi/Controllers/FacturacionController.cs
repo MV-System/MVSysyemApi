@@ -25,7 +25,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost]
         [Route("PostFactura")]
-        [Authorize("MNU_MANT_FACTURACION")]
+        [Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<Facturas> PostFactura(Facturas factura)
         {
             try

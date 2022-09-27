@@ -18,7 +18,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("Proveedor_Insert")]
-        [Authorize("MNU_MANT_SUPLIDORES")]
+        [Authorize(Roles = "MNU_MANT_SUPLIDORES")]
         public ActionResult Proveedor_Insert(Suplidor Suplidor)
         {
             try

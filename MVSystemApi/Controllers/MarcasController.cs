@@ -23,7 +23,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Marca_Insert")]
-        [Authorize("MNU_MANT_MARCAS")]
+        [Authorize(Roles = "MNU_MANT_MARCAS")]
         public ActionResult<Marcas> Marca_Insert([FromBody] Marcas Marca)
         {
 

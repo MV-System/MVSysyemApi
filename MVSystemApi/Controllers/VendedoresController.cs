@@ -19,7 +19,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Vendedor_Insert")]
-        [Authorize("MNU_MANT_VENDEDORES")]
+        [Authorize(Roles = "MNU_MANT_VENDEDORES")]
         public ActionResult<Vendedor> Vendedor_Insert([FromBody] Vendedor Vendedor)
         {
             try
@@ -33,7 +33,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-               return BadRequest(ex.Message);
+                return BadRequest(ex.Message);
             }
         }
     }

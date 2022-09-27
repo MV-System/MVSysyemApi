@@ -36,5 +36,24 @@ namespace MVSystemApi.Model_Negocio
                 throw ex;
             }
         }
+        internal object Modelo_Insert(Modelos Modelo)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Modelo_Insert(Modelo).AsEnumerable()
+                               select new Modelos
+                               {
+                                   ID_Marca = Convert.ToInt32(dt["ID_Modelo"]),
+                                   Descripcion = Convert.ToString(dt["Descripcion"]),
+                                   Mensaje = Convert.ToString(dt["Mensaje"]),
+                               }).ToList().FirstOrDefault();
+
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }

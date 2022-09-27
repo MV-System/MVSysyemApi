@@ -78,6 +78,7 @@ namespace MVSystemApi.Interfaz
 
         #region // ------------- Marcas --------------------------
         DataTable Marca_Insert(Marcas Marca);
+        DataTable Modelo_Insert(Modelos Modelo);
         DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente);
         DataTable AsumeITBIS();
 

@@ -1026,6 +1026,28 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public DataTable Modelo_Insert(Modelos Modelo)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Modelos_Insert";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Marca", Modelo.ID_Marca);
+                cmd.Parameters.AddWithValue("@Descripcion", Modelo.Descripcion);
+                cmd.Parameters.AddWithValue("@Usuario", Modelo.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal)
         {

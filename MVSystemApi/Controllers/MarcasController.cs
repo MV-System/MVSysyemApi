@@ -42,5 +42,26 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost()]
+        [Route("Modelo_Insert")]
+        [Authorize("MNU_MANT_MODELOS")]
+        public ActionResult<Marcas> Modelo_Insert([FromBody] Modelos Modelo)
+        {
+
+            try
+            {
+                var lista = AD.Modelo_Insert(Modelo);
+                if (lista == null)
+                {
+                    return NotFound();
+                }
+                return Ok(lista);
+            }
+
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

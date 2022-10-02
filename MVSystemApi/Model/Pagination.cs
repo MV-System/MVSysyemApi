@@ -27,16 +27,7 @@ namespace MVSystemApi.Model
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
             AddRange(items);
         }
-        //public bool PrevousPage
-        //{
-        //    get { 
-        //        return PageIndex > 1;
-        //    }
-        //}
-        //public bool NextPage
-        //{
-        //    get { return PageIndex < TotalPages; }
-        //}
+
         public static  Pagination<T> GetPagination(List<T> source, int pageNumber, int pageSize)
         {
 

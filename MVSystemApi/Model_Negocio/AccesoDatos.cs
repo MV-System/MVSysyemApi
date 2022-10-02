@@ -761,6 +761,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
                 cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
                 cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
+                cmd.Parameters.AddWithValue("@Modelo", tranferencia.Modelo);
                 cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
                 cmd.Parameters.AddWithValue("@Usuario", "Xavier");
                 //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);

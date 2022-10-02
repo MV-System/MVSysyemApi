@@ -159,7 +159,7 @@ namespace MVSystemApi.Model
             var result = (from dt in Ac.GetEquiposTranferidos().AsEnumerable()
                           select new EquipoTransferencia
                           {
-                              Id = Convert.ToInt32(dt["Id"]),
+                              Id = Convert.ToInt32(dt["Id_Transferencia"]),
                               Imei = Convert.ToString(dt["Imei"]),
                               Modelo = Convert.ToString(dt["Modelo"]),
                               AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),

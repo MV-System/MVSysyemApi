@@ -62,7 +62,7 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetEquiposVendidos")]
         [Authorize(Roles = "equiposVendidosMenu")]
-        public ActionResult<EquipoVendido> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
+        public ActionResult<List<EquipoVendido>> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetEquiposDisponible")]
         [Authorize(Roles = "MNU_CONS_EQUIPOS")]
-        public ActionResult<EquipoDisponibleDTO> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
+        public ActionResult<List<EquipoDisponibleDTO>> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
         {
             try
             {

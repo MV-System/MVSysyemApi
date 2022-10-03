@@ -37,10 +37,11 @@ namespace MVSystemApi.Model
                               Modelo = Convert.ToString(dt["Modelo"]),
                               precioPorMayor = Convert.ToDecimal(dt["precioPorMayor"]),
                               PrecioDetalle = Convert.ToDecimal(dt["PrecioDetalle"]),
+                              Disponible = Convert.ToString(dt["Disponible"]),
                               Disponible_Detalle = Convert.ToString(dt["Nota_Adicional"]),
                               Mensaje = Convert.ToString(dt["Mensaje"])
 
-                          }).ToList();
+                          }).ToList().FirstOrDefault();
 
 
             return result;
@@ -190,6 +191,15 @@ namespace MVSystemApi.Model
         internal void ModificarEquipo(Equipo_return_Imei equipo)
         {
             Ac.ModificarEquipo(equipo);
+        }
+
+        internal void InsertarEquipoRecibido(EquipoRecepcion equipo)
+        {
+            Ac.InsertarEquipoRecibido(equipo);
+        }
+        internal void EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
+        {
+            Ac.EquipoEstadoActualiza(dataActualizar);
         }
     }
 }

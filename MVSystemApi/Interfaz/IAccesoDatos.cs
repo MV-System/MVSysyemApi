@@ -24,6 +24,8 @@ namespace MVSystemApi.Interfaz
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter);
         public DataTable GetEquipoByImei(string imei);
         public void ModificarEquipo(Equipo_return_Imei imei);
+        public void InsertarEquipoRecibido(EquipoRecepcion equipo);
+        public void EquipoEstadoActualiza(EquipoEstadoUpdate equipo);
 
         internal DataTable GetEquipoPreciosEstatusByImei(string imei);
 

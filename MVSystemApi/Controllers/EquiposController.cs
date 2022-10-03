@@ -203,13 +203,8 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-
-                var result = _accesoDatos.PostEquipoTransferencia(tranferencia);
-                if (result == null)
-                {
-                    return NotFound();
-                }
-                return Ok(result);
+               _accesoDatos.PostEquipoTransferencia(tranferencia);
+                return Ok();
             }
             catch (Exception ex)
             {

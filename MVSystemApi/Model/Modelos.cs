@@ -11,6 +11,7 @@ namespace MVSystemApi.Model
         public int ID_Modelo { get; set; }
         public string Descripcion { get; set; }
         public string Usuario { get; set; }
+        public string Estado { get; set; }
         public string Mensaje { get; set; }
     }
 }

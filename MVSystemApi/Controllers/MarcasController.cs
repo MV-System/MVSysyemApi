@@ -44,7 +44,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost()]
         [Route("Modelo_Insert")]
-        [Authorize("MNU_MANT_MODELOS")]
+        //[Authorize("MNU_MANT_MODELOS")]
         public ActionResult<Marcas> Modelo_Insert([FromBody] Modelos Modelo)
         {
 

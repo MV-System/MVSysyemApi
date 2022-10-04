@@ -1036,6 +1036,7 @@ namespace MVSystemApi.Model
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@ID_Marca", Modelo.ID_Marca);
                 cmd.Parameters.AddWithValue("@Descripcion", Modelo.Descripcion);
+                cmd.Parameters.AddWithValue("@Estado", Modelo.Estado);
                 cmd.Parameters.AddWithValue("@Usuario", Modelo.Usuario);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();

@@ -151,7 +151,7 @@ namespace MVSystemApi.Model
                               AlmacenSalida = Convert.ToString(dt["Almacen"]),
                               AlmacenSalidaId = Convert.ToInt32(dt["ID_Almacen"]),
 
-                          }).ToList();
+                          }).ToList().FirstOrDefault();
 
             return result;
         }  

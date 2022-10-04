@@ -60,6 +60,7 @@ namespace MVSystemApi.Model
         public string Marca { get; internal set; }
         public decimal precioPorMayor { get; set; }
         public decimal PrecioDetalle { get; set; }
+        public string Disponible { get; set; }
         public string Disponible_Detalle { get; set; }
         public string Mensaje { get;  set; }
     }
@@ -79,6 +80,28 @@ namespace MVSystemApi.Model
         public string EstadoBloqueoDescripcion { get; set; }
     }
 
+    public class EquipoRecepcion
+    {
+        public string Nombres { get; set; }
+        public string Apellidos { get; set; }
+        public string Cedula { get; set; }
+        public string Telefono { get; set; }
+        public string ImeiEntrada { get; set; }
+        public decimal PrecioImeiEntra { get; set; }
+        public int IDModelo { get; set; }
+        public int IDCondicion { get; set; }
+        public string ImeiSale { get; set; }
+        public string Nota { get; set; }
+    }
+
+
+    public class EquipoEstadoUpdate
+    {
+        public string Imei { get; set; }
+        public string Disponible { get; set; }
+        public string NotaAdicional { get; set; }
+        public string Usuario { get; set; }
+    }
     public class Numero_registro
     {
         public int Numero_Registro { get; internal set; }

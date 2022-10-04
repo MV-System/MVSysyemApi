@@ -62,7 +62,7 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetEquiposVendidos")]
         [Authorize(Roles = "equiposVendidosMenu")]
-        public ActionResult<EquipoVendido> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
+        public ActionResult<List<EquipoVendido>> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetEquiposDisponible")]
         [Authorize(Roles = "MNU_CONS_EQUIPOS")]
-        public ActionResult<EquipoDisponibleDTO> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
+        public ActionResult<List<EquipoDisponibleDTO>> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
         {
             try
             {
@@ -144,11 +144,44 @@ namespace MVSystemApi.Controllers
         [HttpPut]
         [Route("ModificarEstatusEquipo")]
         [Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
+
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
         {
             try
             {
                 AD.ModificarEquipo(equipo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("RecepcionEquipos")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        public ActionResult RecibirEquipo(EquipoRecepcion equipo)
+        {
+            try
+            {
+                AD.InsertarEquipoRecibido(equipo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("EstadoActualiza")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        public ActionResult EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
+        {
+            try
+            {
+                AD.EquipoEstadoActualiza(dataActualizar);
                 return Ok();
             }
             catch (Exception ex)
@@ -203,13 +236,8 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-
-                var result = _accesoDatos.PostEquipoTransferencia(tranferencia);
-                if (result == null)
-                {
-                    return NotFound();
-                }
-                return Ok(result);
+               _accesoDatos.PostEquipoTransferencia(tranferencia);
+                return Ok();
             }
             catch (Exception ex)
             {

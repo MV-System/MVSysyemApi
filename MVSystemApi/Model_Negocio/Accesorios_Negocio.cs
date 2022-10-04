@@ -1,8 +1,6 @@
-﻿using MVSystemApi.Interfaz;
-using System;
-using System.Linq;
+﻿using DTO;
+using MVSystemApi.Interfaz;
 using System.Data;
-using DTO;
 
 namespace MVSystemApi.Model
 {
@@ -58,7 +56,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        internal object GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
+        internal Pagination<AccesorioDTO> GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
         {
             List<AccesorioDTO> accesorios = new List<AccesorioDTO>();
             try
@@ -81,13 +79,14 @@ namespace MVSystemApi.Model
                         DisponibleDetalle = Convert.ToString(dr["Nota"]),
                         Almacen = Convert.ToString(dr["Almacen"]),
                         CodBarra = Convert.ToInt32(dr["Codigo_Barra"]),
+                        TotalInventario = Convert.ToInt32(dr["TotalInventario"])
                     };
                     accesorios.Add(accesorioDTO);
                 }
-                
-                return accesorios.Skip((paginate.PageNumber - 1) * paginate.PageSize)
-                                 .Take(paginate.PageSize)
-                                 .ToList();
+                return Pagination<AccesorioDTO>.GetPagination(accesorios, paginate.PageNumber, paginate.PageSize);
+                //return accesorios.Skip((paginate.PageNumber - 1) * paginate.PageSize)
+                //                 .Take(paginate.PageSize)
+                //                 .ToList();
             }
             catch (Exception ex)
             {

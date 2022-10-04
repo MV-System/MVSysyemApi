@@ -37,10 +37,11 @@ namespace MVSystemApi.Model
                               Modelo = Convert.ToString(dt["Modelo"]),
                               precioPorMayor = Convert.ToDecimal(dt["precioPorMayor"]),
                               PrecioDetalle = Convert.ToDecimal(dt["PrecioDetalle"]),
+                              Disponible = Convert.ToString(dt["Disponible"]),
                               Disponible_Detalle = Convert.ToString(dt["Nota_Adicional"]),
                               Mensaje = Convert.ToString(dt["Mensaje"])
 
-                          }).ToList();
+                          }).ToList().FirstOrDefault();
 
 
             return result;
@@ -150,6 +151,22 @@ namespace MVSystemApi.Model
                               AlmacenSalida = Convert.ToString(dt["Almacen"]),
                               AlmacenSalidaId = Convert.ToInt32(dt["ID_Almacen"]),
 
+                          }).ToList().FirstOrDefault();
+
+            return result;
+        }    
+        internal object GetEquiposTranferidos()
+        {
+            var result = (from dt in Ac.GetEquiposTranferidos().AsEnumerable()
+                          select new EquipoTransferencia
+                          {
+                              Id = Convert.ToInt32(dt["Id_Transferencia"]),
+                              Imei = Convert.ToString(dt["Imei"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),
+                              AlmacenDestino = Convert.ToString(dt["Almacen_Destino"]),
+                              CantidadEquipos = Convert.ToInt32(dt["Cantidad_Equipos"]),
+
                           }).ToList();
 
             return result;
@@ -190,6 +207,15 @@ namespace MVSystemApi.Model
         internal void ModificarEquipo(Equipo_return_Imei equipo)
         {
             Ac.ModificarEquipo(equipo);
+        }
+
+        internal void InsertarEquipoRecibido(EquipoRecepcion equipo)
+        {
+            Ac.InsertarEquipoRecibido(equipo);
+        }
+        internal void EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
+        {
+            Ac.EquipoEstadoActualiza(dataActualizar);
         }
     }
 }

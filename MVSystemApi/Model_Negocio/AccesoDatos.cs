@@ -610,6 +610,30 @@ namespace MVSystemApi.Model
                 throw ex;
             }
 
+        }  
+        public DataTable GetEquiposTranferidos()
+        {
+            try
+            {
+                cn.Open();
+
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new(cmd);
+                DataTable dt = new();
+
+                cmd.CommandText = "Proc_Equipo_Ultimos_Transferidos_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
         }
 
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
@@ -723,7 +747,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        public void PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try
             {
@@ -737,6 +761,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
                 cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
                 cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
+                cmd.Parameters.AddWithValue("@Modelo", tranferencia.Modelo);
                 cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
                 cmd.Parameters.AddWithValue("@Usuario", "Xavier");
                 //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
@@ -744,7 +769,6 @@ namespace MVSystemApi.Model
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();
-                return dt;
             }
             catch (Exception ex)
             {
@@ -996,6 +1020,59 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Comision_Detalle", equipo.ComisionDetalle);
                 cmd.Parameters.AddWithValue("@Comision_Por_Mayor", equipo.ComisionMayor);
                 cmd.Parameters.AddWithValue("@Id_estado_Bloqueo", equipo.EstadoBloqueoId);
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void InsertarEquipoRecibido(EquipoRecepcion equipo)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Recepcion_Equipos_Insert";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Nombres", equipo.Nombres);
+                cmd.Parameters.AddWithValue("@Apellidos", equipo.Apellidos);
+                cmd.Parameters.AddWithValue("@Cedula", equipo.Cedula);
+                cmd.Parameters.AddWithValue("@Telefono", equipo.Telefono);
+                cmd.Parameters.AddWithValue("@Imei_Entrada", equipo.ImeiEntrada);
+                cmd.Parameters.AddWithValue("@Precio_Imei_Entra", equipo.PrecioImeiEntra);
+                cmd.Parameters.AddWithValue("@ID_Modelo", equipo.IDModelo);
+                cmd.Parameters.AddWithValue("@ID_Condicion", equipo.IDCondicion);
+                cmd.Parameters.AddWithValue("@Imei_Sale", equipo.ImeiSale);
+                cmd.Parameters.AddWithValue("@Nota", equipo.Nota);
+                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipos_Actualiza_Disponible";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", dataActualizar.Imei);
+                cmd.Parameters.AddWithValue("@Disponible", dataActualizar.Disponible);
+                cmd.Parameters.AddWithValue("@Nota_Adicional", dataActualizar.NotaAdicional);
+                cmd.Parameters.AddWithValue("@Usuario",dataActualizar.Usuario) ;
                 cmd.ExecuteNonQuery();
                 cn.Close();
             }

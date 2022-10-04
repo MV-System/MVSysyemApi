@@ -48,7 +48,7 @@ namespace MVSystemApi.Controllers
         [Route("EquipoTransferenciaReporte")]
         public IActionResult EquipoTransferenciaReporte(EquipoTranferenciaReporte equipoReporte)
         {
-
+            equipoReporte.EquipoTransferencias = (List<EquipoTransferencia>)_equipos_Negocio.GetEquiposTranferidos();
             if (equipoReporte == null)
                 return NotFound();
             return new ViewAsPdf(equipoReporte);

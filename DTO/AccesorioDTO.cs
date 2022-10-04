@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MVSystemApi.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,8 +7,7 @@ using System.Threading.Tasks;
 
 namespace DTO
 {
-    public class AccesorioDTO
-    {
+    public class AccesorioDTO { 
         public Int64 ID { get; set; }
         public string Modelo { get; set; }
         public string Codigo { get; set; }
@@ -20,6 +20,7 @@ namespace DTO
         public string DisponibleDetalle { get; set; }
         public Int64 CodBarra { get; set; }
         public string Almacen { get; set; }
+        public decimal TotalInventario { get; set; }
 
     }
 }

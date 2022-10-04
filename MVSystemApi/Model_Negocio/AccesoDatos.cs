@@ -747,7 +747,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        public void PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try
             {
@@ -769,7 +769,6 @@ namespace MVSystemApi.Model
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();
-                return dt;
             }
             catch (Exception ex)
             {

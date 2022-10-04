@@ -1030,6 +1030,59 @@ namespace MVSystemApi.Model
             }
         }
 
+        public void InsertarEquipoRecibido(EquipoRecepcion equipo)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Recepcion_Equipos_Insert";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Nombres", equipo.Nombres);
+                cmd.Parameters.AddWithValue("@Apellidos", equipo.Apellidos);
+                cmd.Parameters.AddWithValue("@Cedula", equipo.Cedula);
+                cmd.Parameters.AddWithValue("@Telefono", equipo.Telefono);
+                cmd.Parameters.AddWithValue("@Imei_Entrada", equipo.ImeiEntrada);
+                cmd.Parameters.AddWithValue("@Precio_Imei_Entra", equipo.PrecioImeiEntra);
+                cmd.Parameters.AddWithValue("@ID_Modelo", equipo.IDModelo);
+                cmd.Parameters.AddWithValue("@ID_Condicion", equipo.IDCondicion);
+                cmd.Parameters.AddWithValue("@Imei_Sale", equipo.ImeiSale);
+                cmd.Parameters.AddWithValue("@Nota", equipo.Nota);
+                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipos_Actualiza_Disponible";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", dataActualizar.Imei);
+                cmd.Parameters.AddWithValue("@Disponible", dataActualizar.Disponible);
+                cmd.Parameters.AddWithValue("@Nota_Adicional", dataActualizar.NotaAdicional);
+                cmd.Parameters.AddWithValue("@Usuario",dataActualizar.Usuario) ;
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public DataTable Marca_Insert(Marcas Marca)
         {
             cn.Open();

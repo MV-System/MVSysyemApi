@@ -144,11 +144,44 @@ namespace MVSystemApi.Controllers
         [HttpPut]
         [Route("ModificarEstatusEquipo")]
         [Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
+
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
         {
             try
             {
                 AD.ModificarEquipo(equipo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("RecepcionEquipos")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        public ActionResult RecibirEquipo(EquipoRecepcion equipo)
+        {
+            try
+            {
+                AD.InsertarEquipoRecibido(equipo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("EstadoActualiza")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        public ActionResult EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
+        {
+            try
+            {
+                AD.EquipoEstadoActualiza(dataActualizar);
                 return Ok();
             }
             catch (Exception ex)

@@ -43,7 +43,7 @@ namespace MVSystemApi.Model_Negocio
                 var solicit = (from dt in AA.Modelo_Insert(Modelo).AsEnumerable()
                                select new Modelos
                                {
-                                   ID_Marca = Convert.ToInt32(dt["ID_Modelo"]),
+                                   ID_Modelo = Convert.ToInt32(dt["ID_Modelo"]),
                                    Descripcion = Convert.ToString(dt["Descripcion"]),
                                    Mensaje = Convert.ToString(dt["Mensaje"]),
                                }).ToList().FirstOrDefault();

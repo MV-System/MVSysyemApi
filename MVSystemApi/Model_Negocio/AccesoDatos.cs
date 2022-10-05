@@ -723,8 +723,6 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@imei", imei);
                 SqlDataReader dr = cmd.ExecuteReader();
 
-                //cmd.ExecuteNonQuery();
-                cn.Close();
                 return dr;
             }
             catch (Exception ex)

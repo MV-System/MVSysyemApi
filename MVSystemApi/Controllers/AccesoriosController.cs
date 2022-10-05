@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
+using Newtonsoft.Json;
 
 namespace MVSystemApi.Controllers
 {
@@ -55,12 +56,13 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet("GetAllAccesorios")]
-        public ActionResult<Accesorio> GetAllAccesorios([FromQuery] Paginate paginate, string accesorio, int almacen)
+        public ActionResult<List<Accesorio>> GetAllAccesorios([FromQuery] Paginate paginate, string accesorio, int almacen)
         {
 
             try
             {
                 var lista = AD.GetAllAccesorios(paginate,accesorio,almacen);
+
                 if (lista == null)
                 {
                     return NotFound();

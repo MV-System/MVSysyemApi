@@ -102,7 +102,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetEquipoByImei")]
-        public ActionResult<Equipo_return_Imei> GetEquipoByImei([FromQuery] string imei)
+        public ActionResult<EquipoTransferencia> GetEquipoByImei([FromQuery] string imei)
         {
             try
             {

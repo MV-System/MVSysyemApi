@@ -77,12 +77,7 @@ namespace MVSystemApi.Model
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
                               TotalInventario = Convert.ToDecimal(dt["TotalInventario"])
                           }).ToList();
-
-
-
-
             return result;
-            //return Pagination<EquipoDisponibleDTO>.GetPagination(result, paginate.PageNumber, paginate.PageSize);
         }
         internal object GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
         {
@@ -138,21 +133,26 @@ namespace MVSystemApi.Model
 
             return result;
         }
+        /// <summary>
+        /// Return a equipo by Imei
+        /// </summary>
+        /// <param name="imei"></param>
+        /// <returns></returns>
         internal object GetEquipoByImei(string imei)
         {
-            var result = (from dt in Ac.GetEquipoByImei(imei).AsEnumerable()
-                          select new EquipoImei
-                          {
-                              Id = Convert.ToInt32(dt["Id"]),
-                              Imei = Convert.ToString(dt["imei"]),
-                              Modelo = Convert.ToString(dt["Modelo"]),
-                              Mensaje = Convert.ToString(dt["Mensaje"]),
-                              AlmacenSalida = Convert.ToString(dt["Almacen"]),
-                              AlmacenSalidaId = Convert.ToInt32(dt["ID_Almacen"]),
+            EquipoImei equipo = new EquipoImei();
+            var dr = Ac.GetEquipoByImei(imei);
+            while (dr.Read())
+            {
+                equipo.Id = Convert.ToInt32(dr["Id"]);
+                equipo.Imei = Convert.ToString(dr["imei"]);
+                equipo.Modelo = Convert.ToString(dr["Modelo"]);
+                equipo.Mensaje = Convert.ToString(dr["Mensaje"]);
+                equipo.AlmacenSalida = Convert.ToString(dr["Almacen"]);
+                equipo.AlmacenSalidaId = Convert.ToInt32(dr["ID_Almacen"]);
+            }
 
-                          }).ToList();
-
-            return result;
+            return equipo;
         }    
         internal object GetEquiposTranferidos()
         {

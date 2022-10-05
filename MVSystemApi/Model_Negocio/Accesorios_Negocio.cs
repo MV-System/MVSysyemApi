@@ -56,37 +56,31 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        internal Pagination<AccesorioDTO> GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
+        internal object GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
         {
-            List<AccesorioDTO> accesorios = new List<AccesorioDTO>();
             try
             {
-              var dr = Ac.GetAllAccesorios(accesorio, almacen);
-
-                while (dr.Read())
-                {
-                    AccesorioDTO accesorioDTO = new AccesorioDTO
-                    {
-                        ID = Convert.ToInt32(dr["ID_Accesorio"]),
-                        Codigo = Convert.ToString(dr["Codigo"]),
-                        DescripcionAccesorio = Convert.ToString(dr["Descripcion_Accesorio"]),
-                        Modelo = Convert.ToString(dr["Modelo"]),
-                        Cantidad = Convert.ToInt32(dr["Cantidad"]),
-                        CostoEquipo = Convert.ToInt32(dr["Costo_Equipo"]),
-                        PrecioDetalle = Convert.ToInt32(dr["Precio_Detalle"]),
-                        PrecioPorMayor = Convert.ToInt32(dr["Precio_Por_Mayor"]),
-                        Disponible = Convert.ToString(dr["Disponible"]),
-                        DisponibleDetalle = Convert.ToString(dr["Nota"]),
-                        Almacen = Convert.ToString(dr["Almacen"]),
-                        CodBarra = Convert.ToInt32(dr["Codigo_Barra"]),
-                        TotalInventario = Convert.ToInt32(dr["TotalInventario"])
-                    };
-                    accesorios.Add(accesorioDTO);
-                }
-                return Pagination<AccesorioDTO>.GetPagination(accesorios, paginate.PageNumber, paginate.PageSize);
-                //return accesorios.Skip((paginate.PageNumber - 1) * paginate.PageSize)
-                //                 .Take(paginate.PageSize)
-                //                 .ToList();
+                var resp = (from dt in Ac.GetAllAccesorios(paginate, accesorio, almacen).AsEnumerable()
+                          select new AccesorioDTO
+                          {
+                              ID = Convert.ToInt32(dt["id"]),
+                              Codigo = Convert.ToString(dt["Codigo"]),
+                              DescripcionAccesorio = Convert.ToString(dt["Descripcion_Accesorio"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              Cantidad = Convert.ToInt32(dt["Cantidad"]),
+                              CostoEquipo = Convert.ToInt32(dt["Costo_Equipo"]),
+                              PrecioDetalle = Convert.ToInt32(dt["Precio_Detalle"]),
+                              PrecioPorMayor = Convert.ToInt32(dt["Precio_Por_Mayor"]),
+                              Disponible = Convert.ToString(dt["Disponible"]),
+                              DisponibleDetalle = Convert.ToString(dt["Nota"]),
+                              Almacen = Convert.ToString(dt["Almacen"]),
+                              CodBarra = Convert.ToInt32(dt["Codigo_Barra"]),
+                              TotalInventario = Convert.ToInt32(dt["TotalInventario"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"])
+                          }).ToList();
+                return resp;
             }
             catch (Exception ex)
             {

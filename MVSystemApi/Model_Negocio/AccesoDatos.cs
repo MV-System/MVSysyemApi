@@ -35,18 +35,25 @@ namespace MVSystemApi.Model
 
         #region Accesorios
 
-        public SqlDataReader GetAllAccesorios(string accesorio, int almacen)
+        public DataTable GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
         {
-            accesorio = "";
             try
             {
                 cn.Open();
-                SqlCommand cmd = new SqlCommand("Proc_Accesorios_Consulta", cn);
-                cmd.Parameters.AddWithValue("@Accesorio", accesorio);
-                cmd.Parameters.AddWithValue("@Almacen", almacen);
-                SqlDataReader dr = cmd.ExecuteReader();
+                SqlCommand cmd = new SqlCommand("Accesorios_Consulta", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cmd.CommandType = CommandType.StoredProcedure;
-                return dr;
+                cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
+                cmd.Parameters.AddWithValue("@Accesorio", accesorio);
+                cmd.Parameters.AddWithValue("@Criterio", almacen);
+
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+
+                return dt;
             }
             catch (Exception ex)
             {
@@ -706,22 +713,19 @@ namespace MVSystemApi.Model
         }
 
 
-        public DataTable GetEquipoByImei(string imei)
+        public SqlDataReader GetEquipoByImei(string imei)
         {
             try
             {
                 cn.Open();
                 SqlCommand cmd = new SqlCommand("Proc_Equipo_Imei_Transfiere_Consulta", cn);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("imei", imei);
+                cmd.Parameters.AddWithValue("@imei", imei);
+                SqlDataReader dr = cmd.ExecuteReader();
 
-                cmd.ExecuteNonQuery();
-                da.Fill(dt);
+                //cmd.ExecuteNonQuery();
                 cn.Close();
-                return dt;
+                return dr;
             }
             catch (Exception ex)
             {
@@ -747,14 +751,13 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        public void PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try
             {
                 cn.Open();
+
                 SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Guarda", cn);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.Id);
@@ -767,9 +770,7 @@ namespace MVSystemApi.Model
                 //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
 
                 cmd.ExecuteNonQuery();
-                da.Fill(dt);
                 cn.Close();
-                return dt;
             }
             catch (Exception ex)
             {

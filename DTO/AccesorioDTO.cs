@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace DTO
 {
-    public class AccesorioDTO { 
+    public class AccesorioDTO: PagingDTO
+    { 
         public Int64 ID { get; set; }
         public string Modelo { get; set; }
         public string Codigo { get; set; }

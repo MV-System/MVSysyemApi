@@ -76,6 +76,7 @@ namespace MVSystemApi.Interfaz
         DataTable Equipo_Consulta_Ultimo_Registro();
         public DataTable GetAllAccesorios(Paginate paginate,string accesorio, int almacen);
 
+        public DataTable GetAccesorioById(int id);
 
         #endregion
 

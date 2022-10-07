@@ -34,6 +34,37 @@ namespace MVSystemApi.Model
         public static Int64 codigo;
 
         #region Accesorios
+        /// <summary>
+        /// Return a equipo by Imei    
+        /// Author: Xavier Mejia
+        /// Date: 6.Oct.2022
+        /// </summary>
+        /// <param name="id">The id accesorio</param>
+        /// <returns>
+        /// DataTable
+        /// </returns>
+        public DataTable GetAccesorioById(int id)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Proc_Accesorios_Consulta_Id", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@id", id);
+              
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         public DataTable GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
         {

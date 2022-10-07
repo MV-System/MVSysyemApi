@@ -136,12 +136,12 @@ namespace MVSystemApi.Model
         }
         /// <summary>
         /// Return a equipo by Imei
-        /// Author: Xavier Mejia
         /// </summary>
         /// <param name="imei"></param>
         /// <returns></returns>
         internal object GetEquipoByImei(string imei)
         {
+<<<<<<< HEAD
             EquipoImei equipo = new EquipoImei();
             var dr = Ac.GetEquipoByImei(imei);
             while (dr.Read())
@@ -153,6 +153,19 @@ namespace MVSystemApi.Model
                 equipo.AlmacenSalida = Convert.ToString(dr["Almacen"]);
                 equipo.AlmacenSalidaId = Convert.ToInt32(dr["ID_Almacen"]);
             }
+=======
+            var result = (from dt in Ac.GetEquipoByImei(imei).AsEnumerable()
+                          select new EquipoImei
+                          {
+                              Id = Convert.ToInt32(dt["Id"]),
+                              Imei = Convert.ToString(dt["imei"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              Mensaje = Convert.ToString(dt["Mensaje"]),
+                              AlmacenSalida = Convert.ToString(dt["Almacen"]),
+                              AlmacenSalidaId = Convert.ToInt32(dt["ID_Almacen"]),
+
+                          }).ToList().FirstOrDefault();
+>>>>>>> 2c6b388736079cfdc6e6f276200a9508013f843b
 
             return equipo;
         }    

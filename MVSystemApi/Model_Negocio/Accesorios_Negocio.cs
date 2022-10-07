@@ -87,6 +87,29 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-
+        
+        internal object GetAccesorioById( int id)
+        {
+            try
+            {
+                var resp = (from dt in Ac.GetAccesorioById(id).AsEnumerable()
+                            select new AccesorioModelId
+                            {
+                                ID = Convert.ToInt32(dt["ID_Accesorio"]),
+                                Codigo = Convert.ToString(dt["Codigo"]),
+                                DescripcionAccesorio = Convert.ToString(dt["Descripcion_Accesorio"]),
+                                Cantidad = Convert.ToInt32(dt["Cantidad"]),
+                                CostoEquipo = Convert.ToInt32(dt["Costo_Equipo"]),
+                                PrecioDetalle = Convert.ToInt32(dt["Precio_Detalle"]),
+                                PrecioPorMayor = Convert.ToInt32(dt["Precio_Por_Mayor"]),
+                                Estado = Convert.ToString(dt["Estado"]),
+                            }).FirstOrDefault();
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }

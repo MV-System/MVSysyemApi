@@ -23,6 +23,18 @@ namespace MVSystemApi.Model
         public Int64 Cod_Barra { get; set; }
         public string Usuario { get; set; }
     }
+    public class AccesorioModelId
+    {
+        public Int64 ID { get; set; }
+        public string Codigo { get; set; }
+        public string DescripcionAccesorio { get; set; }
+        public Int64? Cantidad { get; set; }
+        public decimal PrecioPorMayor { get; set; }
+        public decimal PrecioDetalle { get; set; }
+        public decimal CostoEquipo { get; set; }
+        public string Estado { get; set; }
+
+    }
     public class Accesorio_Respuesta
     {
         public string Descripcion_Accesorio { get; set; }

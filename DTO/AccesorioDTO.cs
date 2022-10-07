@@ -22,6 +22,7 @@ namespace DTO
         public Int64 CodBarra { get; set; }
         public string Almacen { get; set; }
         public decimal TotalInventario { get; set; }
+        public string Estado { get; set; }
 
     }
 }

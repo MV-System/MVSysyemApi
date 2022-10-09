@@ -17,6 +17,8 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Desbloqueado_Equipo_Combo();
         DataTable Get_Condicion_Equipo_Combo();
         DataTable Get_Almacen_Combo();
+        DataTable Get_Sucursal_Combo();
+
         DataTable Get_Marcas_Combo();
         DataTable Get_Modelos_Combo(int? ID_Marca);
         DataTable Get_Suplidor_Combo();
@@ -74,9 +76,12 @@ namespace MVSystemApi.Interfaz
         DataTable Accesorio_Insert(Accesorio Accesorio);
         DataTable ConsultaAccesorio(int Codigo);
         DataTable Equipo_Consulta_Ultimo_Registro();
-        public DataTable GetAllAccesorios(Paginate paginate,string accesorio, int almacen);
+        public DataTable GetAccesorios(Paginate paginate,string accesorio, int almacen);
 
         public DataTable GetAccesorioById(int id);
+        public DataTable GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen);
+        public DataTable UpdateAccesorio(AccesorioDTO accesorio);
+
 
         #endregion
 

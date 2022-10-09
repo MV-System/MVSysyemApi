@@ -261,6 +261,16 @@ namespace MVSystemApi.Model
                           }).ToList();
             return result;
         }
+        internal object GetSucursal_Combo()
+        {
+            var result = (from dt in Ac.Get_Sucursal_Combo().AsEnumerable()
+                          select new Almacen
+                          {
+                              ID_Almacen = Convert.ToInt32(dt["ID_Sucursal"]),
+                              Descripcion = Convert.ToString(dt["Sucursal_Descripcion"])
+                          }).ToList();
+            return result;
+        }
         internal object GetComprobantes_Combo()
         {
             var result = (from dt in Ac.GetComprobantes_Combo().AsEnumerable()

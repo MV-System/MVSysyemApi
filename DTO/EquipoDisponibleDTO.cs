@@ -41,7 +41,7 @@ namespace DTO
         public decimal TotalInventario { get; set; }
         //public List<EquipoDisponibleDTO> EquipoDisponibleDTOs { get; set; }
     }
-    public class EquipoDisponibleFilterDTO 
+    public class EquipoDisponibleFilterDTO : RangeDatePaging
     {
         [Required]
         public int PageIndex { get; set; }
@@ -52,8 +52,6 @@ namespace DTO
         public string? Suplidor { get; set; }
         public string? Imei { get; set; }
         public string? Modelo { get; set; }
-        public string? FechaInicio { get; set; }
-        public string? FechaFinal { get; set; }
 
     }
 

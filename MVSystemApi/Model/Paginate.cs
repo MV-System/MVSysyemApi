@@ -2,7 +2,7 @@
 
 namespace MVSystemApi.Model
 {
-    public class Paginate
+    public class Paginate: RangeDatePaging
     {
 
         [Required]

@@ -8,4 +8,9 @@
         public int LastLine { get; set; }
         public int TotalRecord { get; set; }
     }
+    public class RangeDatePaging
+    {
+        public string? FechaInicio { get; set; }
+        public string? FechaFinal { get; set; }
+    }
 }

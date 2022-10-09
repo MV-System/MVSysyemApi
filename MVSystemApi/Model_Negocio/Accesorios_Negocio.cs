@@ -60,7 +60,7 @@ namespace MVSystemApi.Model
         {
             try
             {
-                var resp = (from dt in Ac.GetAllAccesorios(paginate, accesorio, almacen).AsEnumerable()
+                var resp = (from dt in Ac.GetAccesorios(paginate, accesorio, almacen).AsEnumerable()
                           select new AccesorioDTO
                           {
                               ID = Convert.ToInt32(dt["id"]),
@@ -87,7 +87,43 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        
+        /// <summary>
+        /// Retornna una accesorios de equips vendidos
+        /// Author: Xavier Mejia
+        /// </summary>
+        /// <param name="paginate"> paginación</param>
+        /// <param name="accesorio"> Descripción/nombre del accesorio</param>
+        /// <param name="almacen"> Id del almacen</param>
+        /// <returns></returns>
+        internal object GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen)
+        {
+            try
+            {
+                var resp = (from dt in Ac.GetAccesoriosVendidos(paginate, accesorio, almacen).AsEnumerable()
+                            select new AccesorioVendidoDTO
+                            {
+                                Factura = Convert.ToString(dt["Factura"]),
+                                Descripcion = Convert.ToString(dt["Descripcion"]),
+                                Cantidad = Convert.ToInt32(dt["Cantidad"]),
+                                Costo = Convert.ToInt32(dt["Costo"]),
+                                Precio = Convert.ToInt32(dt["precio"]),
+                                Sucursal = Convert.ToString(dt["Sucursal"]),
+                                FechaRegistro = Convert.ToDateTime(dt["Fecha_registro"]),
+                                LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                                Line = Convert.ToInt32(dt["Linea"]),
+                                TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+                                TotalInventario = Convert.ToInt32(dt["TotalInventario"]),
+                                TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"]),
+                                TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
+                                TotalItbis = Convert.ToDecimal(dt["TotalItbis"])
+                            }).ToList();
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         internal object GetAccesorioById( int id)
         {
             try

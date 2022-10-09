@@ -23,6 +23,29 @@ namespace DTO
         public string Almacen { get; set; }
         public decimal TotalInventario { get; set; }
         public string Estado { get; set; }
+        public decimal TotalFacturado { get; set; }
+        public decimal TotalGanancia { get; set; }
+        public decimal TotalItbis { get; set; }
+    }
+    public class AccesorioVendidoDTO : PagingDTO
+    {
+        public Int64 ID { get; set; }
+        public string Factura { get; set; }
+        public string Descripcion { get; set; }
+        public Int64? Cantidad { get; set; }
+        public decimal Costo { get; set; } 
+        public decimal Precio { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Descuento { get; set; }
+        public decimal Itbis { get; set; }
+        public decimal Total { get; set; }
+        public string Usuario { get; set; }
+        public DateTime FechaRegistro { get; set; }
 
+        public string Sucursal { get; set; }
+        public decimal TotalInventario { get; set; }
+        public decimal TotalFacturado { get; set; }
+        public decimal TotalGanancia { get; set; }
+        public decimal TotalItbis { get; set; }
     }
 }

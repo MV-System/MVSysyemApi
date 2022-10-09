@@ -65,8 +65,45 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        /// <summary>
+        /// 
+        /// Author: Xavier Mejia
+        /// Date: 8.Oct.2022
+        /// </summary>
+        /// <param name="accesorio">The accesorio model</param>
+        /// <returns>
+        /// DataTable
+        /// </returns>
+        public DataTable UpdateAccesorio(AccesorioDTO accesorio)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Accesorios_Modifica", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Accesorio", accesorio.ID);
+                cmd.Parameters.AddWithValue("@Codigo", accesorio.Codigo);
+                cmd.Parameters.AddWithValue("@Descripcion_Accesorio", accesorio.DescripcionAccesorio);
+                cmd.Parameters.AddWithValue("@Precio_Por_Mayor", accesorio.PrecioPorMayor);
+                cmd.Parameters.AddWithValue("@Precio_Detalle", accesorio.PrecioDetalle);
+                cmd.Parameters.AddWithValue("@Estado", accesorio.Estado);
+                cmd.Parameters.AddWithValue("@Cantidad", accesorio.Cantidad);
+                cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
 
-        public DataTable GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DataTable GetAccesorios(Paginate paginate,string accesorio, int almacen)
         {
             try
             {
@@ -79,6 +116,34 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
                 cmd.Parameters.AddWithValue("@Accesorio", accesorio);
                 cmd.Parameters.AddWithValue("@Criterio", almacen);
+
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
+        public DataTable GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Accesorios_Vendidos_Consulta", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
+                cmd.Parameters.AddWithValue("@Accesorio", accesorio);
+                cmd.Parameters.AddWithValue("@id_sucursal", almacen);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", paginate.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", paginate.FechaFinal);
 
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
@@ -528,6 +593,20 @@ namespace MVSystemApi.Model
             SqlDataAdapter da = new SqlDataAdapter(cmd);
 
             cmd.CommandText = "Almacen_Cata_Consulta_Combo";
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            da.Fill(dt);
+            cn.Close();
+            return dt;
+        }
+        public DataTable Get_Sucursal_Combo()
+        {
+            cn.Open();
+            DataTable dt = new DataTable();
+            SqlCommand cmd = cn.CreateCommand();
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+
+            cmd.CommandText = "Sucursales_cata_Combo";
             cmd.CommandType = CommandType.StoredProcedure;
 
             da.Fill(dt);

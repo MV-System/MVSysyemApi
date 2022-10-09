@@ -319,6 +319,25 @@ namespace MVSystemApi.Controllers
 
         }
         [HttpGet]
+        [Route("GetSucursales")]
+        public ActionResult<Modelos> GetSucursales()
+        {
+            try
+            {
+                var result = AD.GetSucursal_Combo();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
+        }
+        [HttpGet]
         [Route("GetComprobantes_Combo")]
         public ActionResult<Comprobantes> GetComprobantes_Combo()
         {

@@ -66,7 +66,7 @@ namespace MVSystemApi.Model
         public string Nota { get; set; }
         //public string Estado { get; set; }
         public string Usuario { get; set; }
-        public string FechaRegistro { get; set; }
+        public DateTime FechaRegistro { get; set; }
         public int Abono { get; set; }
         public string RNC { get; set; }
         //public string NcfFiscal { get; set; }
@@ -93,7 +93,7 @@ namespace MVSystemApi.Model
         public decimal Total { get; set; }
         //public string Estado { get; set; }
         public string Usuario { get; set; }
-        public string FechaRegistro { get; set; }
+        public DateTime FechaRegistro { get; set; }
         public string Descripcion { get; set; }
     }
 }

@@ -129,7 +129,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen)
+        public DataTable GetAccesoriosVendidos(Paginate paginate, string filter, int almacen)
         {
             try
             {
@@ -140,7 +140,7 @@ namespace MVSystemApi.Model
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
-                cmd.Parameters.AddWithValue("@Accesorio", accesorio);
+                cmd.Parameters.AddWithValue("@Filter", filter);
                 cmd.Parameters.AddWithValue("@id_sucursal", almacen);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", paginate.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", paginate.FechaFinal);

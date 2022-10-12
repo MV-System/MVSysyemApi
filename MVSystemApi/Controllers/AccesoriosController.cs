@@ -104,7 +104,7 @@ namespace MVSystemApi.Controllers
 
             try
             {
-                var lista = AD.GetAllAccesorios(paginate,accesorio,almacen);
+                var lista = AD.GetAccesorios(paginate,accesorio,almacen);
 
                 if (lista == null)
                 {
@@ -119,12 +119,12 @@ namespace MVSystemApi.Controllers
             }
         }
         [HttpGet("GetAccesoriosVendidos")]
-        public ActionResult<List<Accesorio>> GetAccesoriosVendidos([FromQuery] Paginate paginate, string accesorio, int almacen)
+        public ActionResult<List<Accesorio>> GetAccesoriosVendidos([FromQuery] Paginate paginate, string filter, int almacen)
         {
 
             try
             {
-                var lista = AD.GetAccesoriosVendidos(paginate, accesorio, almacen);
+                var lista = AD.GetAccesoriosVendidos(paginate, filter, almacen);
 
                 if (lista == null)
                 {

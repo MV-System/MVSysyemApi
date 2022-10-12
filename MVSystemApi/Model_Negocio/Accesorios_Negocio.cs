@@ -56,7 +56,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        internal object GetAllAccesorios(Paginate paginate,string accesorio, int almacen)
+        internal object GetAccesorios(Paginate paginate,string accesorio, int almacen)
         {
             try
             {
@@ -107,6 +107,7 @@ namespace MVSystemApi.Model
                                 Cantidad = Convert.ToInt32(dt["Cantidad"]),
                                 Costo = Convert.ToInt32(dt["Costo"]),
                                 Precio = Convert.ToInt32(dt["precio"]),
+                                Vendedor = Convert.ToString(dt["Vendedor"]),
                                 Sucursal = Convert.ToString(dt["Sucursal"]),
                                 FechaRegistro = Convert.ToDateTime(dt["Fecha_registro"]),
                                 LastLine = Convert.ToInt32(dt["Ultima_Linea"]),

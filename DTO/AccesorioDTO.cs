@@ -41,7 +41,7 @@ namespace DTO
         public decimal Total { get; set; }
         public string Usuario { get; set; }
         public DateTime FechaRegistro { get; set; }
-
+        public string Vendedor { get; set; }
         public string Sucursal { get; set; }
         public decimal TotalInventario { get; set; }
         public decimal TotalFacturado { get; set; }

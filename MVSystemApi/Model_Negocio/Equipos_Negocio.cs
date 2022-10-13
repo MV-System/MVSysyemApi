@@ -205,6 +205,29 @@ namespace MVSystemApi.Model
             return result;
         }
 
+
+        internal object GetEquiposRecibidos(string criterio)
+        {
+            var result = (from dt in Ac.GetEquiposRecibidos(criterio).AsEnumerable()
+                          select new EquipoRecepcionGet
+                          {
+                              RecepcionNumero = Convert.ToInt32(dt["Recepcion_Numero"]),
+                              Cliente =Convert.ToString(dt["Cliente"]),
+                              Cedula =Convert.ToString(dt["Cedula"]),
+                              Telefono =Convert.ToString(dt["Telefono"]),
+                              ImeiEntrada =Convert.ToString(dt["Imei_Entrada"]),
+                              PrecioImeiEntra = Convert.ToDecimal(dt["Precio_Imei_Entra"]),
+                              Modelo =Convert.ToString(dt["Modelo"]),
+                              ImeiSale =Convert.ToString(dt["Imei_Sale"]),
+                              Nota =Convert.ToString(dt["Nota"]),
+                              Usuario =Convert.ToString(dt["Usuario"]),
+                              FechaRegistro =Convert.ToString(dt["Fecha_registro"]),
+
+                            }).ToList();
+
+            return result;
+        }
+
         internal void ModificarEquipo(Equipo_return_Imei equipo)
         {
             Ac.ModificarEquipo(equipo);

@@ -174,6 +174,22 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("RecepcionEquipos")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        public ActionResult<List<EquipoRecepcionGet>> GetEquiposRecibidos(string criterio)
+        {
+            try
+            {
+                var result = AD.GetEquiposRecibidos(criterio);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPost]
         [Route("EstadoActualiza")]
         [Authorize(Roles = "MNU_MANT_EQUIPOS")]

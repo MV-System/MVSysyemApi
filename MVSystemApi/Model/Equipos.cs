@@ -94,6 +94,22 @@ namespace MVSystemApi.Model
         public string Nota { get; set; }
     }
 
+    public class EquipoRecepcionGet
+    {
+        public int RecepcionNumero { get; set; }
+        public string Cliente { get; set; }
+        public string Cedula { get; set; }
+        public string Telefono { get; set; }
+        public string ImeiEntrada { get; set; }
+        public decimal PrecioImeiEntra { get; set; }
+        public string Modelo { get; set; }
+        public string ImeiSale { get; set; }
+        public string Nota { get; set; }
+        public string Usuario { get; set; }
+        public string FechaRegistro { get; set; }
+        
+    }
+
 
     public class EquipoEstadoUpdate
     {

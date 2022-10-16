@@ -94,7 +94,7 @@ namespace MVSystemApi.Model
         public string Nota { get; set; }
     }
 
-    public class EquipoRecepcionGet
+    public class EquipoRecepcionGet : PagingDTO
     {
         public int RecepcionNumero { get; set; }
         public string Cliente { get; set; }
@@ -109,7 +109,13 @@ namespace MVSystemApi.Model
         public string FechaRegistro { get; set; }
         
     }
-
+    
+    public class CriterioFilters
+    {
+        public string criterio { get; set; } = "";
+        public int PageIndex { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+    }
 
     public class EquipoEstadoUpdate
     {

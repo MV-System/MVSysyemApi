@@ -206,9 +206,9 @@ namespace MVSystemApi.Model
         }
 
 
-        internal object GetEquiposRecibidos(string criterio)
+        internal object GetEquiposRecibidos(CriterioFilters filterData)
         {
-            var result = (from dt in Ac.GetEquiposRecibidos(criterio).AsEnumerable()
+            var result = (from dt in Ac.GetEquiposRecibidos(filterData).AsEnumerable()
                           select new EquipoRecepcionGet
                           {
                               RecepcionNumero = Convert.ToInt32(dt["Recepcion_Numero"]),
@@ -222,6 +222,9 @@ namespace MVSystemApi.Model
                               Nota =Convert.ToString(dt["Nota"]),
                               Usuario =Convert.ToString(dt["Usuario"]),
                               FechaRegistro =Convert.ToString(dt["Fecha_registro"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"])
 
                             }).ToList();
 

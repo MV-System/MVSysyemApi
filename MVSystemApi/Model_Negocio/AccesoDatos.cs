@@ -753,7 +753,7 @@ namespace MVSystemApi.Model
 
         }
         
-        public DataTable GetEquiposRecibidos(string criterio)
+        public DataTable GetEquiposRecibidos(CriterioFilters filterData)
         {
             try
             {
@@ -765,7 +765,9 @@ namespace MVSystemApi.Model
 
                 cmd.CommandText = "Recepcion_equipos_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Criterio", criterio);
+                cmd.Parameters.AddWithValue("@Criterio", filterData.criterio);
+                cmd.Parameters.AddWithValue("@PageIndex", filterData.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", filterData.PageSize);
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();

@@ -177,11 +177,11 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("RecepcionEquipos")]
         [Authorize(Roles = "MNU_MANT_EQUIPOS")]
-        public ActionResult<List<EquipoRecepcionGet>> GetEquiposRecibidos(string criterio)
+        public ActionResult<List<EquipoRecepcionGet>> GetEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             try
             {
-                var result = AD.GetEquiposRecibidos(criterio);
+                var result = AD.GetEquiposRecibidos(filterData);
                 return Ok(result);
             }
             catch (Exception ex)

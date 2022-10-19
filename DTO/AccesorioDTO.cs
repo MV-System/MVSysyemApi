@@ -32,6 +32,7 @@ namespace DTO
         public Int64 ID { get; set; }
         public string Factura { get; set; }
         public string Descripcion { get; set; }
+        public string Cliente { get; set; }
         public Int64? Cantidad { get; set; }
         public decimal Costo { get; set; } 
         public decimal Precio { get; set; }

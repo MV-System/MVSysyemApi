@@ -1,7 +1,5 @@
 ﻿using DTO;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using Rotativa.AspNetCore;
 

@@ -88,7 +88,7 @@ namespace MVSystemApi.Model
             }
         }
         /// <summary>
-        /// Retornna una accesorios de equips vendidos
+        /// Retorna los accesorios de los equipos vendidos
         /// Author: Xavier Mejia
         /// </summary>
         /// <param name="paginate"> paginación</param>
@@ -103,6 +103,7 @@ namespace MVSystemApi.Model
                             select new AccesorioVendidoDTO
                             {
                                 Factura = Convert.ToString(dt["Factura"]),
+                                Cliente = Convert.ToString(dt["Cliente"]),
                                 Descripcion = Convert.ToString(dt["Descripcion"]),
                                 Cantidad = Convert.ToInt32(dt["Cantidad"]),
                                 Costo = Convert.ToInt32(dt["Costo"]),

@@ -110,7 +110,7 @@ namespace MVSystemApi.Model
         
     }
     
-    public class CriterioFilters
+    public class CriterioFilters: RangeDatePaging
     {
         public string criterio { get; set; } = "";
         public int PageIndex { get; set; } = 1;

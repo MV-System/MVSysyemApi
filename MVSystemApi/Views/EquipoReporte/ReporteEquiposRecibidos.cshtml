@@ -1,0 +1,122 @@
+﻿@model   MVSystemApi.Model.ReporteData
+
+@{
+    Layout = null;
+   
+}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="~/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Detalle Equipos Disponibles</title>
+
+    <style>
+        .p0 p {
+            padding: 0%;
+            margin: 0%;                       
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container text-center">
+        <img src="/assets/logo.png" />
+    </div>
+
+    <div class="container text-center p0">
+        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
+        <p>
+            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
+            Tel.:809-908-6952 Cel.: 809-883-8858
+        </p>
+        <p> <b> RNC: 132307382 </b> </p>
+    </div>
+     <div  class="container text-center">
+        <h1><b> REPORTE DE EQUIPOS DISPONIBLES</b></h1>
+    </div>
+
+    <div class="container mt-5">
+ 
+        <hr />
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        
+                        <th scope="col">IMEI</th>
+                        <th scope="col">MODELO</th>
+                        <th scope="col">PRECIO</th>
+                        <th scope="col">EQUIPO CAMBIO</th>
+                        <th scope="col">CLIENTE</th>
+                        <th scope="col">TELEFONO</th>
+                        <th scope="col">NOTA</th>
+                        <th scope="col">FECHA RECIBIDO</th>  
+                    </tr>
+                </thead>
+
+                <tbody>
+                                   
+                    @{
+                        foreach (var item in Model.Registros)
+                        {
+         
+                                    <tr>
+                                        <td>@item.ImeiEntrada</td>
+                                        <td>@item.Modelo</td>
+                                        <td>@item.PrecioImeiEntra</td>
+                                        <td>@item.ImeiSale</td>
+                                        <td>@item.Cliente</td>
+                                        <td>@item.Telefono</td>
+                                        <td>@item.Nota</td>
+                                        <td>@item.FechaRegistro</td>
+                                    </tr>
+                    
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container text-right">
+        <div><b>TOTAL EQUIPOS: @Model.Registros.Select(x=>x.TotalRecord).FirstOrDefault()</b></div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <p>Nota: Jose Luis Jimenez</p>
+        </div>
+
+    </div>
+
+    <br />
+    <br />
+
+    <div class="container">
+        <div class="row">
+            <div class="col-6 text-center">
+                <hr>
+                <b>Entregado por</b>
+            </div>
+
+            <div class="col-6 text-center">
+                <hr>
+                <b>Recibido por</b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class=" text-right">
+            Fecha de Impresión:
+            @Model.FechaImpresion
+        </div>
+    </div>
+</body>
+
+</html>

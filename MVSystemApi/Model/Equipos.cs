@@ -117,6 +117,12 @@ namespace MVSystemApi.Model
         public int PageSize { get; set; } = 10;
     }
 
+    public class ReporteData
+    {
+        public List<EquipoRecepcionGet> Registros { get; set; }
+        public string FechaImpresion { get; set; }
+    }
+
     public class EquipoEstadoUpdate
     {
         public string Imei { get; set; }

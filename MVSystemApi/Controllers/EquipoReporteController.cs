@@ -53,7 +53,7 @@ namespace MVSystemApi.Controllers
 
             if (equiposRecibidos == null)
                 return NotFound();
-            return new ViewAsPdf(new ReporteData() { Registros = equiposRecibidos, FechaImpresion = DateTime.Today.ToString() });
+            return new ViewAsPdf(new ReporteData() { Registros = equiposRecibidos, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy") });
         }
 
 

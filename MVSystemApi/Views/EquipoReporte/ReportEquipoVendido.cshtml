@@ -1,4 +1,4 @@
-﻿@model   MVSystemApi.Model.EquipoVendidoReporte
+﻿@model IEnumerable< MVSystemApi.Model.EquipoVendido>
 
 @{
     Layout = null;
@@ -65,7 +65,7 @@
 
                 <tbody>
                     @{
-                        foreach (var item in Model.EquipoVendidos)
+                        foreach (var item in Model)
                         {
                             <tr>
                                 <td>@item.Factura</td>
@@ -76,27 +76,15 @@
                                 <td>@item.TipoFactura</td>
                                 <td>@item.Vendedor</td>                                
                                 <td>@item.DescripcionAlmacen</td>
-                                <td>@item.FechaFacturado</td>
-                                @*<td>@item.ComisionDetalle</td>
-                                  <td>@item.ComisionPorMayor</td>*@
-                               
-                                
-                               @* <td>@item.CostoEquipo</td>
-                                <td>@item.IsDesbloqueado</td>
-                                <td>@item.NotaAdicional</td>
-                                <td>@item.DescripcionAlmacen</td>
-                                <td>@item.Suplidor</td>
-                                *@
-                         
+                                <td>@item.FechaFacturado</td>                        
                             </tr>
-                                //<td>@item.PrecioPorMayor.ToString("N2")</td>
-                                //<td>@item.PrecioDetalle.ToString("N2")</td>
+
                         }
                         <tr class="notBorder">
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td><b>@Model.EquipoVendidos.Select(x=>x.TotalFacturado).FirstOrDefault()</b></td>
+                            <td><b>@Model.Select(x=>x.TotalFacturado).FirstOrDefault()</b></td>
                             <td></td>                           
                             <td></td>
                             @*<td><b>@Model.EquipoVendidos.Select(x=>x.TotalComisionDetalle).FirstOrDefault()</b></td>
@@ -113,7 +101,7 @@
 
     <div class="container text-right mt-4">
  
-        <div><b>TOTAL EQUIPOS: @Model.EquipoVendidos.Select(x=>x.TotalRecord).FirstOrDefault().ToString("D")</b></div>
+        <div><b>TOTAL EQUIPOS: @Model.Count()</b></div>
     </div>
 
     <div class="container">
@@ -142,7 +130,7 @@
     <div class="container">
         <div class=" text-right">
             Fecha de Impresión:
-            @Model.FechaImpresion
+            @DateTime.Now
         </div>
     </div>
 </body>

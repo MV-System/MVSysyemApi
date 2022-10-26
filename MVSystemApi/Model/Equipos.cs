@@ -139,12 +139,6 @@ namespace MVSystemApi.Model
         public int Total { get; set; }
     }
 
-    public class EquipoVendidoReporte
-    {
-        public List<EquipoVendido> EquipoVendidos { get; set; }
-        public string FechaImpresion { get; set; }
-        public EquipoVendidoFilter EquipoFilter { get; set; }
-    }
 
     public class EquipoVendido : PagingDTO
     { 

@@ -1,4 +1,4 @@
-﻿@model   DTO.EquipoReporte
+﻿@model IEnumerable<DTO.EquipoDisponibleDTO>
 
 @{
     Layout = null;
@@ -63,7 +63,7 @@
                 <tbody>
                                    
                     @{
-                        foreach (var item in Model.EquipoDisponibles)
+                        foreach (var item in Model)
                         {
          
                                     <tr>
@@ -87,7 +87,7 @@
 
     <div class="container text-right">
  
-        <div><b>TOTAL EQUIPOS: @Model.EquipoDisponibles.Select(x=>x.TotalRecord).FirstOrDefault()</b></div>
+        <div><b>TOTAL EQUIPOS: @Model.Count()</b></div>
     </div>
 
     <div class="container">
@@ -117,7 +117,7 @@
     <div class="container">
         <div class=" text-right">
             Fecha de Impresión:
-            @Model.FechaImpresion
+            @DateTime.Now
         </div>
     </div>
 </body>

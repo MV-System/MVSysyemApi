@@ -6,14 +6,6 @@ using System.Text;
 
 namespace DTO
 {
-    public class EquipoReporte
-    {
-
-        public List<EquipoDisponibleDTO> EquipoDisponibles { get; set; }
-        public string FechaImpresion { get; set; }
-        public EquipoDisponibleFilterDTO EquipoFilter { get; set; }
-
-    }
     public class EquipoDisponibleDTO : PagingDTO
     {
       

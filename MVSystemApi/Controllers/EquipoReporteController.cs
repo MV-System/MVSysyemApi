@@ -17,28 +17,28 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("EquipoDisponibleReporte/GetEquiposDisponible")]
-        public IActionResult ReporteEquiposDisponibles(EquipoReporte equipoReporte)
+        public IActionResult ReporteEquiposDisponibles(EquipoDisponibleFilterDTO equipoReporte)
         {
 
-            equipoReporte.EquipoFilter.PageSize =int.MaxValue ;
+            equipoReporte.PageSize =int.MaxValue ;
 
-            equipoReporte.EquipoDisponibles = ((List<EquipoDisponibleDTO>)_equipos_Negocio.GetEquiposDisponible(equipoReporte.EquipoFilter));
+            var equipoDisponibles = ((List<EquipoDisponibleDTO>)_equipos_Negocio.GetEquiposDisponible(equipoReporte));
 
         
-            if (equipoReporte == null)
+            if (equipoDisponibles == null)
                 return NotFound();
-            return new ViewAsPdf(equipoReporte);
+            return new ViewAsPdf(equipoDisponibles);
         }     
         [HttpPost]
         [Route("EquipoVendidoReporte/GetEquiposVendidos")]
-        public IActionResult ReportEquipoVendido(EquipoVendidoReporte equipoReporte)
+        public IActionResult ReportEquipoVendido(EquipoVendidoFilter equipoReporte)
         {
-            equipoReporte.EquipoFilter.PageSize = int.MaxValue;
-            equipoReporte.EquipoVendidos = (List<EquipoVendido>)_equipos_Negocio.GetEquiposVendidos(equipoReporte.EquipoFilter);
+            equipoReporte.PageSize = int.MaxValue;
+           var equipoVendidos = (List<EquipoVendido>)_equipos_Negocio.GetEquiposVendidos(equipoReporte);
 
-            if (equipoReporte == null)
+            if (equipoVendidos == null)
                 return NotFound();
-            return new ViewAsPdf(equipoReporte);
+            return new ViewAsPdf(equipoVendidos);
         }
 
 

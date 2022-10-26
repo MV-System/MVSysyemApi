@@ -757,8 +757,8 @@ namespace MVSystemApi.Model
         {
             try
             {
+                if (filterData.criterio != null) filterData.criterio = filterData.criterio.Trim();
                 cn.Open();
-
                 SqlCommand cmd = cn.CreateCommand();
                 SqlDataAdapter da = new(cmd);
                 DataTable dt = new();
@@ -768,6 +768,8 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Criterio", filterData.criterio);
                 cmd.Parameters.AddWithValue("@PageIndex", filterData.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", filterData.PageSize);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", filterData.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", filterData.FechaFinal);
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();

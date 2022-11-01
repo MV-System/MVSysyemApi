@@ -42,5 +42,21 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet]
+        [Route("GetFacturas")]
+        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public IActionResult GetFacturas([FromQuery] FacturaFilter consulta)
+        {
+            try
+            {
+                var result = AD.GetFacturas(consulta);
+                if (result == null)return NotFound();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

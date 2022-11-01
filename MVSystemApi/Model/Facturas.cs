@@ -46,7 +46,36 @@ namespace MVSystemApi.Model
         //public decimal ITBIS_PROD { get; set; }
         //public string NFCTipoDescripcion { get; set; }
     }
+    public class FacturaFilter : Paginate
+    {
+        public int NumeroFactura { get; set; }
+        public string Nombres { get; set; }
+        public string Vendedor { get; set; }
+        public string Criterio { get; set; }
+        public string TipoFactura { get; set; }
+        public int Telefono { get; set; }
+        public int Almacen { get; set; }
+        public int TipoBusqueda { get; set; }
+        public string TipoPago { get; set; }
+    }
+    public class FacturaConsulta : PagingDTO
+    {
+        public int NumeroFactura { get; set; }
+        public string Nombres { get; set; }
+        public string Apellidos { get; set; }
+        //public int VendedorId { get; set; }
+        public string Vendedor { get; set; }
+        public string TipoFactura { get; set; }
+        public string TipoPago { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Descuento { get; set; }
+        public decimal Itbis { get; set; }
+        public decimal Total { get; set; }
+        public decimal TotalFacturado { get; set; }
+        public string Nota { get; set; }
+        public DateTime FechaFacturacion { get; set; }
 
+    }
     public class Facturas
     {
         //public string Cliente { get; set; }

@@ -1,4 +1,5 @@
-﻿using MVSystemApi.Interfaz;
+﻿using DTO;
+using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,31 @@ namespace MVSystemApi.Model_Negocio
         public Facturas_Negocio(IAccesoDatos Ad)
         {
             Ac = Ad;
+        }
+        internal object GetFacturas(FacturaFilter consulta)
+        {
+
+
+            var result = (from dt in Ac.GetFacturas(consulta).AsEnumerable()
+                          select new FacturaConsulta
+                          {
+                              NumeroFactura = Convert.ToInt32(dt["Numero de Factura"]),
+                              Nombres = Convert.ToString(dt["Nombres"]),
+                              Apellidos= Convert.ToString(dt["Apellidos"]),
+                              TipoFactura = Convert.ToString(dt["Tipo De Factura"]),
+                              Vendedor = Convert.ToString(dt["Vendedor"]),
+                              TipoPago = Convert.ToString(dt["Tipo de Pago"]),
+                              SubTotal = Convert.ToDecimal(dt["SubTotal"]),
+                              Descuento = Convert.ToDecimal(dt["Descuento"]),
+                              Total = Convert.ToDecimal(dt["Total"]),
+                              Nota = Convert.ToString(dt["Nota"]),
+                              FechaFacturacion = Convert.ToDateTime(dt["Fecha de la Factura"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+                              TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"])
+                          }).ToList();
+            return result;
         }
         //internal object PostFactura(Facturas Factura)
         //{
@@ -47,6 +73,6 @@ namespace MVSystemApi.Model_Negocio
 
         //    return result;
         //}
-       
+
     }
 }

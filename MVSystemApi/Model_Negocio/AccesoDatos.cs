@@ -33,6 +33,28 @@ namespace MVSystemApi.Model
         }
 
         public static Int64 codigo;
+        public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Detalle_Factura_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }    
         public DataTable GetFacturas(FacturaFilter consulta)
         {
             cn.Open();

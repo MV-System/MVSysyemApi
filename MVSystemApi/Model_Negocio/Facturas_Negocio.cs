@@ -18,6 +18,23 @@ namespace MVSystemApi.Model_Negocio
         {
             Ac = Ad;
         }
+        internal object GetDetalleFacturaConsulta(int numeroFactura, int sucursal)
+        {
+            var result = (from dt in Ac.GetDetalleFacturaConsulta(numeroFactura, sucursal).AsEnumerable()
+                          select new DetalleFactura
+                          {
+                              IdEquipo = Convert.ToString(dt["ID_Equipo"]),
+                              NumeroFactura = Convert.ToInt32(dt["Numero_Factura"]),
+                              Descripcion = Convert.ToString(dt["Descripcion"]),
+                              Cantidad = Convert.ToInt32(dt["cantidad"]),
+                              Precio = Convert.ToInt32(dt["precio"]),
+                              SubTotal = Convert.ToDecimal(dt["SubTotal"]),
+                              Descuento = Convert.ToDecimal(dt["Descuento"]),
+                              Total = Convert.ToDecimal(dt["Total"]),
+                              IdTipo = Convert.ToInt32(dt["ID_Tipo"]),
+                          }).ToList();
+            return result;
+        }    
         internal object GetFacturas(FacturaFilter consulta)
         {
 
@@ -30,6 +47,7 @@ namespace MVSystemApi.Model_Negocio
                               Apellidos= Convert.ToString(dt["Apellidos"]),
                               TipoFactura = Convert.ToString(dt["Tipo De Factura"]),
                               Vendedor = Convert.ToString(dt["Vendedor"]),
+                              ClienteId = Convert.ToInt32(dt["ID_Cliente"]),
                               TipoPago = Convert.ToString(dt["Tipo de Pago"]),
                               SubTotal = Convert.ToDecimal(dt["SubTotal"]),
                               Descuento = Convert.ToDecimal(dt["Descuento"]),

@@ -57,6 +57,22 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }     
+        [HttpGet]
+        [Route("GetDetalleFactura/{numeroFactura}/{sucursal}")]
+        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public IActionResult GetDetalleFactura([FromRoute] int numeroFactura, int sucursal)
+        {
+            try
+            {
+                var result = AD.GetDetalleFacturaConsulta(numeroFactura, sucursal);
+                if (result == null)return NotFound();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

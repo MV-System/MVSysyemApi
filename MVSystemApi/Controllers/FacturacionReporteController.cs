@@ -54,12 +54,22 @@ namespace MVSystemApi.Controllers
         {
             var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
             return new ViewAsPdf(result);
-        } 
+        }
+
+
         [HttpPost("FacturacionReporte/ReportFactura")]
-        public IActionResult RptFactura(int NumeroFactura)
+        public IActionResult ReportFactura(FacturaFilter consulta)
         {
-            var facturaReporte = _accesoDatos.ObtenerFacturaReporte(NumeroFactura, 1);
-            return new ViewAsPdf(facturaReporte);
+            var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
+            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
+            var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
+            var data = new Facturas
+            {
+                DetalleFacturaList = detalleFactura,
+                Factura = factura
+            };
+
+            return new ViewAsPdf(data);
         }
     }
 }

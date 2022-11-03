@@ -64,6 +64,7 @@ namespace MVSystemApi.Model
         public string Nombres { get; set; }
         public string Apellidos { get; set; }
         //public int VendedorId { get; set; }
+        public int ClienteId { get; set; }
         public string Vendedor { get; set; }
         public string TipoFactura { get; set; }
         public string TipoPago { get; set; }
@@ -74,7 +75,6 @@ namespace MVSystemApi.Model
         public decimal TotalFacturado { get; set; }
         public string Nota { get; set; }
         public DateTime FechaFacturacion { get; set; }
-
     }
     public class Facturas
     {
@@ -103,6 +103,7 @@ namespace MVSystemApi.Model
         public List<DetalleFactura> DetalleFacturaList { get; set; }
 
         public Clientes Cliente { get; set; }
+        public FacturaConsulta Factura { get; internal set; }
     }
 
     public class DetalleFactura

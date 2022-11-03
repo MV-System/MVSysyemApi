@@ -1,4 +1,5 @@
 ﻿using DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using Rotativa.AspNetCore;
@@ -39,6 +40,20 @@ namespace MVSystemApi.Controllers
             if (equipoVendidos == null)
                 return NotFound();
             return new ViewAsPdf(equipoVendidos);
+        }
+
+
+        [HttpGet]
+        [Route("GetEquiposRecibidoVistaReporte")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        public IActionResult ReporteEquiposRecibidos([FromQuery]CriterioFilters filterData)
+        {
+            filterData.PageSize = int.MaxValue;
+            List<EquipoRecepcionGet> equiposRecibidos = (List<EquipoRecepcionGet>)_equipos_Negocio.GetEquiposRecibidos(filterData);
+
+            if (equiposRecibidos == null)
+                return NotFound();
+            return new ViewAsPdf(new ReporteData() { Registros = equiposRecibidos, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy") });
         }
 
 

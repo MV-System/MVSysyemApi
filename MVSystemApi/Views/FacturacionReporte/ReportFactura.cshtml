@@ -1,0 +1,149 @@
+﻿@model MVSystemApi.Model.Facturas
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Factura</title>
+
+    <style>
+        .p0 p {
+            padding: 0%;
+            margin: 0%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container text-center">
+        <img src="/assets/logo.png" />
+    </div>
+
+    <div class="container text-center p0 mb-3">
+        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
+        <p>
+            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
+            Tel.:809-908-6952 Cel.: 809-883-8858
+        </p>
+        <p> <b> RNC: 132307382 </b> </p>
+    </div>
+
+    <div class="container border border-dark">
+        <div class="row">
+            <div class="col-6 border border-dark">
+                <b>Cliente</b><br>
+                <b>Código: </b>@Model.Factura.ClienteId<br>
+                <b>Nombre: </b>@Model.Factura.Nombres @Model.Factura.Apellidos<br>
+                <b>Teléfono: </b><br>
+                <b>Vendedor: </b>@Model.Factura.Vendedor<br>
+            </div>
+
+            <div class="col-6 border border-dark">
+                <b>Factura No.: @Model.NumeroFactura</b><br>
+                <b>Tipo de factura: </b> @Model.Factura.TipoFactura<br>
+                <b>Tipo de pago: </b> @Model.Factura.TipoPago<br>
+                <b>Fecha: </b> @Model.Factura.FechaFacturacion<br>
+                <b>NCF: </b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container ">
+        <div class="row text-center mt-4 mb-3">
+            <b>
+                DETALLES DE FACTURA
+            </b>
+        </div>
+
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col">COD.</th>
+                        <th scope="col">DESCRIPCIÓN</th>
+                        <th scope="col">CANT.</th>
+                        <th scope="col">PRECIO</th>
+                        <th scope="col">SUBTOTAL</th>
+                        <th scope="col">DESC</th>
+                        <th scope="col">TOTAL</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @{
+                        foreach (var item in Model.DetalleFacturaList)
+                        {
+                            <tr>
+                                <td>@item.IdEquipo</td>
+                                <td>@item.Descripcion</td>
+                                <td>@item.Cantidad.ToString("N0")</td>
+                                <td>@item.Precio.ToString("N2")</td>
+                                <td>@item.SubTotal.ToString("N2")</td>
+                                <td>@item.Descuento.ToString("N2")</td>
+                                <td>@item.Total.ToString("N2")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container text-right">
+        <div><b>Subtotal: @Model.DetalleFacturaList.Sum(x=>x.SubTotal).ToString("N2")</b></div>
+        <div><b>Descuento: @Model.DetalleFacturaList.Sum(x=>x.Descuento).ToString("N2")</b></div>
+        <div><b>ITBIS: @Model.DetalleFacturaList.Sum(x=>x.Itbis).ToString("N2")</b></div>
+        <div><b>Abonado: @Model.Abono.ToString("N2")</b></div>
+        <div><b>Total: @Model.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <p>Nota: MVSYSTEM</p>
+        </div>
+
+        <div class="row">
+            <p>
+                <b>NOTA: </b>
+                TODOS LOS EQUIPOS TIENEN 30 DIAS DE GARANTIA , NO TIENEN GARANTIA EN PANTALLA Y
+                TOUCH NO SE REEMBOLSA DINERO, SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
+                CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTIA Y CONDICIONES IGUAL AL
+                MOMENTO DE LA COMPRA. LOS TELEFONOS TENDRAN SELLOS DE GARANTIAS, SI SON VIOLADOS LA
+                GARANTIA TERMINARA.
+            </p>
+        </div>
+    </div>
+
+    <br />
+    <br />
+
+    <div class="container">
+        <div class="row">
+            <div class="col-6 text-center">
+                <hr>
+                <b>Entregado por</b>
+            </div>
+
+            <div class="col-6 text-center">
+                <hr>
+                <b>Recibido por</b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class=" text-right">
+            Fecha de Impresión: @DateTime.Now
+        </div>
+    </div>
+</body>
+
+</html>

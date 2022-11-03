@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
+using MVSystemApi.Model_Negocio;
 using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
@@ -10,13 +11,15 @@ namespace MVSystemApi.Controllers
     {
         private readonly Clientes_Negocio _clientes_Negocio;
         private readonly Catalogos_Negocio _catalogos_Negocio;
+        private readonly Facturas_Negocio facturasNegocio;
         private readonly IAccesoDatos _accesoDatos;
 
-        public FacturacionReporteController(IAccesoDatos accesoDatos, Clientes_Negocio clientes_Negocio, Catalogos_Negocio catalogos_Negocio)
+        public FacturacionReporteController(IAccesoDatos accesoDatos, Clientes_Negocio clientes_Negocio, Catalogos_Negocio catalogos_Negocio,Facturas_Negocio facturasNegocio)
         {
             _accesoDatos = accesoDatos;
             _catalogos_Negocio = catalogos_Negocio;
             _clientes_Negocio = clientes_Negocio;
+            this.facturasNegocio = facturasNegocio;
         }
 
         [HttpPost]
@@ -41,6 +44,29 @@ namespace MVSystemApi.Controllers
                 Factura = factura,
                 FacturaReporte = facturaReporte,
                 VendedorNombre = vendedor,
+            };
+
+            return new ViewAsPdf(data);
+        }
+
+        [HttpPost("FacturacionReporte/ReportFacturaConsulta")]
+        public IActionResult ReportFacturaConsulta(FacturaFilter consulta)
+        {
+            var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
+            return new ViewAsPdf(result);
+        }
+
+
+        [HttpPost("FacturacionReporte/ReportFactura")]
+        public IActionResult ReportFactura(FacturaFilter consulta)
+        {
+            var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
+            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
+            var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
+            var data = new Facturas
+            {
+                DetalleFacturaList = detalleFactura,
+                Factura = factura
             };
 
             return new ViewAsPdf(data);

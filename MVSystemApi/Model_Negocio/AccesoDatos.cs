@@ -4,6 +4,7 @@ using MVSystemApi.Interfaz;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
+using System.Drawing.Printing;
 
 namespace MVSystemApi.Model
 {
@@ -32,7 +33,59 @@ namespace MVSystemApi.Model
         }
 
         public static Int64 codigo;
+        public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Detalle_Factura_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
 
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }    
+        public DataTable GetFacturas(FacturaFilter consulta)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Proc_Facturas_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@TipoConsulta", consulta.TipoBusqueda);
+                cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Criterio", consulta.Criterio);
+                //cmd.Parameters.AddWithValue("@NumeroFactura", consulta.NumeroFactura);
+                //cmd.Parameters.AddWithValue("@TipoFactura", consulta.TipoFactura);
+                //cmd.Parameters.AddWithValue("@Cliente", consulta.Nombres);
+                //cmd.Parameters.AddWithValue("@Vendedor", consulta.Vendedor);
+                //cmd.Parameters.AddWithValue("@Telefono", consulta.Telefono);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal); 
+                cmd.Parameters.AddWithValue("@PageIndex", consulta.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", consulta.PageSize);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         #region Accesorios
         /// <summary>
         /// Return a equipo by Imei    

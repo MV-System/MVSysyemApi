@@ -1,0 +1,131 @@
+﻿@model IEnumerable< MVSystemApi.Model.FacturaConsulta>
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Facturas</title>
+
+    <style>
+        .p0 p {
+            padding: 0%;
+            margin: 0%;
+        }
+
+        .notBorder td {
+            border: 0;
+            border-bottom: 1px solid #000
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container text-center">
+        <img src="/assets/logo.png" />
+    </div>
+
+    <div class="container text-center p0">
+        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
+        <p>
+            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
+            Tel.:809-908-6952 Cel.: 809-883-8858
+        </p>
+        <p> <b> RNC: 132307382 </b> </p>
+    </div>
+
+
+    <div class="container ">
+        <div class="row text-center">
+            <b>
+                LISTA DE FACTURAS
+            </b>
+        </div>
+
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col">Fac.</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">tipo fac..</th>
+                        <th scope="col">pago</th>
+                        <th scope="col">desc</th>
+                        <th scope="col">abono</th>
+                        <th scope="col">total</th>
+                        <th scope="col">fecha</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @{
+                        foreach (var factura in Model)
+                        {
+                            <tr>
+                                <td>@factura.NumeroFactura</td>
+                                <td>@factura.Nombres + @factura.Apellidos</td>
+                                <td>@factura.TipoFactura</td>
+                                <td>@factura.TipoPago</td>
+                                <td>@factura.SubTotal</td>
+                                <td>@factura.Descuento</td>
+                                <td>@factura.Total</td>
+                                <td>@factura.FechaFacturacion</td>
+                            </tr>
+
+                        }
+                        <tr class="notBorder">
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>@Model.Sum(x=>x.SubTotal).ToString("N2")</td>
+                            <td>@Model.Sum(x=>x.Descuento).ToString("N2")</td>
+                            <td>@Model.Sum(x=>x.Total).ToString("N2")</td>
+                            <td></td>
+
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <p>Nota: Jose Luis Jimenez</p>
+        </div>
+
+    </div>
+
+    <br />
+    <br />
+
+    <div class="container">
+        <div class="row">
+            <div class="col-6 text-center">
+                <hr>
+                <b>Entregado por</b>
+            </div>
+
+            <div class="col-6 text-center">
+                <hr>
+                <b>Recibido por</b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class=" text-right">
+            Fecha de Impresión: @DateTime.Now
+        </div>
+    </div>
+</body>
+
+</html>

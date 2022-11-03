@@ -8,7 +8,7 @@
         public int LastLine { get; set; }
         public int TotalRecord { get; set; }
     }
-    public class RangeDatePaging
+    public class RangeDatePaging: PagingDTO
     {
         public string? FechaInicio { get; set; }
         public string? FechaFinal { get; set; }

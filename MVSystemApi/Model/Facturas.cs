@@ -49,31 +49,29 @@ namespace MVSystemApi.Model
     public class FacturaFilter : Paginate
     {
         public int NumeroFactura { get; set; }
-        public string Nombres { get; set; }
-        public string Vendedor { get; set; }
         public string Criterio { get; set; }
-        public string TipoFactura { get; set; }
-        public int Telefono { get; set; }
         public int Almacen { get; set; }
-        public int TipoBusqueda { get; set; }
         public string TipoPago { get; set; }
     }
     public class FacturaConsulta : PagingDTO
     {
         public int NumeroFactura { get; set; }
+        public int ClienteId { get; set; }
+        public long Telefono { get; set; }
+        public string Ncf { get; set; }
+        public string Rnc { get; set; }
         public string Nombres { get; set; }
         public string Apellidos { get; set; }
-        //public int VendedorId { get; set; }
-        public int ClienteId { get; set; }
         public string Vendedor { get; set; }
         public string TipoFactura { get; set; }
+        public string Almacen { get; set; }
+        public string Nota { get; set; }
         public string TipoPago { get; set; }
         public decimal SubTotal { get; set; }
         public decimal Descuento { get; set; }
         public decimal Itbis { get; set; }
         public decimal Total { get; set; }
         public decimal TotalFacturado { get; set; }
-        public string Nota { get; set; }
         public DateTime FechaFacturacion { get; set; }
     }
     public class Facturas
@@ -85,7 +83,9 @@ namespace MVSystemApi.Model
         public int IdVendedor { get; set; }
         public int IdTipoPago { get; set; }
         public int NcfTipoNumero { get; set; }
+        public int Telefono { get; set; }
         public int? IdAlmacen { get; set; }
+        public string? Almacen { get; set; }
         public decimal SubTotal { get; set; }
         public decimal Descuento { get; set; }
         public decimal Itbis { get; set; }

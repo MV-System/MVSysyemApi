@@ -63,14 +63,8 @@ namespace MVSystemApi.Model
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = "Proc_Facturas_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@TipoConsulta", consulta.TipoBusqueda);
                 cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
                 cmd.Parameters.AddWithValue("@Criterio", consulta.Criterio);
-                //cmd.Parameters.AddWithValue("@NumeroFactura", consulta.NumeroFactura);
-                //cmd.Parameters.AddWithValue("@TipoFactura", consulta.TipoFactura);
-                //cmd.Parameters.AddWithValue("@Cliente", consulta.Nombres);
-                //cmd.Parameters.AddWithValue("@Vendedor", consulta.Vendedor);
-                //cmd.Parameters.AddWithValue("@Telefono", consulta.Telefono);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal); 
                 cmd.Parameters.AddWithValue("@PageIndex", consulta.PageIndex);

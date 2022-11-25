@@ -1,6 +1,9 @@
 ﻿using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MVSystemApi.Interfaz;
+using MVSystemApi.Model;
+using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
 
 namespace MVSystemApi.Controllers
@@ -22,6 +25,13 @@ namespace MVSystemApi.Controllers
         public async Task<IActionResult> Login([FromBody] UsuarioDTO usuario)
         {
             return Ok(await _seguridadService.Login(usuario));
+        }
+
+
+        [HttpPost("ChangePassword")]
+        public IActionResult ChangePassword([FromBody] Usuario usuario)
+        {
+            return Ok(_seguridadService.ChangePassword(usuario));
         }
     }
 }

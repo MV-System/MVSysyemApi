@@ -24,6 +24,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         {
             var claims = new List<Claim>
             {
+                new Claim(JwtRegisteredClaimNames.NameId,Convert.ToString( user.Codigo)),
                 new Claim(JwtRegisteredClaimNames.Name, user.Login),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };

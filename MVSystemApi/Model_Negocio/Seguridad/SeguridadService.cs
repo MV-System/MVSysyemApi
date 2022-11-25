@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using MVSystemApi.Model;
 using MVSystemApi.Model.Seguridad;
 using System.Data;
+using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -19,7 +20,34 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             ConnectionStrings = configuration.GetConnectionString("MVSystemSeguridad");
             this.jwtService = jwtService;
         }
+        public DataTable ChangePassword(Usuario usuario)
+        {
 
+            using var cn = new SqlConnection(ConnectionStrings);
+            cn.Open();
+            try
+            {
+                DataTable dt = new();
+
+                using var conn = new SqlConnection(ConnectionStrings);
+                conn.OpenAsync();
+
+                using var cmd = new SqlCommand("UPDATE Usuarios SET Password = @ClaveNueva WHERE Codigo = @CodUsuario", conn);
+                cmd.Parameters.AddWithValue("@CodUsuario", usuario.Codigo);
+                cmd.Parameters.AddWithValue("@ClaveNueva", AES.Encrypt( usuario.Password));
+
+                using var da = new SqlDataAdapter(cmd);
+                cmd.ExecuteNonQuery();
+
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public async Task<CredentialsDTO> Login(UsuarioDTO usarioIn)
         {
             using var dataTable = new DataTable();

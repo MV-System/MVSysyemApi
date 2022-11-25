@@ -42,16 +42,16 @@
                 <b>Cliente</b><br>
                 <b>Código: </b>@Model.Factura.ClienteId<br>
                 <b>Nombre: </b>@Model.Factura.Nombres @Model.Factura.Apellidos<br>
-                <b>Teléfono: </b>@Model.Telefono<br>
+                <b>Teléfono: </b>@Model.Factura.Telefono<br>
                 <b>Vendedor: </b>@Model.Factura.Vendedor<br>
             </div>
 
             <div class="col-6 border border-dark">
-                <b>Factura No.: P @Model.NumeroFactura</b><br>
+                <b>Factura No.: P @Model.Factura.NumeroFactura</b><br>
                 <b>Tipo de factura: </b> @Model.Factura.TipoFactura<br>
                 <b>Tipo de pago: </b> @Model.Factura.TipoPago<br>
                 <b>Fecha: </b> @Model.Factura.FechaFacturacion<br>
-                <b>NCF: </b>@Model.NcfNumero
+                <b>NCF: </b>@Model.Factura.Ncf
             </div>
         </div>
     </div>

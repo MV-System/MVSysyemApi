@@ -1,6 +1,7 @@
 ﻿using DTO;
 using Microsoft.Extensions.Caching.Memory;
 using MVSystemApi.Interfaz;
+using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
@@ -33,6 +34,15 @@ namespace MVSystemApi.Model
         }
 
         public static Int64 codigo;
+        /// <summary>
+        /// Author: Xavier Mejia
+        /// Date: 8.Oct.2022
+        /// </summary>
+        /// <param name="numeroFactura">The receipt number</param>
+        /// <param name="sucursal">The sucursal id</param>
+        /// <returns>
+        /// DataTable
+        /// </returns>
         public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal)
         {
             cn.Open();
@@ -54,7 +64,15 @@ namespace MVSystemApi.Model
             {
                 throw ex;
             }
-        }    
+        }
+        /// <summary>
+        /// Author: Xavier Mejia
+        /// Date: 8.Oct.2022
+        /// </summary>
+        /// <param name="consulta">The factura model</param>
+        /// <returns>
+        /// DataTable
+        /// </returns>
         public DataTable GetFacturas(FacturaFilter consulta)
         {
             cn.Open();

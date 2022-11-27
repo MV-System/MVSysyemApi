@@ -41,6 +41,16 @@ namespace MVSystemApi.Interfaz
 
         #endregion // ------------- fin de combos para el registro de equipo ----------------------
 
+        #region  // ------------- Inventarios ---------------------//
+        public  DataTable ObtenerEquiposInventarioPorAlmacenId(int almacenId);
+        public void IniciarInventario(int almacenId);
+        public void CerrarInventario(int inventarioId);
+        public void EscanearArticulo(ArticuloInventarioUpdate articuloData);
+        //DataTable ObtenerEquiposPorInventarioId(int? inventarioId);
+        //DataTable ObtenerInventariosPorAlmacenId(int? almacenPorId);
+
+        #endregion // ------------- Fin region funcionalidad Inventario ----------------------
+
         #region // ------------- Clientes --------------------------
         DataTable GetTipo_Telefono_Lista();
         DataTable Tipo_Cliente_Cata_Consulta_Combo();

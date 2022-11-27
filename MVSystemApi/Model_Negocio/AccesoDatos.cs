@@ -1287,5 +1287,94 @@ namespace MVSystemApi.Model
 
             return BindList<FacturaReporte>(dt);
         }
+
+        #region //----------- Inventarios ----------//
+        public DataTable ObtenerEquiposInventarioPorAlmacenId(int almacenId)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Inventario_Articulos_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Almacen", almacenId);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void IniciarInventario(int almacenId)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Inventario_Inicia";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Almacen", almacenId);
+                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void CerrarInventario(int invetarioId)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Inventario_Cierra";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Inventario", invetarioId);
+                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public void EscanearArticulo(ArticuloInventarioUpdate articuloData)
+        {
+            cn.Open();
+
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Inventario_Articulos_Update";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Inventario", articuloData.IdInventario);
+                cmd.Parameters.AddWithValue("@Imei", articuloData.Imei);
+                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.ExecuteNonQuery();
+                cn.Close();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        #endregion
     }
 }

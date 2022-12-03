@@ -71,5 +71,17 @@ namespace MVSystemApi.Controllers
 
             return new ViewAsPdf(data);
         }
+        //[HttpPost("FacturacionReporte/ReportCotizacion")]
+        //public IActionResult ReportCotizacion(FacturaFilter consulta)
+        //{
+            
+        //    var data = new Facturas
+        //    {
+        //        DetalleFacturaList = detalleFactura,
+        //        Factura = factura
+        //    };
+
+        //    return new ViewAsPdf(data);
+        //}
     }
 }

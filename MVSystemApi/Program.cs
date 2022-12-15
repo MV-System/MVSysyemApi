@@ -44,6 +44,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 
 #region CONFIGURE SERVICES
 //(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));

@@ -1,19 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
-using MVSystemApi.ModelsEF;
-using Microsoft.EntityFrameworkCore;
+using MVSystemApi.Interfaz;
 
 namespace MVSystemApi.Handlers
 {
     public class RolesAuthorizationHandler : AuthorizationHandler<RolesAuthorizationRequirement>, IAuthorizationHandler
     {
-        private readonly SEGURIDADContext _dbContext;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRoleService _roleService;
 
-        public RolesAuthorizationHandler(SEGURIDADContext dbContext, IHttpContextAccessor httpContextAccessor)
+        public RolesAuthorizationHandler(IRoleService roleService)
         {
-            _dbContext = dbContext;
-            _httpContextAccessor = httpContextAccessor;
+            _roleService = roleService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, RolesAuthorizationRequirement requirement)
@@ -22,12 +19,7 @@ namespace MVSystemApi.Handlers
 
             if (requirement?.AllowedRoles?.Any() == true)
             {
-                var roles = new List<string>();
-                roles.AddRange(await _dbContext.Usuarios.Where(x => x.Login == _httpContextAccessor.HttpContext.User.Identity.Name).SelectMany(x => x.RolUsuarios.SelectMany(y => y.IdRolNavigation.RolPermisos.Select(x => x.IdPermisoNavigation.PermissionName))).ToListAsync());
-                //roles.AddRange(await _dbContext.Usuarios.Where(x => x.Login == _httpContextAccessor.HttpContext.User.Identity.Name).SelectMany(x => x.PermisoUsuarios.Select(x => x.IdPermisoNavigation.PermissionName)).ToListAsync());
-
-                roles = roles.Distinct().ToList();
-
+                var roles = await _roleService.GetPermisos();
                 valid = requirement.AllowedRoles.Any(x => roles.Contains(x));
             }
 

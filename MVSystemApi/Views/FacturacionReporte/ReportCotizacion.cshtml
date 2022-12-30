@@ -1,4 +1,4 @@
-﻿@model MVSystemApi.Model.Facturas
+﻿@model MVSystemApi.Model.CotizacionModel
 
 @{
     Layout = null;
@@ -40,15 +40,15 @@
         <div class="row">
             <div class="col-6 border border-dark">
                 <b>Cliente</b><br>
-                <b>Código: </b>@Model.Factura.ClienteId<br>
-                <b>Nombre: </b>@Model.Factura.Nombres @Model.Factura.Apellidos<br>
-                <b>Teléfono: </b>@Model.Factura.Telefono<br>
-                <b>Vendedor: </b>@Model.Factura.Vendedor<br>
+                <b>Código: </b>@Model.IdCliente<br>
+                <b>Nombre: </b>@Model.Nombre @Model.Apellido<br>
+                <b>Teléfono: </b>@Model.Telefono<br>
+                <b>Vendedor: </b>@Model.Vendedor<br>
             </div>
 
             <div class="col-6 border border-dark">
-                <b>Fecha: </b> @Model.Factura.FechaFacturacion<br>
-                <b>NCF: </b>@Model.Factura.Ncf
+                <b>Fecha: </b> @Model.FechaFacturacion<br>
+                <b>NCF: </b>@Model.Rnc
             </div>
         </div>
     </div>
@@ -76,7 +76,7 @@
 
                 <tbody>
                     @{
-                        foreach (var item in Model.DetalleFacturaList)
+                        foreach (var item in Model.Articulos)
                         {
                             <tr>
                                 <td>@item.IdEquipo</td>
@@ -95,11 +95,10 @@
     </div>
 
     <div class="container text-right">
-        <div><b>Subtotal: @Model.DetalleFacturaList.Sum(x=>x.SubTotal).ToString("N2")</b></div>
-        <div><b>Descuento: @Model.DetalleFacturaList.Sum(x=>x.Descuento).ToString("N2")</b></div>
-        <div><b>ITBIS: @Model.DetalleFacturaList.Sum(x=>x.Itbis).ToString("N2")</b></div>
-        <div><b>Abonado: @Model.Abono.ToString("N2")</b></div>
-        <div><b>Total: @Model.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>
+        <div><b>Subtotal: @Model.Articulos.Sum(x=>x.SubTotal).ToString("N2")</b></div>
+        <div><b>Descuento: @Model.Articulos.Sum(x=>x.Descuento).ToString("N2")</b></div>
+        <div><b>ITBIS: @Model.Articulos.Sum(x=>x.Itbis).ToString("N2")</b></div>
+        <div><b>Total: @Model.Articulos.Sum(x=>x.Total).ToString("N2")</b></div>
     </div>
 
     <div class="container">

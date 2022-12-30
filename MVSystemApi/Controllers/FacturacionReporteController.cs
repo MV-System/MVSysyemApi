@@ -2,6 +2,7 @@
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using Newtonsoft.Json;
 using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
@@ -71,17 +72,10 @@ namespace MVSystemApi.Controllers
 
             return new ViewAsPdf(data);
         }
-        //[HttpPost("FacturacionReporte/ReportCotizacion")]
-        //public IActionResult ReportCotizacion(FacturaFilter consulta)
-        //{
-            
-        //    var data = new Facturas
-        //    {
-        //        DetalleFacturaList = detalleFactura,
-        //        Factura = factura
-        //    };
-
-        //    return new ViewAsPdf(data);
-        //}
+        [HttpPost("FacturacionReporte/ReportCotizacion")]
+        public IActionResult ReportCotizacion(CotizacionModel model)
+        {
+            return new ViewAsPdf(model);
+        }
     }
 }

@@ -74,5 +74,21 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet]
+        [Route("GetFacturaNumeroUltimo")]
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public IActionResult GetFacturaNumeroUltimo()
+        {
+            try
+            {
+                var result = AD.GetFacturaNumeroUltimo();
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

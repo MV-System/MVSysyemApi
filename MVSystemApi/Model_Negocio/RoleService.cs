@@ -26,8 +26,18 @@ namespace MVSystemApi.Model_Negocio
             if (roles == default)
             {
                 roles = new List<string>();
-                roles.AddRange(await _dbContext.Usuarios.Where(x => x.Login == _httpContextAccessor.HttpContext.User.Identity.Name).SelectMany(x => x.RolUsuarios.SelectMany(y => y.IdRolNavigation.RolPermisos.Select(x => x.IdPermisoNavigation.PermissionName))).ToListAsync());
-                roles.AddRange(await _dbContext.Usuarios.Where(x => x.Login == _httpContextAccessor.HttpContext.User.Identity.Name).SelectMany(x => x.PermisoUsuarios.Select(x => x.IdPermisoNavigation.PermissionName)).ToListAsync());
+                roles.AddRange(
+                    await _dbContext.Usuarios
+                            .Where(x => x.Login == _httpContextAccessor.HttpContext.User.Identity.Name)
+                            .SelectMany(x => x.RolUsuarios
+                            .SelectMany(y => y.IdRolNavigation.RolPermisos
+                            .Select(x => x.IdPermisoNavigation.PermissionName)))
+                            .ToListAsync());
+                roles.AddRange(await _dbContext.Usuarios
+                            .Where(x => x.Login == _httpContextAccessor.HttpContext.User.Identity.Name)
+                            .SelectMany(x => x.PermisoUsuarios
+                            .Select(x => x.IdPermisoNavigation.PermissionName))
+                            .ToListAsync());
 
                 roles = roles.Distinct().ToList();
                 _memoryCache.Set(key, roles, TimeSpan.FromMinutes(8));

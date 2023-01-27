@@ -66,6 +66,16 @@ namespace MVSystemApi.Model_Negocio
                           }).ToList();
             return result;
         }
+        internal object GetFacturaNumeroUltimo()
+        {
+            var Numero_Factura = 0;
+            var result = (from dt in Ac.GetFacturaNumeroUltimo().AsEnumerable()
+                          select Numero_Factura = Convert.ToInt32(dt["Numero_Factura"]) + 1);
+
+                        
+
+            return result;
+        }
         //internal object PostFactura(Facturas Factura)
         //{
         //    var result = (from dt in Ac.PostFactura(Factura).AsEnumerable()

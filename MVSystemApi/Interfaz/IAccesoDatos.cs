@@ -71,6 +71,7 @@ namespace MVSystemApi.Interfaz
         public Facturas PostFactura(Facturas Factura);
         public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal);
         public DataTable GetFacturas(FacturaFilter consulta);
+        public DataTable GetFacturaNumeroUltimo();
 
         public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal);
 

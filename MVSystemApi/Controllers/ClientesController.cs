@@ -21,7 +21,7 @@ namespace MVSystemApi.Controllers
         // GET: /<controller>/
         [HttpPost()]
         [Route("Cliente_Insert")]
-        [Authorize(Roles = "MNU_MANT_CLIENTES")]
+        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
         public ActionResult<Clientes> Cliente_Insert([FromBody] Clientes cliente)
         {
 
@@ -42,7 +42,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet()]
         [Route("Get_Cliente")]
-        [Authorize(Roles = "MNU_CONS_CLIENTES")]
+        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
         public ActionResult<Clientes> Get_Cliente(string criterio)
         {
 

@@ -36,6 +36,32 @@ namespace MVSystemApi.Model
         public static Int64 codigo;
         /// <summary>
         /// Author: Xavier Mejia
+        /// Date: 26.ENE.2023
+        /// </summary>
+        /// <returns>
+        /// DataTable
+        /// </returns>
+        public DataTable GetFacturaNumeroUltimo()
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Facturas_Consulta_ultimo";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }        /// <summary>
+        /// Author: Xavier Mejia
         /// Date: 8.Oct.2022
         /// </summary>
         /// <param name="numeroFactura">The receipt number</param>
@@ -1042,7 +1068,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Descuento", item.Descuento);
                     cmd.Parameters.AddWithValue("@Itbis", item.Itbis);
                     cmd.Parameters.AddWithValue("@Total", item.Total);
-                    //cmd.Parameters.AddWithValue("@Estado", "A");
+                    cmd.Parameters.AddWithValue("@Estado", "A");
                     //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
                     cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
                     cmd.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
@@ -1126,7 +1152,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Total", Factura.Total);
                     cmd.Parameters.AddWithValue("@Descuento", Factura.Descuento);
                     cmd.Parameters.AddWithValue("@Nota", Factura.Nota);
-                    //cmd.Parameters.AddWithValue("@Estado", "A");
+                    cmd.Parameters.AddWithValue("@Estado", "A");
                     cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
                     //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
                     cmd.Parameters.AddWithValue("@fecha_registro", Factura.FechaRegistro);

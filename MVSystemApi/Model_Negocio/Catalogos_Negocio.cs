@@ -90,6 +90,7 @@ namespace MVSystemApi.Model
                              {
                                  ID_Vendedor = Convert.ToInt32(dt["ID_Vendedor"]),
                                  Nombres = Convert.ToString(dt["Nombres"]),
+                                 Apellidos = Convert.ToString(dt["Apellidos"]),
 
                              }).ToList();
 

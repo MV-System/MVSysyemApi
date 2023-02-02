@@ -9,5 +9,6 @@ namespace MVSystemApi.Model
     {
         public int ID_Vendedor { get; set; }
         public string Nombres { get; set; }
+        public string Apellidos { get; set; }
     }
 }

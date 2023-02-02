@@ -28,7 +28,7 @@ namespace MVSystemApi.Controllers
         public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)
-                factura.IdCliente = _clientes_Negocio.Cliente_Insert(factura.Cliente).ID_Cliente;
+                factura.IdCliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente).Id_Cliente;
 
             var result = _accesoDatos.PostFactura(factura);
             if (result == null)

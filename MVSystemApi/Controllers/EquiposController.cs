@@ -42,7 +42,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet("Equipo_Busca_Disponible")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult<Equipos> Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {
             try

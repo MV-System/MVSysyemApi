@@ -70,7 +70,7 @@ namespace MVSystemApi.Model_Negocio
         {
             var Numero_Factura = 0;
             var result = (from dt in Ac.GetFacturaNumeroUltimo().AsEnumerable()
-                          select Numero_Factura = Convert.ToInt32(dt["Numero_Factura"]) + 1);
+                          select Numero_Factura = Convert.ToInt32(dt["Numero_Factura"]) + 1).FirstOrDefault();
 
                         
 

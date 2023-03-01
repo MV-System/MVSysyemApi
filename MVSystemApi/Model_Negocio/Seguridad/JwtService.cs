@@ -26,12 +26,15 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             {
                 new Claim(JwtRegisteredClaimNames.NameId,Convert.ToString( user.Codigo)),
                 new Claim(JwtRegisteredClaimNames.Name, user.Login),
+                new Claim(JwtRegisteredClaimNames.GivenName, user.Nombre),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
 
             foreach (var rol in roles)
                 claims.Add(new Claim("role", rol));
 
+            claims.Add(new Claim("idSucursal", user.Id_Sucursal.ToString()));
+            claims.Add(new Claim("Empresa", user.Empresa));
             var expires = DateTime.UtcNow.Date.AddDays(1);
 
             var tokenDescriptor = new JwtSecurityToken(_issuer, _issuer, claims, expires: expires, signingCredentials: _credentials);

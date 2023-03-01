@@ -80,8 +80,10 @@ namespace MVSystemApi.Model
         public int NumeroFactura { get; set; }
         public int IdCliente { get; set; }
         public int IdTipoFactura { get; set; }
+        public string TipoFactura { get; set; }
         public int IdVendedor { get; set; }
         public int IdTipoPago { get; set; }
+        public string TipoPago { get; set; }
         public int NcfTipoNumero { get; set; }
         public int Telefono { get; set; }
         public int? IdAlmacen { get; set; }

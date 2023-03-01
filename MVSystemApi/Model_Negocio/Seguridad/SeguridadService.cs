@@ -19,6 +19,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         {
             ConnectionStrings = configuration.GetConnectionString("MVSystemSeguridad");
             this.jwtService = jwtService;
+         
         }
         public DataTable ChangePassword(Usuario usuario)
         {
@@ -48,7 +49,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 throw ex;
             }
         }
-        public async Task<CredentialsDTO> Login(UsuarioDTO usarioIn)
+        public async Task<CredentialsDTO> Login(UsuarioDTO usuarioIn)
         {
             using var dataTable = new DataTable();
 
@@ -56,20 +57,36 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand("SELECT TOP (1) * FROM Usuarios WHERE [Login] = @userName AND [Estado] = 1", conn);
-            cmd.Parameters.AddWithValue("@userName", usarioIn.UserName);
+            cmd.Parameters.AddWithValue("@userName", usuarioIn.UserName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
             dataAdapter.Fill(dataTable);
 
             var usuarioDb = AccesoDatos.BindList<Usuario>(dataTable).FirstOrDefault();
+            usuarioDb.Empresa = GetUserEmpresa(usuarioDb.Id_Empresa);
 
-            if (usuarioDb == default || usarioIn.Password != AES.Decrypt(usuarioDb.Password))
+            if (usuarioDb == default || usuarioIn.Password != AES.Decrypt(usuarioDb.Password))
                 return default;
 
             var roles = await GetRoles(usuarioDb.Login);
             return jwtService.BuildToken(usuarioDb, roles);
         }
+        public string GetUserEmpresa(int idEmpresa)
+        {
+            using var dataTable = new DataTable();
 
+            using var conn = new SqlConnection(ConnectionStrings);
+            conn.Open();
+
+            using var cmd = new SqlCommand("SELECT TOP (1) Nombre_Empresa FROM Empresas E JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa WHERE U.Id_Empresa = @idEmpresa", conn);
+            cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
+
+            using var dataAdapter = new SqlDataAdapter(cmd);
+            dataAdapter.Fill(dataTable);
+
+            var dataEnum = dataTable.AsEnumerable();
+            return dataEnum.First()["Nombre_Empresa"].ToString();
+        }
         public string GetConnStringByUser(string userName)
         {
             using var dataTable = new DataTable();
@@ -77,7 +94,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             using var conn = new SqlConnection(ConnectionStrings);
             conn.Open();
 
-            using var cmd = new SqlCommand("SELECT TOP (1) StringCon FROM Empresas E JOIN Usuarios U ON U.Empresa = E.ID_Empresa WHERE U.Login = @userName", conn);
+            using var cmd = new SqlCommand("SELECT TOP (1) StringCon FROM Empresas E JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa WHERE U.Login = @userName", conn);
             cmd.Parameters.AddWithValue("@userName", userName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);

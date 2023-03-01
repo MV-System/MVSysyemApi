@@ -26,6 +26,8 @@ namespace DTO
         public decimal TotalFacturado { get; set; }
         public decimal TotalGanancia { get; set; }
         public decimal TotalItbis { get; set; }
+        public string Usuario { get; set; }
+
     }
     public class AccesorioVendidoDTO : PagingDTO
     {

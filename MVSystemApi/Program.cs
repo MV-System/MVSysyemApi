@@ -56,6 +56,7 @@ builder.Services.AddScoped<Proveedores_Negocio>();
 builder.Services.AddScoped<Accesorios_Negocio>();
 builder.Services.AddScoped<Equipos_Negocio>();
 builder.Services.AddScoped<Facturas_Negocio>();
+builder.Services.AddScoped<Cotizacion_Negocio>();
 builder.Services.AddScoped<Marcas_Negocio>();
 builder.Services.AddScoped<SeguridadService>();
 builder.Services.AddScoped<JwtService>();

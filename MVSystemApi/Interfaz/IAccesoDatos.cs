@@ -77,6 +77,13 @@ namespace MVSystemApi.Interfaz
 
         #endregion
 
+        #region // ------------ Cotizacion -------------------------
+        public DataTable GetCotizacionFacturaConsulta(string telefono);
+        public DataTable GetDetalleCotizacionConsulta(int numeroFactura, int sucursal);
+
+
+        #endregion
+
         #region --------------Accesorios -------------------
         DataTable Accesorio_Insert(Accesorio Accesorio);
         DataTable ConsultaAccesorio(int Codigo);

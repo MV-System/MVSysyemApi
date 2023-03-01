@@ -15,6 +15,7 @@ namespace MVSystemApi.Model
         public static int Numero_Registro;
         private readonly string _connectionStrings;
         private readonly IMemoryCache _memoryCache;
+        public static Int64 codigo;
 
         public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache)
         {
@@ -33,7 +34,66 @@ namespace MVSystemApi.Model
             cn = new SqlConnection(_connectionStrings);
         }
 
-        public static Int64 codigo;
+        /// <summary>
+        /// Author: Xavier Mejia
+        /// Date: 21.FEB.2023
+        /// </summary>
+        /// <param name="numeroFactura">The receipt number</param>
+        /// <param name="sucursal">The sucursal id</param>
+        /// <returns>
+        /// DataTable
+        /// </returns>
+        public DataTable GetDetalleCotizacionConsulta(int numeroFactura, int sucursal)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Detalle_Cotizacion_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        /// <summary>
+        /// Author: Xavier Mejia
+        /// Date: 21.FEB.2023
+        /// </summary>
+        /// <param name="telefono">The customer phone number </param>
+        /// <returns>
+        /// DataTable
+        /// </returns>
+        public DataTable GetCotizacionFacturaConsulta(string telefono)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Cotizacion_Facturar_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_Telefono", telefono);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         /// <summary>
         /// Author: Xavier Mejia
         /// Date: 26.ENE.2023
@@ -60,7 +120,8 @@ namespace MVSystemApi.Model
             {
                 throw ex;
             }
-        }        /// <summary>
+        }      
+        /// <summary>
         /// Author: Xavier Mejia
         /// Date: 8.Oct.2022
         /// </summary>
@@ -181,7 +242,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Precio_Detalle", accesorio.PrecioDetalle);
                 cmd.Parameters.AddWithValue("@Estado", accesorio.Estado);
                 cmd.Parameters.AddWithValue("@Cantidad", accesorio.Cantidad);
-                cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
+                cmd.Parameters.AddWithValue("@Usuario", accesorio.Usuario);
 
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
@@ -995,7 +1056,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
                 cmd.Parameters.AddWithValue("@Modelo", tranferencia.Modelo);
                 cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
-                cmd.Parameters.AddWithValue("@Usuario", "Xavier");
+                cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
                 //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
 
                 cmd.ExecuteNonQuery();
@@ -1070,7 +1131,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Total", item.Total);
                     cmd.Parameters.AddWithValue("@Estado", "A");
                     //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
-                    cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
+                    cmd.Parameters.AddWithValue("@Usuario", item.Usuario);
                     cmd.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
 
                     //cmd.ExecuteNonQuery();
@@ -1153,7 +1214,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Descuento", Factura.Descuento);
                     cmd.Parameters.AddWithValue("@Nota", Factura.Nota);
                     cmd.Parameters.AddWithValue("@Estado", "A");
-                    cmd.Parameters.AddWithValue("@Usuario", "Xavier08");
+                    cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
                     //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
                     cmd.Parameters.AddWithValue("@fecha_registro", Factura.FechaRegistro);
                     //cmd.Parameters.AddWithValue("@Cotizacion_Numero", Cotizacion_Numero);

@@ -34,7 +34,16 @@ namespace MVSystemApi.Controllers
             if (result == null)
                 return NotFound();
 
-
+            factura.TipoPago = ((List<Tipos_Pagos>)_catalogos_Negocio
+                    .GetTipos_Pagos_Lista())
+                    .Where(x => x.ID_Tipo_Pagos == factura.IdTipoPago)
+                    .Select(p => p.Descripcion_Tipo_Pagos)
+                    .FirstOrDefault();
+            factura.TipoFactura = ((List<Tipos_Facturas>)_catalogos_Negocio
+                  .GetTipos_Factura_Lista())
+                  .Where(x => x.ID_Tipo_Factura == factura.IdTipoFactura)
+                  .Select(p => p.Descripcion_Factura_Tipo)
+                  .FirstOrDefault();
             var facturaReporte = _accesoDatos.ObtenerFacturaReporte(result.NumeroFactura, 1);
             var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
             var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();

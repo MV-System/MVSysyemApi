@@ -33,25 +33,31 @@
             Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
             Tel.:809-908-6952 Cel.: 809-883-8858
         </p>
-        <p> <b> RNC: 132307382 </b> </p>
+        <p>
+            @{
+                if (Model.Factura.RNC.Length > 0)
+                {
+                    <b>RNC: </b>  @Model.Factura.RNC;
+                }
+            }
+        </p>
     </div>
 
     <div class="container border border-dark">
         <div class="row">
             <div class="col-6 border border-dark">
-                <b>Cliente</b><br>
                 <b>Código: </b>@Model.Cliente.Id_Cliente<br>
-                <b>Nombre: </b>@Model.Cliente.Nombres @Model.Cliente.Apellidos<br>
+                <b>Cliente: </b>@Model.Cliente.Nombres @Model.Cliente.Apellidos<br>
                 <b>Teléfono: </b>@Model.Cliente.Numero_Telefono<br>
                 <b>Vendedor: </b>@Model.VendedorNombre<br>
             </div>
 
             <div class="col-6 border border-dark">
                 <b>Factura No.: P @Model.Factura.NumeroFactura</b><br>
-                <b>Tipo de factura: </b> Al por mayor<br>
-                <b>Tipo de pago: </b> Efectivo<br>
+                <b>Tipo de factura: </b> @Model.Factura.TipoFactura<br>
+                <b>Tipo de pago: </b> @Model.Factura.TipoPago<br>
                 <b>Fecha: </b> @Model.Factura.FechaRegistro<br>
-                <b>NCF: </b>
+                <b>NCF: </b>@Model.Factura.NcfNumero
             </div>
         </div>
     </div>

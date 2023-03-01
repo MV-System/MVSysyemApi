@@ -80,6 +80,35 @@ namespace MVSystemApi.Model
                           }).ToList();
             return result;
         }
+
+        internal object GetEquipos(InventarioFilters filterData)
+        {
+            var result = (from dt in Ac.GetEquipos(filterData).AsEnumerable()
+                          select new EquipoInventarioResponse
+                          {
+                                Imei = Convert.ToString(dt["Imei"]),
+                                Modelo = Convert.ToString(dt["Modelo"]),
+                                Marca = Convert.ToString(dt["Marca"]),
+                                Condicion = Convert.ToString(dt["Condicion"]),
+                                Tecnologia = Convert.ToString(dt["Tecnologia"]),
+                                PrecioDetalle = Convert.ToString(dt["PrecioDetalle"]),
+                                PrecioMayor = Convert.ToString(dt["PrecioMayor"]),
+                                Costo = Convert.ToString(dt["Costo"]),
+                                Existencia = Convert.ToString(dt["Existencia"]),
+                                Desbloqueado = Convert.ToString(dt["Desbloqueado"]),
+                                Garantia = Convert.ToString(dt["Garantia"]),
+                                Nota = Convert.ToString(dt["Nota"]),
+                                Comision = Convert.ToString(dt["Comision"]),
+                                ComisionMayor = Convert.ToString(dt["ComisionMayor"]),
+                                Almacen = Convert.ToString(dt["Almacen"]),
+                                Suplidor = Convert.ToString(dt["Suplidor"]),
+                                FechaRegistro = Convert.ToDateTime(dt["FechaRegistro"]),
+                                PrimerRegistroPagina = Convert.ToInt32(dt["PrimerRegistroPagina"]),
+                                UltimoRegistroPagina = Convert.ToInt32(dt["UltimoRegistroPagina"]),
+                                TotalRegistros = Convert.ToInt32(dt["TotalRegistros"])
+                          }).ToList();
+            return result;
+        }
         internal object GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
         {
 
@@ -227,6 +256,31 @@ namespace MVSystemApi.Model
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"])
 
                             }).ToList();
+
+            return result;
+        }
+
+        internal object GetEquipos(CriterioFilters filterData)
+        {
+            var result = (from dt in Ac.GetEquiposRecibidos(filterData).AsEnumerable()
+                          select new EquipoRecepcionGet
+                          {
+                              RecepcionNumero = Convert.ToInt32(dt["Recepcion_Numero"]),
+                              Cliente = Convert.ToString(dt["Cliente"]),
+                              Cedula = Convert.ToString(dt["Cedula"]),
+                              Telefono = Convert.ToString(dt["Telefono"]),
+                              ImeiEntrada = Convert.ToString(dt["Imei_Entrada"]),
+                              PrecioImeiEntra = Convert.ToDecimal(dt["Precio_Imei_Entra"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              ImeiSale = Convert.ToString(dt["Imei_Sale"]),
+                              Nota = Convert.ToString(dt["Nota"]),
+                              Usuario = Convert.ToString(dt["Usuario"]),
+                              FechaRegistro = Convert.ToString(dt["Fecha_registro"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"])
+
+                          }).ToList();
 
             return result;
         }

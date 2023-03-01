@@ -25,12 +25,14 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Suplidor_Combo();
         public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO);
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter);
+        public DataTable GetEquipos(InventarioFilters filterData);
         public SqlDataReader GetEquipoByImei(string imei);
         public DataTable GetEquiposTranferidos();
         public DataTable GetEquiposRecibidos(CriterioFilters filterData);
         public void ModificarEquipo(Equipo_return_Imei imei);
         public void InsertarEquipoRecibido(EquipoRecepcion equipo);
         public void EquipoEstadoActualiza(EquipoEstadoUpdate equipo);
+
 
         internal DataTable GetEquipoPreciosEstatusByImei(string imei);
 
@@ -86,6 +88,7 @@ namespace MVSystemApi.Interfaz
         public DataTable GetAccesorioById(int id);
         public DataTable GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen);
         public DataTable UpdateAccesorio(AccesorioDTO accesorio);
+        public DataTable GetAccesorios(InventarioFilters filterData);
 
 
         #endregion

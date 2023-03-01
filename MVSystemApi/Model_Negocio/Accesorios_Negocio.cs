@@ -56,6 +56,26 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+
+        internal object GetAccesorios(InventarioFilters filterData)
+        {
+            var result = (from dt in Ac.GetAccesorios(filterData).AsEnumerable()
+                          select new AccesorioInventarioResponse
+                          {
+                              Codigo = Convert.ToString(dt["Codigo"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              PrecioDetalle = Convert.ToString(dt["PrecioDetalle"]),
+                              PrecioMayor = Convert.ToString(dt["PrecioMayor"]),
+                              Costo = Convert.ToString(dt["Costo"]),
+                              Existencia = Convert.ToString(dt["Existencia"]),
+                              Almacen = Convert.ToString(dt["Almacen"]),
+                              FechaRegistro = Convert.ToDateTime(dt["FechaRegistro"]),
+                              PrimerRegistroPagina = Convert.ToInt32(dt["PrimerRegistroPagina"]),
+                              UltimoRegistroPagina = Convert.ToInt32(dt["UltimoRegistroPagina"]),
+                              TotalRegistros = Convert.ToInt32(dt["TotalRegistros"])
+                          }).ToList();
+            return result;
+        }
         internal object GetAccesorios(Paginate paginate,string accesorio, int almacen)
         {
             try

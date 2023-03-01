@@ -42,4 +42,18 @@ namespace MVSystemApi.Model
         public decimal Precio_Detalle { get; set; }
         public Int64? Cantidad { get; set; }
     }
+
+
+    public class AccesorioInventarioResponse : PaginationResponse
+    {
+        public string Codigo { get; set; }
+        public string Modelo { get; set; }
+        public string PrecioDetalle { get; set; }
+        public string PrecioMayor { get; set; }
+        public string Costo { get; set; }
+        public string Existencia { get; set; }
+        public string Almacen { get; set; }
+        public DateTime FechaRegistro { get; set; }
+        public string FormatedDate => DateOnly.FromDateTime(FechaRegistro).ToShortDateString();
+    }
 }

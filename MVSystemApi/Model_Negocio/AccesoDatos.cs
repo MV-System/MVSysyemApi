@@ -1232,6 +1232,65 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+
+        public DataTable GetEquipos(InventarioFilters filterData)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipos_Consulta_Paging_Filtering";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@IdAlmacen", null);
+                cmd.Parameters.AddWithValue("@IdModelo", null);
+                cmd.Parameters.AddWithValue("@Criterio", filterData.Criterio);
+                cmd.Parameters.AddWithValue("@PageIndex", filterData.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", filterData.PageSize);
+                cmd.Parameters.AddWithValue("@Disponible",filterData.Disponible);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable GetAccesorios(InventarioFilters filterData)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Accesorios_Consulta_Paging_Filtering";
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@IdAlmacen", null);
+                cmd.Parameters.AddWithValue("@IdModelo", null);
+                cmd.Parameters.AddWithValue("@Criterio", filterData.Criterio);
+                cmd.Parameters.AddWithValue("@PageIndex", filterData.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", filterData.PageSize);
+                cmd.Parameters.AddWithValue("@Disponible", filterData.Disponible);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
         public void ModificarEquipo(Equipo_return_Imei equipo)
         {
             cn.Open();

@@ -190,6 +190,21 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("InventarioTienda")]
+        public ActionResult<object> GetEquipos([FromQuery] InventarioFilters filterData)
+        {
+            try
+            {
+                var result = AD.GetEquipos(filterData);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500,ex.Message);
+            }
+        }
+
         [HttpPost]
         [Route("EstadoActualiza")]
         [Authorize(Roles = "MNU_MANT_EQUIPOS")]

@@ -118,6 +118,22 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet]
+        [Route("InventarioTienda")]
+        public ActionResult<object> GetAccesorios([FromQuery] InventarioFilters filterData)
+        {
+            try
+            {
+                var result = AD.GetAccesorios(filterData);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet("GetAccesoriosVendidos")]
         public ActionResult<List<Accesorio>> GetAccesoriosVendidos([FromQuery] Paginate paginate, string filter, int almacen)
         {

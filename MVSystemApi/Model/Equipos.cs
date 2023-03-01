@@ -117,6 +117,45 @@ namespace MVSystemApi.Model
         public int PageSize { get; set; } = 10;
     }
 
+    public class EquipoInventarioResponse : PaginationResponse
+    {
+        public string Imei { get; set; }
+        public string Modelo { get; set;}
+        public string Marca { get; set; }
+        public string Condicion { get; set; }
+        public string Tecnologia { get; set; }
+        public string PrecioDetalle { get; set; }
+        public string PrecioMayor { get; set; }
+        public string Costo { get; set; }
+        public string Existencia { get; set; }
+        public string Desbloqueado { get; set; }
+        public string Garantia { get; set; }
+        public string Nota { get; set; }
+        public string Comision { get; set; }
+        public string ComisionMayor { get; set; }
+        public string Almacen { get; set; }
+        public string Suplidor { get; set; }
+        public DateTime FechaRegistro { get; set; }
+        public string FormatedDate => DateOnly.FromDateTime(FechaRegistro).ToShortDateString();
+    }
+
+ 
+
+    public class InventarioFilters
+    {
+        public string? Criterio { get; set; } = "";
+        public int PageIndex { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public char? Disponible { get; set; } = null;
+    }
+
+    public class PaginationResponse
+    {
+        public int PrimerRegistroPagina { get; set; }
+        public int UltimoRegistroPagina { get; set; }
+        public int TotalRegistros { get; set; }
+    }
+
     public class ReporteData
     {
         public List<EquipoRecepcionGet> Registros { get; set; }

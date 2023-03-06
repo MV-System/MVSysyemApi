@@ -143,10 +143,12 @@ namespace MVSystemApi.Model
 
     public class InventarioFilters
     {
-        public string? Criterio { get; set; } = "";
+        public string Criterio { get; set; } = "";
+        public int? IdModelo { get; set; }
+        public int? IdAlmacen { get; set; }
+        public int? IdSuplidor { get; set; }
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
-        public char? Disponible { get; set; } = null;
     }
 
     public class PaginationResponse

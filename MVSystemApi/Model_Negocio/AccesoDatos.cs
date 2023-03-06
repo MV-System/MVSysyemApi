@@ -1305,13 +1305,12 @@ namespace MVSystemApi.Model
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cmd.CommandText = "Equipos_Consulta_Paging_Filtering";
                 cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.AddWithValue("@IdAlmacen", null);
-                cmd.Parameters.AddWithValue("@IdModelo", null);
+                cmd.Parameters.AddWithValue("@IdAlmacen", filterData.IdAlmacen);
+                cmd.Parameters.AddWithValue("@IdModelo", filterData.IdModelo);
+                cmd.Parameters.AddWithValue("@IdSuplidor", filterData.IdSuplidor);
                 cmd.Parameters.AddWithValue("@Criterio", filterData.Criterio);
                 cmd.Parameters.AddWithValue("@PageIndex", filterData.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", filterData.PageSize);
-                cmd.Parameters.AddWithValue("@Disponible",filterData.Disponible);
                 da.Fill(dt);
                 cn.Close();
                 return dt;
@@ -1334,13 +1333,11 @@ namespace MVSystemApi.Model
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cmd.CommandText = "Accesorios_Consulta_Paging_Filtering";
                 cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.AddWithValue("@IdAlmacen", null);
-                cmd.Parameters.AddWithValue("@IdModelo", null);
+                cmd.Parameters.AddWithValue("@IdAlmacen", filterData.IdAlmacen);
+                cmd.Parameters.AddWithValue("@IdModelo", filterData.IdModelo);
                 cmd.Parameters.AddWithValue("@Criterio", filterData.Criterio);
                 cmd.Parameters.AddWithValue("@PageIndex", filterData.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", filterData.PageSize);
-                cmd.Parameters.AddWithValue("@Disponible", filterData.Disponible);
                 da.Fill(dt);
                 cn.Close();
                 return dt;

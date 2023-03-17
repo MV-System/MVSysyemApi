@@ -164,6 +164,12 @@ namespace MVSystemApi.Model
         public string FechaImpresion { get; set; }
     }
 
+    public class ReporteEquiposInventario
+    {
+        public List<EquipoInventarioResponse> Registros { get; set; }
+        public string FechaImpresion { get; set; }
+    }
+
     public class EquipoEstadoUpdate
     {
         public string Imei { get; set; }

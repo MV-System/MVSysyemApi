@@ -176,7 +176,6 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("RecepcionEquipos")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult<List<EquipoRecepcionGet>> GetEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             try

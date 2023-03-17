@@ -11,9 +11,11 @@ namespace MVSystemApi.Controllers
     public class EquipoReporteController : ControllerBase
     {
         private readonly Equipos_Negocio _equipos_Negocio;
-        public EquipoReporteController(Equipos_Negocio equipos_Negocio)
+        private readonly Accesorios_Negocio _AccesorioNegocios;
+        public EquipoReporteController(Equipos_Negocio equipos_Negocio, Accesorios_Negocio accesorioNegocios)
         {
             _equipos_Negocio = equipos_Negocio;
+            _AccesorioNegocios = accesorioNegocios;
         }
 
         [HttpPost]
@@ -45,7 +47,6 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetEquiposRecibidoVistaReporte")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public IActionResult ReporteEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             filterData.PageSize = int.MaxValue;
@@ -56,6 +57,28 @@ namespace MVSystemApi.Controllers
             return new ViewAsPdf(new ReporteData() { Registros = equiposRecibidos, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy") });
         }
 
+
+        [HttpGet]
+        [Route("EquiposInventarioVistaReporte")]
+        public IActionResult ReporteEquiposInventario([FromQuery] InventarioFilters filterData)
+        {
+            filterData.PageSize = int.MaxValue;
+            List<EquipoInventarioResponse> equipos = (List<EquipoInventarioResponse>)_equipos_Negocio.GetEquipos(filterData);
+            if (equipos == null)
+                return NotFound();
+            return new ViewAsPdf(new ReporteEquiposInventario() { Registros = equipos, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy") });
+        }
+
+        [HttpGet]
+        [Route("AccesorioInventarioVistaReporte")]
+        public IActionResult ReporteAccesoriosInventario([FromQuery] InventarioFilters filterData)
+        {
+            filterData.PageSize = int.MaxValue;
+            List<AccesorioInventarioResponse> accesorios = (List<AccesorioInventarioResponse>)_AccesorioNegocios.GetAccesorios(filterData);
+            if (accesorios == null)
+                return NotFound();
+            return new ViewAsPdf(new ReporteAccesoriosInventario() { Registros = accesorios, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy") });
+        }
 
         [HttpPost]
         [Route("EquipoTransferenciaReporte")]

@@ -56,4 +56,11 @@ namespace MVSystemApi.Model
         public DateTime FechaRegistro { get; set; }
         public string FormatedDate => DateOnly.FromDateTime(FechaRegistro).ToShortDateString();
     }
+
+    public class ReporteAccesoriosInventario
+    {
+        public List<AccesorioInventarioResponse> Registros { get; set; }
+        public string FechaImpresion { get; set; }
+    }
 }
+

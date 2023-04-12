@@ -14,9 +14,10 @@ namespace MVSystemApi.Model_Negocio.Seguridad
     {
         private readonly string ConnectionStrings;
         private readonly JwtService jwtService;
-
+        private readonly IConfiguration _configuration;
         public SeguridadService(IConfiguration configuration, JwtService jwtService)
         {
+            _configuration =configuration;
             ConnectionStrings = configuration.GetConnectionString("MVSystemSeguridad");
             this.jwtService = jwtService;
          
@@ -78,7 +79,11 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             using var conn = new SqlConnection(ConnectionStrings);
             conn.Open();
 
-            using var cmd = new SqlCommand("SELECT TOP (1) Nombre_Empresa FROM Empresas E JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa WHERE U.Id_Empresa = @idEmpresa", conn);
+            using var cmd = new SqlCommand("SELECT TOP (1) " +
+                "Nombre_Empresa FROM " +
+                "Empresas E JOIN Usuarios U " +
+                "ON U.Id_Empresa = E.ID_Empresa " +
+                "WHERE U.Id_Empresa = @idEmpresa", conn);
             cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
@@ -108,16 +113,20 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         {
             using var dataTable = new DataTable();
 
-            using var conn = new SqlConnection(GetConnStringByUser(userName));
+            using var conn = new SqlConnection(_configuration.GetConnectionString("MVSystemSeguridad"));
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand("SELECT P.Nombre FROM [seg].[Usuarios] U JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso WHERE Login = @userName", conn);
+            using var cmd = new SqlCommand("SELECT P.PermissionName " +
+                "FROM [dbo].[Usuarios] U " +
+                "JOIN [dbo].[PermisoUsuario] PU ON PU.IdUser = U.Codigo " +
+                "JOIN [dbo].[Permisos] P ON P.Id = PU.IdPermiso " +
+                "WHERE Login = @userName", conn);
             cmd.Parameters.AddWithValue("@userName", userName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
             dataAdapter.Fill(dataTable);
 
-            return dataTable.AsEnumerable().Select(x => x["Nombre"].ToString()).ToList();
+            return dataTable.AsEnumerable().Select(x => x["PermissionName"].ToString()).ToList();
         }
     }
 

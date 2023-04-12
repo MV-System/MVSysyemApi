@@ -76,7 +76,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturaNumeroUltimo")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [Authorize(Roles = "MNU_MANT_FACTURACION")]
         public IActionResult GetFacturaNumeroUltimo()
         {
             try

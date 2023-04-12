@@ -24,7 +24,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpPost]
-        [Route("FacturacionReporte/PostFactura")]
+        [Route("FacturacionReporte/RptFactura")]
         public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)

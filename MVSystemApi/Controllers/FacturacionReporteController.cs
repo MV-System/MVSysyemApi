@@ -70,7 +70,7 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportFactura")]
         public IActionResult ReportFactura(FacturaFilter consulta)
         {
-            var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
+               var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
             var results = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
             var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
             var data = new Facturas

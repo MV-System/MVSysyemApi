@@ -5,11 +5,11 @@ name: eShopOnWeb Build and Test
 
 #Environment variables https://docs.github.com/en/actions/learn-github-actions/environment-variables
 env:
-  RESOURCE-GROUP: rg-eshoponweb-NAME
+  RESOURCE-GROUP: APIPrueba_group
   LOCATION: westeurope
   TEMPLATE-FILE: infra/webapp.bicep
-  SUBSCRIPTION-ID: YOUR-SUBS-ID
-  WEBAPP-NAME: eshoponweb-webapp-NAME
+  SUBSCRIPTION-ID: 498e5bc1-dd2d-4ce0-b07d-25a2062d3f5b
+  WEBAPP-NAME: MnSystemApiProduccion
 
 
 jobs:
@@ -23,18 +23,18 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '6.0.x'
         dotnet-quality: 'preview'
     #Build/Test/Publish the .net project
-    - name: Build with dotnet
-      run: dotnet build ./eShopOnWeb.sln --configuration Release
-    - name: Test with dotnet
-      run: dotnet test ./eShopOnWeb.sln --configuration Release
-    - name: dotnet publish
-      run: |
-        dotnet publish ./src/Web/Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
-        cd ${{env.DOTNET_ROOT}}/myapp
-        zip -r ../app.zip .
+    #- name: Build with dotnet
+     # run: dotnet build ./eShopOnWeb.sln --configuration Release
+    -# name: Test with dotnet
+     # run: dotnet test ./eShopOnWeb.sln --configuration Release
+    #- name: dotnet publish
+     # run: |
+      #  dotnet publish ./src/Web/Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      #  cd ${{env.DOTNET_ROOT}}/myapp
+      #  zip -r ../app.zip .
     # upload the published website code artifacts
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4

@@ -260,7 +260,7 @@ namespace MVSystemApi.Model
             try
             {
                 cn.Open();
-                SqlCommand cmd = new SqlCommand("Accesorios_Consulta", cn);
+                SqlCommand cmd = new SqlCommand("Proc_Accesorios_Consulta", cn);
                 DataTable dt = new DataTable();
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -497,7 +497,7 @@ namespace MVSystemApi.Model
             try
             {
                 SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Cliente_Consulta";
+                cmd.CommandText = "Proc_Cliente_Consulta";
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Criterio", criterio);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
@@ -582,7 +582,7 @@ namespace MVSystemApi.Model
             try
             {
                 SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Accesorios_Consulta_Facturacion";
+                cmd.CommandText = "Proc_Accesorios_Consulta_Facturacion";
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@ID_Accesorio", Id_accesorio);
                 cmd.Parameters.AddWithValue("@id_sucu", id_sucu);
@@ -605,7 +605,7 @@ namespace MVSystemApi.Model
             try
             {
                 SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Vendedor_Consulta_Combo";
+                cmd.CommandText = "Proc_Vendedor_Consulta_Combo";
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
@@ -1280,7 +1280,7 @@ namespace MVSystemApi.Model
                 DataTable dt = new DataTable();
                 SqlCommand cmd = cn.CreateCommand();
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
-                cmd.CommandText = "Equipo_Consulta_Imei";
+                cmd.CommandText = "Proc_Equipo_Consulta_Imei";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@criterio", imei);
                 da.Fill(dt);

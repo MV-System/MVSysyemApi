@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -25,6 +26,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("FacturacionReporte/RptFactura")]
+        [Authorize(Roles = "MNU_MANT_FACTURACION")]
         public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)

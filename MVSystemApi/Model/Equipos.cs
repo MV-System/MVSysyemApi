@@ -42,9 +42,9 @@ namespace MVSystemApi.Model
     }  
     public class EquipoTransferencia
     {
-        public int Id { get; set; }
+        public int id { get; set; }
         public string Imei { get; set; }
-        public string? Modelo { get; set; }
+        public string Modelo { get; set; }
 
         public string AlmacenSalida { get; set; }
         public string AlmacenDestino { get; set; }

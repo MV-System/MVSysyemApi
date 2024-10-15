@@ -161,7 +161,7 @@ namespace MVSystemApi.Model
             var result = (from dt in Ac.GetEquiposTranferidos().AsEnumerable()
                           select new EquipoTransferencia
                           {
-                              Id = Convert.ToInt32(dt["Id_Transferencia"]),
+                              id = Convert.ToInt32(dt["Id_Transferencia"]),
                               Imei = Convert.ToString(dt["Imei"]),
                               Modelo = Convert.ToString(dt["Modelo"]),
                               AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),
@@ -243,6 +243,31 @@ namespace MVSystemApi.Model
         internal void EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
         {
             Ac.EquipoEstadoActualiza(dataActualizar);
+        }
+
+        internal object PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        {
+            try
+            {
+
+                var result = (from dt in Ac.PostEquipoTransferencia(tranferencia).AsEnumerable()
+                              select new EquipoTransferencia
+                              {
+                                  id = Convert.ToInt32(dt["Id_Transferencia"]),
+                                  Imei = Convert.ToString(dt["Imei"]),
+                                  Modelo = Convert.ToString(dt["Modelo"]),
+                                  AlmacenSalida = Convert.ToString(dt["AlmacenSalida"]),
+                                  AlmacenDestino = Convert.ToString(dt["AlmacenDestino"]),
+                              }).ToList().FirstOrDefault();
+                return result;
+
+               
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
         }
     }
 }

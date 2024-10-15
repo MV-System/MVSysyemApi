@@ -22,7 +22,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("Equipo_Insert")]
-        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult<Equipos> Equipo_Insert([FromBody] Equipos Equipo)
         {
             try
@@ -62,7 +62,7 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetEquiposVendidos")]
         [Authorize(Roles = "equiposVendidosMenu")]
-        public ActionResult<List<EquipoVendido>> GetEquiposVendidos([FromQuery] EquipoVendidoFilter? equipoVendidoFilter)
+        public ActionResult<List<EquipoVendido>> GetEquiposVendidos([FromQuery] EquipoVendidoFilter equipoVendidoFilter)
         {
             try
             {
@@ -252,8 +252,12 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-               _accesoDatos.PostEquipoTransferencia(tranferencia);
-                return Ok();
+                var result = AD.PostEquipoTransferencia(tranferencia);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
             }
             catch (Exception ex)
             {

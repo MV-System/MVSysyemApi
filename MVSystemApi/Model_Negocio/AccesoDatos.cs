@@ -1041,19 +1041,16 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        public void PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try
             {
                 cn.Open();
 
-                
-                DataTable dt = new DataTable();
                 SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Guarda", cn);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.id);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.Id);
                 cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
                 cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
                 cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
@@ -1062,9 +1059,8 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
                 //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
 
-                da.Fill(dt);
+                cmd.ExecuteNonQuery();
                 cn.Close();
-                return dt;
             }
             catch (Exception ex)
             {

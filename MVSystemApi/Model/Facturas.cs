@@ -87,7 +87,7 @@ namespace MVSystemApi.Model
         public int NcfTipoNumero { get; set; }
         public int Telefono { get; set; }
         public int? IdAlmacen { get; set; }
-        public string? Almacen { get; set; }
+        public string Almacen { get; set; }
         public decimal SubTotal { get; set; }
         public decimal Descuento { get; set; }
         public decimal Itbis { get; set; }

@@ -111,19 +111,19 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return dataEnum.First()["StringCon"].ToString();
         }
 
-        public async Task<List<string>> GetRoles(string userName,string Conn1)
+        public async Task<List<string>> GetRoles(string userName,string Conn)
         {
             using var dataTable = new DataTable();
 
-            using var conn = new SqlConnection(_configuration.GetConnectionString("MVSystemSeguridad"));
-            using var conn2 = new SqlConnection(Conn1);
-            await conn.OpenAsync();
+            //using var conn = new SqlConnection(_configuration.GetConnectionString("MVSystemSeguridad"));
+            using var conn = new SqlConnection(Conn);
+            //await conn2.OpenAsync();
 
             using var cmd = new SqlCommand("SELECT P.Nombre " +
                 "FROM [seg].[Usuarios] U " +
                 "JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo " +
                 "JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso " +
-                "WHERE Login = @userName " + "And PU.Estado =1", conn2);
+                "WHERE Login = @userName " + "And PU.Estado =1", conn);
             cmd.Parameters.AddWithValue("@userName", userName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);

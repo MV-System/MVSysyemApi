@@ -52,6 +52,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
         public async Task<CredentialsDTO> Login(UsuarioDTO usuarioIn)
         {
+            string conn1 ="";
             using var dataTable = new DataTable();
 
             using var conn = new SqlConnection(ConnectionStrings);
@@ -69,7 +70,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (usuarioDb == default || usuarioIn.Password != AES.Decrypt(usuarioDb.Password))
                 return default;
 
-            var roles = await GetRoles(usuarioDb.Login);
+            var conecion = GetConnStringByUser(usuarioDb.Login);
+            var roles = await GetRoles(usuarioDb.Login,conecion);
             return jwtService.BuildToken(usuarioDb, roles);
         }
         public string GetUserEmpresa(int idEmpresa)
@@ -109,24 +111,25 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return dataEnum.First()["StringCon"].ToString();
         }
 
-        public async Task<List<string>> GetRoles(string userName)
+        public async Task<List<string>> GetRoles(string userName,string Conn1)
         {
             using var dataTable = new DataTable();
 
             using var conn = new SqlConnection(_configuration.GetConnectionString("MVSystemSeguridad"));
+            using var conn2 = new SqlConnection(Conn1);
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand("SELECT P.PermissionName " +
-                "FROM [dbo].[Usuarios] U " +
-                "JOIN [dbo].[PermisoUsuario] PU ON PU.IdUser = U.Codigo " +
-                "JOIN [dbo].[Permisos] P ON P.Id = PU.IdPermiso " +
-                "WHERE Login = @userName", conn);
+            using var cmd = new SqlCommand("SELECT P.Nombre " +
+                "FROM [seg].[Usuarios] U " +
+                "JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo " +
+                "JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso " +
+                "WHERE Login = @userName " + "And PU.Estado =1", conn2);
             cmd.Parameters.AddWithValue("@userName", userName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
             dataAdapter.Fill(dataTable);
 
-            return dataTable.AsEnumerable().Select(x => x["PermissionName"].ToString()).ToList();
+            return dataTable.AsEnumerable().Select(x => x["Nombre"].ToString()).ToList();
         }
     }
 

@@ -82,7 +82,7 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetEquiposDisponible")]
         [Authorize(Roles = "MNU_CONS_EQUIPOS")]
-        public ActionResult<List<EquipoDisponibleDTO>> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO? equipoDisponibleFilterDTO)
+        public ActionResult<List<EquipoDisponibleDTO>> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
             try
             {

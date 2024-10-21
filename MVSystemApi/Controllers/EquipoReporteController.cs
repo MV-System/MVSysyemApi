@@ -23,11 +23,19 @@ namespace MVSystemApi.Controllers
 
             equipoReporte.PageSize =int.MaxValue ;
 
-            var equipoDisponibles = ((List<EquipoDisponibleDTO>)_equipos_Negocio.GetEquiposDisponible(equipoReporte));
+            
 
-        
+            var equipoDisponibles = ((List<EquipoDisponibleDTO>)_equipos_Negocio.GetEquiposDisponible(equipoReporte));
             if (equipoDisponibles == null)
                 return NotFound();
+
+            // Asignar un valor al parámetro "logo" de cada equipo disponible
+            foreach (var equipo in equipoDisponibles)
+            {
+                equipo.logo = "assets/" + equipoReporte.Empresa+".png"; // Asigna aquí la ruta o valor deseado para el logo
+            }
+
+            // Devolver la vista PDF con el objeto modificado
             return new ViewAsPdf(equipoDisponibles);
         }     
         [HttpPost]

@@ -14,7 +14,7 @@ namespace MVSystemApi.Controllers
 {
     [Route("Factura")]
     [ApiController]
-    public class FacturacionController : Controller
+    public class FacturacionController : ControllerBase
     {
         private readonly Facturas_Negocio AD;
         private readonly IAccesoDatos _accesoDatos;
@@ -44,7 +44,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturas")]
-        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [Authorize(Roles = "MNU_CONS_FACTURAS")]
         public IActionResult GetFacturas([FromQuery] FacturaFilter consulta)
         {
             try
@@ -60,7 +60,7 @@ namespace MVSystemApi.Controllers
         }     
         [HttpGet]
         [Route("GetDetalleFactura/{numeroFactura}/{sucursal}")]
-        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
         public IActionResult GetDetalleFactura([FromRoute] int numeroFactura, int sucursal)
         {
             try
@@ -76,7 +76,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturaNumeroUltimo")]
-        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
         public IActionResult GetFacturaNumeroUltimo()
         {
             try

@@ -22,7 +22,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("Equipo_Insert")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult<Equipos> Equipo_Insert([FromBody] Equipos Equipo)
         {
             try
@@ -42,7 +42,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet("Equipo_Busca_Disponible")]
-        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        //[Authorize(Roles = "MNU_CONS_EQUIPOS")]
         public ActionResult<Equipos> Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {
             try
@@ -61,7 +61,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetEquiposVendidos")]
-        [Authorize(Roles = "equiposVendidosMenu")]
+       // [Authorize(Roles = "equiposVendidosMenu")]
         public ActionResult<List<EquipoVendido>> GetEquiposVendidos([FromQuery] EquipoVendidoFilter equipoVendidoFilter)
         {
             try
@@ -81,7 +81,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetEquiposDisponible")]
-        //[Authorize(Roles = "MNU_CONS_EQUIPOS")]
+       // [Authorize(Roles = "MNU_CONS_EQUIPOS")]
         public ActionResult<List<EquipoDisponibleDTO>> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
             try
@@ -122,7 +122,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetEquipoPreciosEstatusByImei")]
-        [Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
+        //[Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
         public ActionResult<Equipo_return_Imei> GetEquipoPreciosEstatusByImei([FromQuery] string imei)
         {
             try
@@ -143,7 +143,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPut]
         [Route("ModificarEstatusEquipo")]
-        [Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
+        //[Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
 
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
         {
@@ -160,7 +160,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("RecepcionEquipos")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult RecibirEquipo(EquipoRecepcion equipo)
         {
             try
@@ -175,8 +175,8 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet]
-        [Route("RecepcionEquipos")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [Route("GetRecepcionEquipos")]
+       // [Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult<List<EquipoRecepcionGet>> GetEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             try
@@ -192,7 +192,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("EstadoActualiza")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public ActionResult EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
         {
             try
@@ -247,7 +247,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost]
         [Route("PostEquipoTransferencia")]
-        [Authorize(Roles = "MNTransfiereEquipos")]
+        //[Authorize(Roles = "MNTransfiereEquipos")]
         public ActionResult<EquipoTransferencia> PostEquipoTransferencia([FromBody] EquipoTransferencia tranferencia)
         {
             try

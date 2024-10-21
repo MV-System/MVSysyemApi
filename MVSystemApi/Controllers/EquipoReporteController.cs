@@ -45,6 +45,12 @@ namespace MVSystemApi.Controllers
             equipoReporte.PageSize = int.MaxValue;
            var equipoVendidos = (List<EquipoVendido>)_equipos_Negocio.GetEquiposVendidos(equipoReporte);
 
+            // Asignar un valor al parámetro "logo" de cada equipo disponible
+            foreach (var equipo in equipoVendidos)
+            {
+                equipo.logo = "assets/" + equipoReporte.Empresa + ".png"; // Asigna aquí la ruta o valor deseado para el logo
+            }
+
             if (equipoVendidos == null)
                 return NotFound();
             return new ViewAsPdf(equipoVendidos);

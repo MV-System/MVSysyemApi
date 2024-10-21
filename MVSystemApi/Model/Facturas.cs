@@ -52,9 +52,13 @@ namespace MVSystemApi.Model
         public string Criterio { get; set; }
         public int Almacen { get; set; }
         public string TipoPago { get; set; }
+        public string empresa { get; set; }
+        
     }
     public class FacturaConsulta : PagingDTO
     {
+        internal string logo;
+
         public int NumeroFactura { get; set; }
         public int ClienteId { get; set; }
         public long Telefono { get; set; }
@@ -73,9 +77,12 @@ namespace MVSystemApi.Model
         public decimal Total { get; set; }
         public decimal TotalFacturado { get; set; }
         public DateTime FechaFacturacion { get; set; }
+        public string empresa { get; set; }
     }
     public class Facturas
     {
+        internal string logo;
+
         //public string Cliente { get; set; }
         public int NumeroFactura { get; set; }
         public int IdCliente { get; set; }
@@ -106,6 +113,7 @@ namespace MVSystemApi.Model
 
         public Clientes Cliente { get; set; }
         public FacturaConsulta Factura { get; internal set; }
+        public string empresa { get; set; }
     }
 
     public class DetalleFactura

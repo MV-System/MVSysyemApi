@@ -176,8 +176,7 @@ namespace MVSystemApi.Model
         public decimal TotalComisionDetalle { get; set; }
         public decimal TotalComisionXMayor { get; set; }
         public decimal TotalItbis { get; set; }
-
-
+        public string logo { get; internal set; }
     }
     public class EquipoVendidoFilter
     {
@@ -196,5 +195,6 @@ namespace MVSystemApi.Model
         public string FechaFinal { get; set; }
         public string FechaInicioFactura { get; set; }
         public string FechaFinalFactura { get; set; }
+        public string Empresa { get; internal set; }
     }
 }

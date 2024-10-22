@@ -57,7 +57,7 @@ namespace MVSystemApi.Model
     }
     public class FacturaConsulta : PagingDTO
     {
-        internal string logo;
+        public string logo { get; set; }
 
         public int NumeroFactura { get; set; }
         public int ClienteId { get; set; }
@@ -81,7 +81,7 @@ namespace MVSystemApi.Model
     }
     public class Facturas
     {
-        internal string logo;
+        public string logo { get; set; }
 
         //public string Cliente { get; set; }
         public int NumeroFactura { get; set; }

@@ -50,6 +50,8 @@ namespace MVSystemApi.Model
         public string AlmacenDestino { get; set; }
         public int CantidadEquipos { get; set; }
         public string Usuario { get; set; }
+        public string Empresa { get; set; }
+
             
     }   
 
@@ -121,6 +123,7 @@ namespace MVSystemApi.Model
     {
         public List<EquipoRecepcionGet> Registros { get; set; }
         public string FechaImpresion { get; set; }
+        public string logoEmpresa { get; set; }
     }
 
     public class EquipoEstadoUpdate
@@ -141,6 +144,7 @@ namespace MVSystemApi.Model
         public List<EquipoTransferencia> EquipoTransferencias { get; set; }
         public string FechaTransferencia { get; set; }
 
+        public string Empresa { get; set; }
         public string Usuario { get; set; }
         public int Total { get; set; }
     }
@@ -176,7 +180,7 @@ namespace MVSystemApi.Model
         public decimal TotalComisionDetalle { get; set; }
         public decimal TotalComisionXMayor { get; set; }
         public decimal TotalItbis { get; set; }
-        public string logo { get; internal set; }
+        public string logo { get; set; }
     }
     public class EquipoVendidoFilter
     {
@@ -195,6 +199,6 @@ namespace MVSystemApi.Model
         public string FechaFinal { get; set; }
         public string FechaInicioFactura { get; set; }
         public string FechaFinalFactura { get; set; }
-        public string Empresa { get; internal set; }
+        public string Empresa { get; set; }
     }
 }

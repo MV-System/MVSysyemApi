@@ -24,8 +24,7 @@
 
 <body>
     <div class="container text-center">
-        @*<img src="@Model.FirstOrDefault()?.logo" alt="Logo" />*@
-        @*<img src="@Model.FirstOrDefault()?Factura.logo" alt="Logo Empresa" />*@
+        <img src="@Model.Factura.logo" alt="Logo Empresa" />
     </div>
 
     <div class="container text-center p0 mb-3">
@@ -98,16 +97,16 @@
     </div>
 
     <div class="container text-right">
-        <div><b>Subtotal: @Model.DetalleFacturaList.Sum(x=>x.SubTotal).ToString("N2")</b></div>
-        <div><b>Descuento: @Model.DetalleFacturaList.Sum(x=>x.Descuento).ToString("N2")</b></div>
-        <div><b>ITBIS: @Model.DetalleFacturaList.Sum(x=>x.Itbis).ToString("N2")</b></div>
-        <div><b>Abonado: @Model.Abono.ToString("N2")</b></div>
-        <div><b>Total: @Model.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>
+        <div>Subtotal:<b> @Model.DetalleFacturaList.Sum(x=>x.SubTotal).ToString("N2")</b></div>
+        <div>Descuento:<b> @Model.DetalleFacturaList.Sum(x=>x.Descuento).ToString("N2")</b></div>
+        <div>ITBIS: <b>@Model.DetalleFacturaList.Sum(x=>x.Itbis).ToString("N2")</b></div>
+        <div>Abonado:<b> @Model.Abono.ToString("N2")</b></div>
+        <div>Total:<b> @Model.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>
     </div>
 
     <div class="container">
         <div class="row">
-            <p>Nota: MVSYSTEM</p>
+            <p>Nota: Reimprir Factura</p>
         </div>
 
         <div class="row">

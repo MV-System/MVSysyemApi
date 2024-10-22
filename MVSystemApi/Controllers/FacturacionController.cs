@@ -25,7 +25,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost]
         [Route("PostFactura")]
-        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<Facturas> PostFactura(Facturas factura)
         {
             try
@@ -44,7 +44,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturas")]
-        [Authorize(Roles = "MNU_CONS_FACTURAS")]
+        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
         public IActionResult GetFacturas([FromQuery] FacturaFilter consulta)
         {
             try

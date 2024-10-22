@@ -15,7 +15,6 @@ namespace MVSystemApi.Controllers
         private readonly Catalogos_Negocio _catalogos_Negocio;
         private readonly Facturas_Negocio facturasNegocio;
         private readonly IAccesoDatos _accesoDatos;
-        private string Empresa;
 
         public FacturacionReporteController(IAccesoDatos accesoDatos, Clientes_Negocio clientes_Negocio, Catalogos_Negocio catalogos_Negocio,Facturas_Negocio facturasNegocio)
         {
@@ -26,8 +25,8 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpPost]
-        [Route("FacturacionReporte/RptFactura")]
-        [Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [Route("FacturacionReporte/RptFactura")]// Generar Factura Nueva
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)
@@ -36,13 +35,9 @@ namespace MVSystemApi.Controllers
             var result = _accesoDatos.PostFactura(factura);
             if (result == null)
                 return NotFound();
-
-            // Asignar un valor al parámetro "logo" de cada equipo disponible
-           // foreach (var ft in result)
-            //{
-                result.logo = "assets/" + factura.empresa + ".png"; // Asigna aquí la ruta o valor deseado para el logo
-            //}
-
+          
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            factura.logo = baseUrl + "/assets/" + factura.empresa + ".png"; // armar la ruta completa para acceder al logo
 
             factura.TipoPago = ((List<Tipos_Pagos>)_catalogos_Negocio
                     .GetTipos_Pagos_Lista())
@@ -65,29 +60,23 @@ namespace MVSystemApi.Controllers
                 FacturaReporte = facturaReporte,
                 VendedorNombre = vendedor,
             };
-
+            data.Factura.logo = factura.logo;
             return new ViewAsPdf(data);
         }
 
-        [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// imrimir reporte de facturas
+        [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// Imrimir reporte de facturas
         public IActionResult ReportFacturaConsulta(FacturaFilter consulta)
         {
             var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
 
-            // Asignar un valor al parámetro "logo" de cada equipo disponible
-            Empresa = "assets/" + consulta.empresa + ".png"; // Asigna aquí la ruta o valor deseado para el logo
-
-            foreach (var ft in result)
-            {
-             ft.logo = Empresa; // Asigna aquí la ruta o valor deseado para el logo
-            }
-           
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            result.ForEach(ft => ft.logo = baseUrl + "/assets/" + consulta.empresa + ".png");
 
             return new ViewAsPdf(result);
         }
 
 
-        [HttpPost("FacturacionReporte/ReportFactura")]// reimprimir facturas
+        [HttpPost("FacturacionReporte/ReportFactura")]// Reimprimir factura 8.5x11
         public IActionResult ReportFactura(FacturaFilter consulta)
         {
                var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
@@ -96,10 +85,25 @@ namespace MVSystemApi.Controllers
             
             var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
 
-            // Asignar un valor al parámetro "logo" de cada equipo disponible
-            Empresa = "assets/" + consulta.empresa + ".png";
+            var data = new Facturas
+            {
+                DetalleFacturaList = detalleFactura,
+                Factura = factura,
+            };
 
-            ViewData["Empresa"] = "assets/" + consulta.empresa + ".png";
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            factura.logo = baseUrl + "/assets/" + consulta.empresa + ".png"; // armar la ruta completa para acceder al logo
+            
+            return new ViewAsPdf(data);
+        }
+        [HttpPost("FacturacionReporte/ReportFacturaMini")]// Reimprimir factura 8.5x11
+        public IActionResult ReportFacturaMini(FacturaFilter consulta)
+        {
+            var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
+
+            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
+
+            var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
 
             var data = new Facturas
             {
@@ -107,12 +111,18 @@ namespace MVSystemApi.Controllers
                 Factura = factura,
             };
 
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            factura.logo = baseUrl + "/assets/" + consulta.empresa + ".png"; // armar la ruta completa para acceder al logo
+
             return new ViewAsPdf(data);
         }
         [HttpPost("FacturacionReporte/ReportCotizacion")]
         public IActionResult ReportCotizacion(CotizacionModel model)
         {
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            model.Empresa = baseUrl + "/assets/" + model.Empresa + ".png"; // armar la ruta completa para acceder al logo
             return new ViewAsPdf(model);
         }
+
     }
 }

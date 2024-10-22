@@ -29,12 +29,9 @@ namespace MVSystemApi.Controllers
             if (equipoDisponibles == null)
                 return NotFound();
 
-            // Asignar un valor al parámetro "logo" de cada equipo disponible
-            foreach (var equipo in equipoDisponibles)
-            {
-                equipo.logo = "assets/" + equipoReporte.Empresa+".png"; // Asigna aquí la ruta o valor deseado para el logo
-            }
-
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            equipoDisponibles.ForEach(ft => ft.logo = baseUrl + "/assets/" + equipoReporte.Empresa + ".png");
+          
             // Devolver la vista PDF con el objeto modificado
             return new ViewAsPdf(equipoDisponibles);
         }     
@@ -45,12 +42,9 @@ namespace MVSystemApi.Controllers
             equipoReporte.PageSize = int.MaxValue;
            var equipoVendidos = (List<EquipoVendido>)_equipos_Negocio.GetEquiposVendidos(equipoReporte);
 
-            // Asignar un valor al parámetro "logo" de cada equipo disponible
-            foreach (var equipo in equipoVendidos)
-            {
-                equipo.logo = "assets/" + equipoReporte.Empresa + ".png"; // Asigna aquí la ruta o valor deseado para el logo
-            }
-
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            equipoVendidos.ForEach(ft => ft.logo = baseUrl + "/assets/" + equipoReporte.Empresa + ".png");
+            
             if (equipoVendidos == null)
                 return NotFound();
             return new ViewAsPdf(equipoVendidos);
@@ -59,7 +53,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetEquiposRecibidoVistaReporte")]
-        [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
         public IActionResult ReporteEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             filterData.PageSize = int.MaxValue;
@@ -75,9 +69,14 @@ namespace MVSystemApi.Controllers
         [Route("EquipoTransferenciaReporte")]
         public IActionResult EquipoTransferenciaReporte(EquipoTranferenciaReporte equipoReporte)
         {
+
             equipoReporte.EquipoTransferencias = (List<EquipoTransferencia>)_equipos_Negocio.GetEquiposTranferidos();
             if (equipoReporte == null)
                 return NotFound();
+
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            equipoReporte.Empresa = (baseUrl + "/assets/" + equipoReporte.Empresa + ".png");
+
             return new ViewAsPdf(equipoReporte);
         }
     }

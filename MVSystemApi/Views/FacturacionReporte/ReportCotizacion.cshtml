@@ -24,7 +24,8 @@
 
 <body>
     <div class="container text-center">
-        <img src="/assets/logo.png" />
+        @*<img src="/assets/logo.png" />*@
+        <img src="@Model.Empresa" alt="Logo" />
     </div>
 
     <div class="container text-center p0 mb-3">
@@ -95,10 +96,10 @@
     </div>
 
     <div class="container text-right">
-        <div><b>Subtotal: @Model.Articulos.Sum(x=>x.SubTotal).ToString("N2")</b></div>
-        <div><b>Descuento: @Model.Articulos.Sum(x=>x.Descuento).ToString("N2")</b></div>
-        <div><b>ITBIS: @Model.Articulos.Sum(x=>x.Itbis).ToString("N2")</b></div>
-        <div><b>Total: @Model.Articulos.Sum(x=>x.Total).ToString("N2")</b></div>
+        <div>Subtotal: <b>@Model.Articulos.Sum(x=>x.SubTotal).ToString("N2")</b></div>
+        <div>Descuento:<b>@Model.Articulos.Sum(x=>x.Descuento).ToString("N2")</b></div>
+        <div>ITBIS:    <b>@Model.Articulos.Sum(x=>x.Itbis).ToString("N2")</b></div>
+        <div>Total:    <b>@Model.Articulos.Sum(x=>x.Total).ToString("N2")</b></div>
     </div>
 
     <div class="container">

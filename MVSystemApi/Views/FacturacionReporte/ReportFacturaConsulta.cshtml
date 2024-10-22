@@ -29,7 +29,7 @@
 
 <body>
     <div class="container text-center">
-        <img src=@ViewData["Empresa"] alt="Logo" />
+        <img src="@Model.FirstOrDefault()?.logo" alt="Logo" />
     </div>
 
     <div class="container text-center p0">

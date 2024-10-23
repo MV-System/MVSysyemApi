@@ -147,6 +147,7 @@ namespace MVSystemApi.Model
         public string Empresa { get; set; }
         public string Usuario { get; set; }
         public int Total { get; set; }
+        public string Empresa { get; set; }
     }
 
 

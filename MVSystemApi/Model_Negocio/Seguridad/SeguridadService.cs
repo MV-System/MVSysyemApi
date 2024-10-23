@@ -17,10 +17,10 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         private readonly IConfiguration _configuration;
         public SeguridadService(IConfiguration configuration, JwtService jwtService)
         {
-            _configuration =configuration;
+            _configuration = configuration;
             ConnectionStrings = configuration.GetConnectionString("MVSystemSeguridad");
             this.jwtService = jwtService;
-         
+
         }
         public DataTable ChangePassword(Usuario usuario)
         {
@@ -36,7 +36,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
                 using var cmd = new SqlCommand("UPDATE Usuarios SET Password = @ClaveNueva WHERE Codigo = @CodUsuario", conn);
                 cmd.Parameters.AddWithValue("@CodUsuario", usuario.Codigo);
-                cmd.Parameters.AddWithValue("@ClaveNueva", AES.Encrypt( usuario.Password));
+                cmd.Parameters.AddWithValue("@ClaveNueva", AES.Encrypt(usuario.Password));
 
                 using var da = new SqlDataAdapter(cmd);
                 cmd.ExecuteNonQuery();
@@ -52,7 +52,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
         public async Task<CredentialsDTO> Login(UsuarioDTO usuarioIn)
         {
-            string conn1 ="";
+            string conn1 = "";
             using var dataTable = new DataTable();
 
             using var conn = new SqlConnection(ConnectionStrings);
@@ -71,7 +71,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 return default;
 
             var conecion = GetConnStringByUser(usuarioDb.Login);
-            var roles = await GetRoles(usuarioDb.Login,conecion);
+            var roles = await GetRoles(usuarioDb.Login, conecion);
             return jwtService.BuildToken(usuarioDb, roles);
         }
         public string GetUserEmpresa(int idEmpresa)
@@ -82,10 +82,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             conn.Open();
 
             using var cmd = new SqlCommand("SELECT TOP (1) " +
-                "Nombre_Empresa FROM " +
+                "E.ID_Empresa " +
+                ",E.Nombre_Empresa " +
+                "FROM " +
                 "Empresas E JOIN Usuarios U " +
                 "ON U.Id_Empresa = E.ID_Empresa " +
-                "WHERE U.Id_Empresa = @idEmpresa", conn);
+                "WHERE U.Id_Empresa = @idEmpresa ", conn);
             cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
@@ -93,6 +95,40 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
             var dataEnum = dataTable.AsEnumerable();
             return dataEnum.First()["Nombre_Empresa"].ToString();
+        }
+        public DataTable GetDatosEmpresa(int idEmpresa)
+        {
+            try
+            {
+                DataTable dataTable = new DataTable();
+
+                SqlConnection conn = new SqlConnection(ConnectionStrings);
+                conn.Open();
+
+                SqlCommand cmd = new SqlCommand(@"SELECT TOP (1) 
+                                            E.ID_Empresa,
+                                            E.Nombre_Empresa,
+                                            E.Encabezado,
+                                            E.Condiciones_Garantia,
+                                            E.RNC,
+                                            E.Direccion,
+                                            E.Telefonos
+                                         FROM Empresas E
+                                         JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa
+                                         WHERE U.Id_Empresa = @idEmpresa", conn);
+
+                cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
+
+                SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd);
+                dataAdapter.Fill(dataTable);
+
+                return dataTable; // Retorna el DataTable correctamente
+            }
+            catch (Exception ex)
+            {
+                // Opción recomendada: loguear el error en vez de lanzar la excepción directamente
+                throw new Exception("Error al obtener los datos de la empresa", ex);
+            }
         }
         public string GetConnStringByUser(string userName)
         {
@@ -111,7 +147,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return dataEnum.First()["StringCon"].ToString();
         }
 
-        public async Task<List<string>> GetRoles(string userName,string Conn)
+        public async Task<List<string>> GetRoles(string userName, string Conn)
         {
             using var dataTable = new DataTable();
 

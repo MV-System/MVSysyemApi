@@ -34,6 +34,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 claims.Add(new Claim("role", rol));
 
             claims.Add(new Claim("idSucursal", user.Id_Sucursal.ToString()));
+            claims.Add(new Claim("IdEmpresa", user.Id_Empresa.ToString()));
             claims.Add(new Claim("Empresa", user.Empresa));
             var expires = DateTime.UtcNow.Date.AddDays(1);
 

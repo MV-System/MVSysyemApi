@@ -1,4 +1,4 @@
-﻿@model IEnumerable<DTO.EquipoDisponibleDTO>
+﻿@model MVSystemApi.Model.EmpresaFactura
 
 @{
     Layout = null;
@@ -25,16 +25,14 @@
 
 <body>
     <div class="container text-center">
-        <img src="@Model.FirstOrDefault()?.logo" alt="Logo" />
+        <img src="@Model.EquiposDTO.FirstOrDefault()?.logo" alt="Logo" />
     </div>
 
     <div class="container text-center p0">
-        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
-        <p>
-            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
-            Tel.:809-908-6952 Cel.: 809-883-8858
-        </p>
-        <p> <b> RNC: 132307382 </b> </p>
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b>RNC: @Model.DatosEmpresaFactura.RNC</b> </p>
     </div>
      <div  class="container text-center">
         <h1><b> REPORTE DE EQUIPOS DISPONIBLES</b></h1>
@@ -63,7 +61,7 @@
                 <tbody>
                                    
                     @{
-                        foreach (var item in Model)
+                        foreach (var item in Model.EquiposDTO)
                         {
          
                                     <tr>
@@ -87,7 +85,7 @@
 
     <div class="container text-right">
  
-        <div><b>TOTAL EQUIPOS: @Model.Count()</b></div>
+        <div><b>TOTAL EQUIPOS: @Model.EquiposDTO.Count()</b></div>
     </div>
 
     <div class="container">

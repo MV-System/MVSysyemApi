@@ -117,11 +117,11 @@
                 <thead>
                     <tr>
                         @*<th scope="col">COD.</th>*@
-                        <th scope="col">DES</th>
+                        <th scope="col">DESCRIPCION</th>
                         <th scope="col">CANT.</th>
                         <th scope="col">PRECIO</th>
-                        <th scope="col">SUB</th>
-                        <th scope="col">DESC</th>
+                       @* <th scope="col">SUB</th>
+                        <th scope="col">DESC</th>*@
                         <th scope="col">TOTAL</th>
                     </tr>
                 </thead>
@@ -134,8 +134,8 @@
                             <td>@item.Descripcion</td>
                             <td>@item.Cantidad.ToString("N0")</td>
                             <td>@item.Precio.ToString("N2")</td>
-                            <td>@item.SubTotal.ToString("N2")</td>
-                            <td>@item.Descuento.ToString("N2")</td>
+                          @*  <td>@item.SubTotal.ToString("N2")</td>
+                            <td>@item.Descuento.ToString("N2")</td>*@
                             <td>@item.Total.ToString("N2")</td>
                         </tr>
                     }
@@ -159,7 +159,7 @@
 
         <div class="row">
             <p>
-                <b>NOTA: </b>
+                <b>GARANTIA: </b>
                 TODOS LOS EQUIPOS TIENEN 30 DÍAS DE GARANTÍA. NO TIENEN GARANTÍA EN PANTALLA Y
                 TOUCH. NO SE REEMBOLSA DINERO. SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
                 CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTÍA Y EN CONDICIONES IGUAL AL

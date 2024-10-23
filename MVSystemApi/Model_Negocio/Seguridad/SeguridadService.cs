@@ -96,7 +96,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             var dataEnum = dataTable.AsEnumerable();
             return dataEnum.First()["Nombre_Empresa"].ToString();
         }
-        public DataTable GetDatosEmpresa(int idEmpresa)
+        public DatosEmpresa GetDatosEmpresa(int idEmpresa)
         {
             try
             {
@@ -122,7 +122,23 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd);
                 dataAdapter.Fill(dataTable);
 
-                return dataTable; // Retorna el DataTable correctamente
+                DatosEmpresa DEF = new DatosEmpresa();
+
+                // Verificar si se encontraron datos de la empresa
+                if (dataTable != null && dataTable.Rows.Count > 0)
+                {
+                    var row = dataTable.Rows[0];
+                    DEF.IdEmpresa = Convert.ToInt32(row["ID_Empresa"]);
+                    DEF.Empresa = row["Nombre_Empresa"].ToString();
+                    DEF.Direccion = row["Direccion"].ToString();
+                    DEF.Telefonos = row["Telefonos"].ToString();
+                    DEF.Encabezado = row["Encabezado"].ToString();
+                    DEF.CondicionesGarantia = row["Condiciones_Garantia"].ToString();
+                    DEF.RNC = row["RNC"].ToString();
+                }
+
+
+                return DEF; // Retorna el DataTable correctamente
             }
             catch (Exception ex)
             {

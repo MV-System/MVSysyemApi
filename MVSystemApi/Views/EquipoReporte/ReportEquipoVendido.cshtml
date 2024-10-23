@@ -1,4 +1,4 @@
-﻿@model IEnumerable< MVSystemApi.Model.EquipoVendido>
+﻿@model MVSystemApi.Model.EmpresaReportes
 
 @{
     Layout = null;
@@ -26,16 +26,14 @@
 
 <body>
     <div class="container text-center">
-        <img src="@Model.FirstOrDefault()?.logo" alt="Logo" />
+        <img src="@Model.EquipoVendido.FirstOrDefault()?.logo" alt="Logo" />
     </div>
 
     <div class="container text-center p0">
-        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
-        <p>
-            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
-            Tel.:809-908-6952 Cel.: 809-883-8858
-        </p>
-        <p> <b> RNC: 132307382 </b> </p>
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b> RNC: @Model.DatosEmpresaFactura.RNC </b> </p>
     </div>
       <div  class="container text-center">
         <h1><b> REPORTE DE EQUIPOS VENDIDOS</b></h1>
@@ -65,7 +63,7 @@
 
                 <tbody>
                     @{
-                        foreach (var item in Model)
+                        foreach (var item in Model.EquipoVendido)
                         {
                             <tr>
                                 <td>@item.Factura</td>
@@ -84,7 +82,7 @@
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td><b>@Model.Select(x=>x.TotalFacturado).FirstOrDefault()</b></td>
+                            <td><b>@Model.EquipoVendido.Select(x=>x.TotalFacturado).FirstOrDefault()</b></td>
                             <td></td>                           
                             <td></td>
                             @*<td><b>@Model.EquipoVendidos.Select(x=>x.TotalComisionDetalle).FirstOrDefault()</b></td>
@@ -101,12 +99,12 @@
 
     <div class="container text-right mt-4">
  
-        <div><b>TOTAL EQUIPOS: @Model.Count()</b></div>
+        <div><b>TOTAL EQUIPOS: @Model.EquipoVendido.Count()</b></div>
     </div>
 
     <div class="container">
         <div class="row">
-            <p>Nota: Jose Luis Jimenez</p>
+            <p>Nota: Aqui va en campo de Nota</p>
         </div>
     </div>
 

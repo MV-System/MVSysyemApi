@@ -42,18 +42,22 @@ namespace MVSystemApi.Model
     }  
     public class EquipoTransferencia
     {
+        public int IdTransferencia { get; set; }
+        public string FechaTransferencia { get; set; }
+        public string IdEmpresa { get; set; }
         public int id { get; set; }
         public string Imei { get; set; }
         public string Modelo { get; set; }
-
         public string AlmacenSalida { get; set; }
         public string AlmacenDestino { get; set; }
         public int CantidadEquipos { get; set; }
         public string Usuario { get; set; }
-        public string Empresa { get; set; }
+        public string Logo { get; set; }
+        public int Total { get; set; }
 
-            
-    }   
+
+
+    }
 
     public class Equipo_return
     {
@@ -144,10 +148,11 @@ namespace MVSystemApi.Model
         public List<EquipoTransferencia> EquipoTransferencias { get; set; }
         public string FechaTransferencia { get; set; }
 
-        public string Empresa { get; set; }
         public string Usuario { get; set; }
         public int Total { get; set; }
-        public string Empresa { get; set; }
+        public string IdEmpresa { get; set; }
+        public string Logo { get; set; }
+
     }
 
 
@@ -201,5 +206,6 @@ namespace MVSystemApi.Model
         public string FechaInicioFactura { get; set; }
         public string FechaFinalFactura { get; set; }
         public string Empresa { get; set; }
+        public string IdEmpresa { get; set; }
     }
 }

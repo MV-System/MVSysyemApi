@@ -1,4 +1,4 @@
-﻿@model   MVSystemApi.Model.EquipoTranferenciaReporte
+﻿@model MVSystemApi.Model.EmpresaReportes
 
 @{
     Layout = null;
@@ -26,16 +26,14 @@
 
 <body>
     <div class="container text-center">
-        <img src="@Model.Empresa" alt="Logo" />
+        <img src="@Model.EquipoTransferencia.FirstOrDefault()?.Logo" alt="Logo" />
     </div>
 
     <div class="container text-center p0">
-        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
-        <p>
-            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
-            Tel.:809-908-6952 Cel.: 809-883-8858
-        </p>
-        <p> <b> RNC: 132307382 </b> </p>
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+         <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b> RNC:@Model.DatosEmpresaFactura.RNC </b> </p>
     </div>
       <div  class="container text-center">
         <h1><b> TRANSFERENCIA DE QUIPOS</b></h1>
@@ -43,8 +41,8 @@
     <div class="box">
         <h2>Datos de transferencia</h2>
 
-        <p>Numero transferencia: @Model.IdTransferencia</p>
-        <p>Fecha transferencia: @Model.FechaTransferencia</p>
+        <p>Numero transferencia: @Model.EquipoTransferencia.FirstOrDefault().IdTransferencia</p>
+        <p>Fecha transferencia: @Model.EquipoTransferencia.FirstOrDefault().FechaTransferencia</p>
     </div>
     <div class="container mt-5">
 
@@ -62,7 +60,7 @@
 
                 <tbody>
                     @{
-                        foreach (var item in Model.EquipoTransferencias)
+                        foreach (var item in Model.EquipoTransferencia)
                         {
                             <tr>
                                 <td>@item.Imei</td>
@@ -79,7 +77,7 @@
 
     <div class="container text-right mt-4">
  
-        <div><b>TOTAL EQUIPOS: @Model.Total</b></div>
+        <div><b>TOTAL EQUIPOS: @Model.EquipoTransferencia.FirstOrDefault().CantidadEquipos</b></div>
     </div>
 
     <div class="container">
@@ -104,13 +102,6 @@
             </div>
         </div>
     </div>
-
-@*    <div class="container">
-        <div class=" text-right">
-            Fecha de Impresión:
-            @Model.FechaTransferencia
-        </div>
-    </div>*@
 </body>
 
 </html>

@@ -9,5 +9,6 @@
         public string Encabezado { get; internal set; }
         public string CondicionesGarantia { get; internal set; }
         public string RNC { get; internal set; }
+        public string StringCon { get; internal set; }
     }
 }

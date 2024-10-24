@@ -9,10 +9,16 @@
         public string Password { get; set; }
         public int Id_Empresa { get; set; }
         public string Empresa { get; set; }
+        public string EmpresaMostrar { get; set; }
         public int Id_Sucursal { get; set; }
         public string Sucursal { get; set; }
         public int Estado { get; set; }
         public DateTime FechaRegistro { get; set; }
         public DateTime FechaModificado { get; set; }
+    }
+    public class RolSucursal
+    {
+        public string Nombre { get; set; }
+        public int IdSucursal { get; set; }
     }
 }

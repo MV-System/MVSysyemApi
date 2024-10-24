@@ -54,9 +54,7 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
         public string Logo { get; set; }
         public int Total { get; set; }
-
-
-
+        public string IdSucursal { get; set; }
     }
 
     public class Equipo_return
@@ -207,5 +205,6 @@ namespace MVSystemApi.Model
         public string FechaFinalFactura { get; set; }
         public string Empresa { get; set; }
         public string IdEmpresa { get; set; }
+        public string IdSucursal { get; set; }
     }
 }

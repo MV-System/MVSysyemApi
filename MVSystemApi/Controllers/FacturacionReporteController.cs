@@ -90,7 +90,6 @@ namespace MVSystemApi.Controllers
                 DetalleFacturaList = detalleFactura,
                 Factura = factura,
             };
-
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
             factura.logo = baseUrl + "/assets/" + consulta.empresa + ".png"; // armar la ruta completa para acceder al logo
             

@@ -20,26 +20,37 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             _credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         }
 
-        public CredentialsDTO BuildToken(Usuario user, IEnumerable<string> roles)
+        public CredentialsDTO BuildToken(Usuario user, IEnumerable<RolSucursal> roles)
         {
             var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.NameId,Convert.ToString( user.Codigo)),
-                new Claim(JwtRegisteredClaimNames.Name, user.Login),
-                new Claim(JwtRegisteredClaimNames.GivenName, user.Nombre),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };
+    {
+        new Claim(JwtRegisteredClaimNames.NameId, user.Codigo.ToString()),
+        new Claim(JwtRegisteredClaimNames.Name, user.Login),
+        new Claim(JwtRegisteredClaimNames.GivenName, user.Nombre),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+    };
 
+            // Añadir los roles al token (sin incluir sucursal en el arreglo de roles)
             foreach (var rol in roles)
-                claims.Add(new Claim("role", rol));
+            {
+                claims.Add(new Claim("role", rol.Nombre));
+            }
 
-            claims.Add(new Claim("idSucursal", user.Id_Sucursal.ToString()));
+            // Añadir solo un ID de sucursal en lugar de un arreglo
+            var sucursalId = roles.FirstOrDefault()?.IdSucursal;
+            if (sucursalId.HasValue)
+            {
+                claims.Add(new Claim("idSucursal", sucursalId.Value.ToString()));
+            }
+
             claims.Add(new Claim("IdEmpresa", user.Id_Empresa.ToString()));
             claims.Add(new Claim("Empresa", user.Empresa));
-            var expires = DateTime.UtcNow.Date.AddDays(1);
+            claims.Add(new Claim("NombreEmpresaMostrar", user.EmpresaMostrar));
 
+            var expires = DateTime.UtcNow.Date.AddDays(1);
             var tokenDescriptor = new JwtSecurityToken(_issuer, _issuer, claims, expires: expires, signingCredentials: _credentials);
             var token = new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+
             return new CredentialsDTO(expires, token);
         }
     }

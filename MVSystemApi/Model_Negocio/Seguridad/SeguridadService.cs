@@ -52,7 +52,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
         public async Task<CredentialsDTO> Login(UsuarioDTO usuarioIn)
         {
-            string conn1 = "";
             using var dataTable = new DataTable();
 
             using var conn = new SqlConnection(ConnectionStrings);
@@ -65,80 +64,130 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             dataAdapter.Fill(dataTable);
 
             var usuarioDb = AccesoDatos.BindList<Usuario>(dataTable).FirstOrDefault();
-            usuarioDb.Empresa = GetUserEmpresa(usuarioDb.Id_Empresa);
 
-            if (usuarioDb == default || usuarioIn.Password != AES.Decrypt(usuarioDb.Password))
+            if (usuarioDb != null)
+            {
+                var empresa = await GetUserEmpresa(usuarioDb.Id_Empresa); // Obtener la empresa de manera asíncrona
+                usuarioDb.Empresa = empresa.NombreEmpresa;
+                usuarioDb.EmpresaMostrar = empresa.NombreEmpresaMostrar;
+            }
+
+            if (usuarioDb == null || usuarioIn.Password != AES.Decrypt(usuarioDb.Password))
                 return default;
 
             var conecion = GetConnStringByUser(usuarioDb.Login);
             var roles = await GetRoles(usuarioDb.Login, conecion);
             return jwtService.BuildToken(usuarioDb, roles);
         }
-        public string GetUserEmpresa(int idEmpresa)
+        public async Task<EmpresaDTO> GetUserEmpresa(int idEmpresa)
         {
             using var dataTable = new DataTable();
+            var empresa = new EmpresaDTO(); // Crear una instancia de EmpresaDTO
 
             using var conn = new SqlConnection(ConnectionStrings);
-            conn.Open();
+            await conn.OpenAsync();
 
-            using var cmd = new SqlCommand("SELECT TOP (1) " +
-                "E.ID_Empresa " +
-                ",E.Nombre_Empresa " +
-                "FROM " +
-                "Empresas E JOIN Usuarios U " +
-                "ON U.Id_Empresa = E.ID_Empresa " +
-                "WHERE U.Id_Empresa = @idEmpresa ", conn);
+            using var cmd = new SqlCommand(@"
+        SELECT TOP (1) 
+            E.ID_Empresa, 
+            E.Nombre_Empresa, 
+            E.Nombre_Empresa_Mostrar 
+        FROM Empresas E 
+        JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa 
+        WHERE U.Id_Empresa = @idEmpresa", conn);
+
             cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
             dataAdapter.Fill(dataTable);
 
-            var dataEnum = dataTable.AsEnumerable();
-            return dataEnum.First()["Nombre_Empresa"].ToString();
+            var firstRow = dataTable.AsEnumerable().FirstOrDefault();
+            if (firstRow != null)
+            {
+                // Asignar valores a la instancia de EmpresaDTO
+                empresa = new EmpresaDTO
+                {
+                    IdEmpresa = firstRow.Field<int>("ID_Empresa"),
+                    NombreEmpresa = firstRow.Field<string>("Nombre_Empresa"),
+                    NombreEmpresaMostrar = firstRow.Field<string>("Nombre_Empresa_Mostrar")
+                };
+            }
+
+            return empresa; // Retornar la instancia de EmpresaDTO
         }
-        public DatosEmpresa GetDatosEmpresa(int idEmpresa)
+        public DatosEmpresa GetDatosEmpresa(int idEmpresa, int ID_Sucursal)
         {
             try
             {
-                DataTable dataTable = new DataTable();
+                
 
-                SqlConnection conn = new SqlConnection(ConnectionStrings);
-                conn.Open();
-
-                SqlCommand cmd = new SqlCommand(@"SELECT TOP (1) 
-                                            E.ID_Empresa,
-                                            E.Nombre_Empresa,
-                                            E.Encabezado,
-                                            E.Condiciones_Garantia,
-                                            E.RNC,
-                                            E.Direccion,
-                                            E.Telefonos
-                                         FROM Empresas E
-                                         JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa
-                                         WHERE U.Id_Empresa = @idEmpresa", conn);
-
-                cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
-
-                SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd);
-                dataAdapter.Fill(dataTable);
-
+                // Creación del objeto DatosEmpresa
                 DatosEmpresa DEF = new DatosEmpresa();
+                DataTable dataTableEmpresa = new DataTable();
+                DataTable dataTableSucursal = new DataTable();
 
-                // Verificar si se encontraron datos de la empresa
-                if (dataTable != null && dataTable.Rows.Count > 0)
+                using (SqlConnection conn = new SqlConnection(ConnectionStrings))
                 {
-                    var row = dataTable.Rows[0];
-                    DEF.IdEmpresa = Convert.ToInt32(row["ID_Empresa"]);
-                    DEF.Empresa = row["Nombre_Empresa"].ToString();
-                    DEF.Direccion = row["Direccion"].ToString();
-                    DEF.Telefonos = row["Telefonos"].ToString();
-                    DEF.Encabezado = row["Encabezado"].ToString();
-                    DEF.CondicionesGarantia = row["Condiciones_Garantia"].ToString();
-                    DEF.RNC = row["RNC"].ToString();
+                    conn.Open();
+
+                    // Primera consulta: Obtener datos de la empresa
+                    string queryEmpresa = @"SELECT TOP (1) 
+                               E.ID_Empresa,
+                               E.Nombre_Empresa,
+                               E.RNC,
+                               E.StringCon
+                            FROM [SEGURIDAD].[dbo].[Empresas] E
+                            JOIN [SEGURIDAD].[dbo].Usuarios U ON U.Id_Empresa = E.ID_Empresa
+                            WHERE U.Id_Empresa = @idEmpresa";
+
+                    using (SqlCommand cmdEmpresa = new SqlCommand(queryEmpresa, conn))
+                    {
+                        cmdEmpresa.Parameters.AddWithValue("@idEmpresa", idEmpresa);
+                        SqlDataAdapter dataAdapterEmpresa = new SqlDataAdapter(cmdEmpresa);
+                        dataAdapterEmpresa.Fill(dataTableEmpresa);
+                    }
+                   
+                    // Verificar si se encontraron datos de la empresa
+                    if (dataTableEmpresa != null && dataTableEmpresa.Rows.Count > 0)
+                    {
+                        var row = dataTableEmpresa.Rows[0];
+                        DEF.IdEmpresa = Convert.ToInt32(row["ID_Empresa"]);
+                        DEF.Empresa = row["Nombre_Empresa"].ToString();
+                        DEF.RNC = row["RNC"].ToString();
+                        DEF.StringCon = row["StringCon"].ToString();
+                    }
+                    SqlConnection connection = new SqlConnection(DEF.StringCon);
+                    // Segunda consulta: Obtener datos de la sucursal
+                    string querySucursal = @"SELECT TOP (1)  
+                                SC.Sucursal_Direccion,
+                                SC.Sucursal_Telefonos,
+                                SC.Sucursal_Encabezado,
+                                SC.Sucursal_Condiciones_Garantia,
+                                SC.Id_Empresa
+                             FROM dbo.Sucursales_Cata SC
+                             WHERE SC.Id_Empresa = @idEmpresa And ID_Sucursal =@ID_Sucursal ";
+
+                    using (SqlCommand cmdSucursal = new SqlCommand(querySucursal, connection))
+                    {
+                        cmdSucursal.Parameters.AddWithValue("@idEmpresa", idEmpresa);
+                        cmdSucursal.Parameters.AddWithValue("@ID_Sucursal", ID_Sucursal);
+                        SqlDataAdapter dataAdapterSucursal = new SqlDataAdapter(cmdSucursal);
+                        dataAdapterSucursal.Fill(dataTableSucursal);
+                    }
                 }
 
+                // Verificar si se encontraron datos de la sucursal
+                if (dataTableSucursal != null && dataTableSucursal.Rows.Count > 0)
+                {
+                    var row = dataTableSucursal.Rows[0];
+                    DEF.Direccion = row["Sucursal_Direccion"].ToString();
+                    DEF.Telefonos = row["Sucursal_Telefonos"].ToString();
+                    DEF.Encabezado = row["Sucursal_Encabezado"].ToString();
+                    DEF.CondicionesGarantia = row["Sucursal_Condiciones_Garantia"].ToString();
+                    DEF.StringCon ="";
+                }
 
-                return DEF; // Retorna el DataTable correctamente
+                return DEF; // Retorna el objeto DatosEmpresa correctamente
             }
             catch (Exception ex)
             {
@@ -163,25 +212,35 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return dataEnum.First()["StringCon"].ToString();
         }
 
-        public async Task<List<string>> GetRoles(string userName, string Conn)
+        public async Task<List<RolSucursal>> GetRoles(string userName, string Conn)
         {
             using var dataTable = new DataTable();
-
-            //using var conn = new SqlConnection(_configuration.GetConnectionString("MVSystemSeguridad"));
+            var roles = new List<RolSucursal>();
+            
             using var conn = new SqlConnection(Conn);
-            //await conn2.OpenAsync();
 
-            using var cmd = new SqlCommand("SELECT P.Nombre " +
-                "FROM [seg].[Usuarios] U " +
-                "JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo " +
-                "JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso " +
-                "WHERE Login = @userName " + "And PU.Estado =1", conn);
+            using var cmd = new SqlCommand(@"
+                                             SELECT P.Nombre, U.id_Sucursal
+                                             FROM [seg].[Usuarios] U 
+                                             JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo 
+                                             JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso 
+                                             WHERE U.Login = @userName 
+                                               AND PU.Estado = 1", conn);
+
             cmd.Parameters.AddWithValue("@userName", userName);
 
             using var dataAdapter = new SqlDataAdapter(cmd);
             dataAdapter.Fill(dataTable);
 
-            return dataTable.AsEnumerable().Select(x => x["Nombre"].ToString()).ToList();
+            // Extraer los roles y sucursales y agregarlos a la lista
+            roles = dataTable.AsEnumerable().Select(row => new RolSucursal
+            {
+                Nombre = row.Field<string>("Nombre"),
+                IdSucursal = row.Field<int>("id_Sucursal")
+            }).ToList();
+
+
+            return roles;
         }
     }
 

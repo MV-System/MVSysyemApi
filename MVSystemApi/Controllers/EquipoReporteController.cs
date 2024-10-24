@@ -33,7 +33,7 @@ namespace MVSystemApi.Controllers
                     return NotFound();
 
                 // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
-                DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa));
+                DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa),Convert.ToInt32(equipoReporte.IdSucursal));
                 
                 string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
                 equipoDisponibles.ForEach(ft => ft.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Empresa + ".png");
@@ -64,7 +64,7 @@ namespace MVSystemApi.Controllers
                 return NotFound();
 
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
-            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa));
+            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa), Convert.ToInt32(equipoReporte.IdSucursal));
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
             equipoVendidos.ForEach(ft => ft.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Empresa + ".png");
@@ -103,7 +103,7 @@ namespace MVSystemApi.Controllers
                 return NotFound();
             
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
-            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa));
+            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa), Convert.ToInt32(equipoReporte.IdSucursal));
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
             EquipoReporte.ForEach(ft => ft.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Empresa + ".png");

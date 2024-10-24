@@ -66,6 +66,37 @@ namespace MVSystemApi.Model_Negocio
                           }).ToList();
             return result;
         }
+        internal object GetFacturasReporte(FacturaFilter consulta)
+        {
+
+
+            var result = (from dt in Ac.GetFacturasReporte(consulta).AsEnumerable()
+                          select new FacturaConsulta
+                          {
+                              NumeroFactura = Convert.ToInt32(dt["Numero de Factura"]),
+                              Nombres = Convert.ToString(dt["Nombres"]),
+                              Apellidos = Convert.ToString(dt["Apellidos"]),
+                              TipoFactura = Convert.ToString(dt["Tipo De Factura"]),
+                              Vendedor = Convert.ToString(dt["Vendedor"]),
+                              Almacen = Convert.ToString(dt["Almacen"]),
+                              Rnc = Convert.ToString(dt["RNC"]),
+                              Ncf = Convert.ToString(dt["NCF"]),
+                              Telefono = Convert.ToInt64(dt["Telefono"]),
+                              ClienteId = Convert.ToInt32(dt["ID_Cliente"]),
+                              TipoPago = Convert.ToString(dt["Tipo de Pago"]),
+                              SubTotal = Convert.ToDecimal(dt["SubTotal"]),
+                              Descuento = Convert.ToDecimal(dt["Descuento"]),
+                              Total = Convert.ToDecimal(dt["Total"]),
+                              Itbis = Convert.ToDecimal(dt["Itbis"]),
+                              Nota = Convert.ToString(dt["Nota"]),
+                              FechaFacturacion = Convert.ToDateTime(dt["Fecha de la Factura"]),
+                              //LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              //Line = Convert.ToInt32(dt["Linea"]),
+                              //TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+                              TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"])
+                          }).ToList();
+            return result;
+        }
         internal object GetFacturaNumeroUltimo()
         {
             var Numero_Factura = 0;

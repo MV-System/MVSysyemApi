@@ -81,7 +81,7 @@ namespace MVSystemApi.Controllers
         {
                var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
             
-            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
+            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturasReporte(consulta);
             
             var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
 
@@ -101,7 +101,7 @@ namespace MVSystemApi.Controllers
         {
             var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
 
-            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
+            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturasReporte(consulta);
 
             var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
 

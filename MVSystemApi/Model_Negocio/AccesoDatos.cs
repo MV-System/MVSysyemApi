@@ -185,6 +185,29 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public DataTable GetFacturasReporte(FacturaFilter consulta)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Proc_Facturas_Consulta_reporte";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Numero_factura", consulta.NumeroFactura);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         #region Accesorios
         /// <summary>
         /// Return a equipo by Imei    

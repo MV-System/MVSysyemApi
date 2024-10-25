@@ -60,7 +60,7 @@ namespace MVSystemApi.Controllers
         }     
         [HttpGet]
         [Route("GetDetalleFactura/{numeroFactura}/{sucursal}")]
-        [Authorize(Roles = "MNU_CONS_FACTURAS")]
+        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
         public IActionResult GetDetalleFactura([FromRoute] int numeroFactura, int sucursal)
         {
             try
@@ -76,7 +76,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturaNumeroUltimo")]
-        [Authorize(Roles = "MNU_CONS_FACTURAS")]
+        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
         public IActionResult GetFacturaNumeroUltimo()
         {
             try

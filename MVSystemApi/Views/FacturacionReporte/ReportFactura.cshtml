@@ -28,12 +28,10 @@
     </div>
 
     <div class="container text-center p0 mb-3">
-        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
-        <p>
-            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
-            Tel.:809-908-6952 Cel.: 809-883-8858
-        </p>
-        <p> <b> RNC: 132307382 </b> </p>
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b> RNC: @Model.DatosEmpresaFactura.RNC </b> </p>
     </div>
 
     <div class="container border border-dark">
@@ -111,12 +109,8 @@
 
         <div class="row">
             <p>
-                <b>NOTA: </b>
-                TODOS LOS EQUIPOS TIENEN 30 DIAS DE GARANTIA , NO TIENEN GARANTIA EN PANTALLA Y
-                TOUCH NO SE REEMBOLSA DINERO, SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
-                CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTIA Y CONDICIONES IGUAL AL
-                MOMENTO DE LA COMPRA. LOS TELEFONOS TENDRAN SELLOS DE GARANTIAS, SI SON VIOLADOS LA
-                GARANTIA TERMINARA.
+                <b>GARANTIA: </b>
+               @Model.DatosEmpresaFactura.CondicionesGarantia
             </p>
         </div>
     </div>

@@ -19,7 +19,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Vendedor_Insert")]
-        [Authorize(Roles = "MNU_MANT_VENDEDORES")]
+        //[Authorize(Roles = "MNU_MANT_VENDEDORES")]
         public ActionResult<Vendedor> Vendedor_Insert([FromBody] Vendedor Vendedor)
         {
             try

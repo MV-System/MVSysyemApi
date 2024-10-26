@@ -80,12 +80,10 @@
     </div>
 
     <div class="container text-center p0 mb-3">
-        <p>Prueba Imprimir Factura Mini</p>
-        <p>
-            Isabel Aguiar #402, frente a la estación de combustible Texaco Santo Domingo, República Dominicana
-            Tel.: 809-908-6952 Cel.: 809-883-8858
-        </p>
-        <p> <b>RNC: 132307382</b> </p>
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b>RNC: @Model.DatosEmpresaFactura.RNC</b> </p>
     </div>
 
     <div class="container border border-dark">
@@ -160,11 +158,7 @@
         <div class="row">
             <p>
                 <b>GARANTIA: </b>
-                TODOS LOS EQUIPOS TIENEN 30 DÍAS DE GARANTÍA. NO TIENEN GARANTÍA EN PANTALLA Y
-                TOUCH. NO SE REEMBOLSA DINERO. SE HACE CAMBIOS POR EL MISMO MODELO PAGADO SIEMPRE Y
-                CUANDO EL EQUIPO SE ENCUENTRE EN EL TIEMPO DE LA GARANTÍA Y EN CONDICIONES IGUAL AL
-                MOMENTO DE LA COMPRA. LOS TELÉFONOS TENDRÁN SELLOS DE GARANTÍAS, SI SON VIOLADOS LA
-                GARANTÍA TERMINARÁ.
+               @Model.DatosEmpresaFactura.CondicionesGarantia
             </p>
         </div>
     </div>

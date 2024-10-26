@@ -289,7 +289,7 @@ namespace MVSystemApi.Model
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
-                cmd.Parameters.AddWithValue("@Accesorio", accesorio);
+                cmd.Parameters.AddWithValue("@filter", accesorio);
                 cmd.Parameters.AddWithValue("@Criterio", almacen);
 
                 cmd.ExecuteNonQuery();

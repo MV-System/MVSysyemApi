@@ -11,6 +11,7 @@ namespace MVSystemApi.Model
         public List<FacturaReporte> FacturaReporte { get; set; }
         public Clientes_consulta Cliente { get; set; }
         public string VendedorNombre { get; set; }
+        public DatosEmpresa DatosEmpresaFactura { get; internal set; }
     }
 
     public class FacturaReporte
@@ -53,7 +54,9 @@ namespace MVSystemApi.Model
         public int Almacen { get; set; }
         public string TipoPago { get; set; }
         public string empresa { get; set; }
-        
+        public string IdEmpresa { get; set; }
+        public string IdSucursal { get; set; }
+
     }
     public class FacturaConsulta : PagingDTO
     {
@@ -114,6 +117,9 @@ namespace MVSystemApi.Model
         public Clientes Cliente { get; set; }
         public FacturaConsulta Factura { get; internal set; }
         public string empresa { get; set; }
+        public string IdEmpresa { get; set; }
+        public string IdSucursal { get; set; }
+        public DatosEmpresa DatosEmpresaFactura { get; internal set; }
     }
 
     public class DetalleFactura

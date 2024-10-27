@@ -265,6 +265,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Precio_Detalle", accesorio.PrecioDetalle);
                 cmd.Parameters.AddWithValue("@Estado", accesorio.Estado);
                 cmd.Parameters.AddWithValue("@Cantidad", accesorio.Cantidad);
+                cmd.Parameters.AddWithValue("@Costo_Equipo", accesorio.CostoEquipo); 
                 cmd.Parameters.AddWithValue("@Usuario", accesorio.Usuario);
 
                 cmd.ExecuteNonQuery();
@@ -309,16 +310,17 @@ namespace MVSystemApi.Model
             try
             {
                 cn.Open();
-                SqlCommand cmd = new SqlCommand("Accesorios_Vendidos_Consulta", cn);
+                SqlCommand cmd = new SqlCommand("Proc_Accesorios_Vendidos_Consulta", cn);
                 DataTable dt = new DataTable();
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
-                cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
-                cmd.Parameters.AddWithValue("@Filter", filter);
                 cmd.Parameters.AddWithValue("@id_sucursal", almacen);
+                cmd.Parameters.AddWithValue("@Filter", filter);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", paginate.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", paginate.FechaFinal);
+                cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
+                
 
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);

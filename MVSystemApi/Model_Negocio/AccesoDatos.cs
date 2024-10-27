@@ -1263,13 +1263,7 @@ namespace MVSystemApi.Model
             }
             catch (Exception ex)
             {
-                //string lineNumber = ex.StackTrace.Substring(ex.StackTrace.Length - 7, 7);
-                //DateTime fecha = DateTime.Now;
-                //using (System.IO.StreamWriter file =
-                //new System.IO.StreamWriter(@"./Errores Leyenda.txt", true))
-                //{
-                //   file.WriteLine("class: FacturacionDLL" + " li" + lineNumber + " ERROR: " + ex.Message.ToString() + " Fecha: " + fecha + " Sucursal: " + FrmFacturacion.sucu + " Usuario " + StaticClass.UsuarioNombre);
-                //}
+               
                 throw ex;
             }
         }
@@ -1466,5 +1460,42 @@ namespace MVSystemApi.Model
 
             return BindList<FacturaReporte>(dt);
         }
+
+        public DataTable GetUtilidades(int? sucursal, DateTime FI, DateTime FF)
+        {
+            try
+            {
+                using var cn = new SqlConnection(_connectionStrings);
+                if (sucursal == 4)
+                {
+                    sucursal = null;
+                }
+                Utilidades gana = new Utilidades();
+                cn.Open();
+                //-------------Cargar ComboBox Vendedor------------------------------//
+
+                SqlCommand comando = cn.CreateCommand();
+                comando.CommandText = "Ver_Utilidades_Precio_Detalle";
+                comando.CommandType = CommandType.StoredProcedure;
+
+                comando.Parameters.AddWithValue("@Sucursal", sucursal);
+                comando.Parameters.AddWithValue("@Fecha_Inicio", FI);
+                comando.Parameters.AddWithValue("@Fecha_Final", FF);
+
+                SqlDataAdapter da = new SqlDataAdapter(comando);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+              
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+        }
+
     }
 }

@@ -9,6 +9,9 @@ namespace MVSystemApi.Interfaz
 {
     public interface IAccesoDatos
     {
+        // --------------- Utilidades ------------------------//
+        DataTable Vendedor_Consulta_Combo();
+
         #region  // ------------- equipos ---------------------//
         DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen);
 
@@ -61,7 +64,7 @@ namespace MVSystemApi.Interfaz
         #endregion
 
         #region // ------------ Facturacion -------------------------
-        DataTable Vendedor_Consulta_Combo(); // trae la lista de vendedores
+        DataTable GetUtilidades(int? sucursal, DateTime FI, DateTime FF); // trae la lista de vendedores
         DataTable Accesorios_Consulta_Facturacion(int? Id_accesorio, int? id_sucu);
         DataTable Tipos_Pagos_Cata_Consulta_Combo();
         DataTable GetTipos_Factura_Lista();

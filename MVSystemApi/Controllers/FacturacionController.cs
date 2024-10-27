@@ -49,6 +49,7 @@ namespace MVSystemApi.Controllers
         {
             try
             {
+               
                 var result = AD.GetFacturas(consulta);
                 if (result == null)return NotFound();
                 return Ok(result);

@@ -16,36 +16,13 @@ namespace MVSystemApi.Model
 
     public class FacturaReporte
     {
-        //public string FACTURA_NUMERO { get; set; }
-        //public string NCF { get; set; }
-        //public string RNC { get; set; }
-        //public string FECHA { get; set; }
-        //public string FECHA_VENCE { get; set; }
-        //public string ID_VEND { get; set; }
-        //public string VENDEDOR { get; set; }
-        //public string TIPO_FACTURA { get; set; }
-        //public string TIPO_PAGO { get; set; }
-        //public string ID_CLI { get; set; }
-        //public string CLIENTE { get; set; }
-        //public string DIRECCION { get; set; }
-        //public string TELEFONO { get; set; }
-        //public string SUBTOTAL_FACT { get; set; }
-        //public string DESCUENTO_FACT { get; set; }
-        //public string ITBIS_FACT { get; set; }
-        //public string TOTAL_FACT { get; set; }
-        //public string ABONADO { get; set; }
-        //public string NOTA { get; set; }
-        //public string ID_PROD { get; set; }
+      
         public string PRODUCTO { get; set; }
-        //public string MARCA { get; set; }
-        //public string MODELO { get; set; }
         public int CANTIDAD_PROD { get; set; }
         public decimal PRECIO_PROD { get; set; }
         public decimal SUBTOTAL_PROD { get; set; }
         public decimal DESCUENTO_PROD { get; set; }
         public decimal TOTAL_PROD { get; set; }
-        //public decimal ITBIS_PROD { get; set; }
-        //public string NFCTipoDescripcion { get; set; }
     }
     public class FacturaFilter : Paginate
     {
@@ -85,8 +62,6 @@ namespace MVSystemApi.Model
     public class Facturas
     {
         public string logo { get; set; }
-
-        //public string Cliente { get; set; }
         public int NumeroFactura { get; set; }
         public int IdCliente { get; set; }
         public int IdTipoFactura { get; set; }
@@ -105,12 +80,10 @@ namespace MVSystemApi.Model
         public decimal Total { get; set; }
         public int CantidadArticulos { get; set; }
         public string Nota { get; set; }
-        //public string Estado { get; set; }
         public string Usuario { get; set; }
         public DateTime FechaRegistro { get; set; }
         public int Abono { get; set; }
         public string RNC { get; set; }
-        //public string NcfFiscal { get; set; }
         public int NcfNumero { get; set; }
         public List<DetalleFactura> DetalleFacturaList { get; set; }
 
@@ -125,7 +98,6 @@ namespace MVSystemApi.Model
     public class DetalleFactura
     {
         public int NumeroFactura { get; set; }
-        //public int? IdAlmacen { get; set; }
         public string IdEquipo { get; set; }
         public int IdTipo { get; set; }
         public int IdVendedor { get; set; }
@@ -137,7 +109,6 @@ namespace MVSystemApi.Model
         public decimal Descuento { get; set; }
         public decimal Itbis { get; set; }
         public decimal Total { get; set; }
-        //public string Estado { get; set; }
         public string Usuario { get; set; }
         public DateTime FechaRegistro { get; set; }
         public string Descripcion { get; set; }

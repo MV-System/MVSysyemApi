@@ -102,11 +102,12 @@
     </div>
 
     <div class="container text-right">
-        <div>Subtotal: <b> @Model.Factura.DetalleFacturaList.Sum(x=>x.SubTotal).ToString("N2")</b></div>
-        <div>Descuento:<b> @Model.Factura.DetalleFacturaList.Sum(x=>x.Descuento).ToString("N2")</b></div>
-        <div>ITBIS:    <b> @Model.Factura.DetalleFacturaList.Sum(x=>x.Itbis).ToString("N2")</b></div>
+        <div>Subtotal: <b> @Model.Factura.SubTotal.ToString("N2")</b></div>
+        <div>Descuento:<b> @Model.Factura.Descuento.ToString("N2")</b></div>
+        <div>ITBIS:    <b> @Model.Factura.Itbis.ToString("N2")</b></div>
         <div>Abonado:  <b> @Model.Factura.Abono.ToString("N2")</b></div>
-        <div>Total:    <b> @Model.Factura.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>
+        <div>Total:    <b> @Model.Factura.Total.ToString("N2")</b></div>
+        @*<div>Total:    <b> @Model.Factura.DetalleFacturaList.Sum(x=>x.Total).ToString("N2")</b></div>*@
     </div>
 
     <div class="container">

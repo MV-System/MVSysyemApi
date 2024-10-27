@@ -85,6 +85,7 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// Imrimir reporte de facturas
         public IActionResult ReportFacturaConsulta(FacturaFilter consulta)
         {
+
             var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
@@ -119,7 +120,7 @@ namespace MVSystemApi.Controllers
             return new ViewAsPdf(data);
         }
       
-        [HttpPost("FacturacionReporte/ReportFacturaMini")]// Reimprimir factura 8.5x11
+        [HttpPost("FacturacionReporte/ReportFacturaMini")]// Reimprimir factura 80mm
         public IActionResult ReportFacturaMini(FacturaFilter consulta)
         {
             var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);

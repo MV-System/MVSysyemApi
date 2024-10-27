@@ -1215,21 +1215,12 @@ namespace MVSystemApi.Model
                 {
                     SqlCommand cmd = new SqlCommand("facturas_Insert", cn);
                     cmd.CommandType = CommandType.StoredProcedure;
-
-                    //if (tran != null)
-                    //tran = cn.BeginTransaction();
-                    //DataTable dt = new DataTable();
-                    //SqlCommand cmd = cn.CreateCommand();
                     SqlDataAdapter da = new SqlDataAdapter(cmd);
-                    //cmd.CommandType = CommandType.StoredProcedure;
-                    //cmd.CommandText = "facturas_Insert";
-
                     cmd.Parameters.AddWithValue("@ID_Cliente", Factura.IdCliente);
                     cmd.Parameters.AddWithValue("@ID_Vendedor", Factura.IdVendedor);
                     cmd.Parameters.AddWithValue("@ID_Tipo_Factura", Factura.IdTipoFactura);
                     cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", Factura.IdTipoPago);
                     cmd.Parameters.AddWithValue("@ID_Almacen", Factura.IdAlmacen);
-
                     cmd.Parameters.AddWithValue("@Cantidad_Articulos", Factura.CantidadArticulos);
                     cmd.Parameters.AddWithValue("@Itbis", Factura.Itbis);
                     cmd.Parameters.AddWithValue("@NFCTipoNumero", Factura.NcfTipoNumero);
@@ -1242,11 +1233,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Nota", Factura.Nota);
                     cmd.Parameters.AddWithValue("@Estado", "A");
                     cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
-                    //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
                     cmd.Parameters.AddWithValue("@fecha_registro", Factura.FechaRegistro);
-                    //cmd.Parameters.AddWithValue("@Cotizacion_Numero", Cotizacion_Numero);
-
-                    // cmd.Parameters.AddWithValue("@Fecha_registro", Factura.Fecha_registro);
                     cn.Open();
 
                     SqlParameter numero_Factura = new SqlParameter("@Numero_factura", 0);
@@ -1254,7 +1241,6 @@ namespace MVSystemApi.Model
                     cmd.Parameters.Add(numero_Factura);
                     cmd.ExecuteNonQuery();
                     Factura.NumeroFactura = Convert.ToInt32(cmd.Parameters["@Numero_factura"].Value.ToString());
-                    //da.Fill(dt);
                     cn.Close();
                     PostDetalleFactura(Factura.DetalleFacturaList, Factura.NumeroFactura);
 

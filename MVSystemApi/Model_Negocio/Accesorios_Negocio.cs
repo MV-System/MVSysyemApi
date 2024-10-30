@@ -106,8 +106,11 @@ namespace MVSystemApi.Model
                                 Cliente = Convert.ToString(dt["Cliente"]),
                                 Descripcion = Convert.ToString(dt["Descripcion"]),
                                 Cantidad = Convert.ToInt32(dt["Cantidad"]),
-                                Costo = Convert.ToInt32(dt["Costo"]),
+                                Costo = Convert.ToDecimal(dt["Costo"]),
+                                SubTotal = Convert.ToDecimal(dt["SubTotal"]),
                                 Precio = Convert.ToInt32(dt["precio"]),
+                                Total = Convert.ToDecimal(dt["Total"]),
+                                Itbis = Convert.ToDecimal(dt["Itbis"]),
                                 Vendedor = Convert.ToString(dt["Vendedor"]),
                                 Sucursal = Convert.ToString(dt["Sucursal"]),
                                 FechaRegistro = Convert.ToDateTime(dt["Fecha_registro"]),
@@ -118,6 +121,7 @@ namespace MVSystemApi.Model
                                 TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"]),
                                 TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
                                 TotalItbis = Convert.ToDecimal(dt["TotalItbis"])
+                               
                             }).ToList();
                 return resp;
             }

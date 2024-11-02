@@ -1255,6 +1255,31 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura)
+        {
+            try
+            {
+                using (cn)
+                {
+                    SqlCommand cmd = new SqlCommand("Proc_Anular_Factura", cn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    cmd.Parameters.AddWithValue("@NumeroFactura", Factura.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@IdSucursal", Factura.IDsucursal);
+                    cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+
+                    return Factura;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {
             cn.Open();

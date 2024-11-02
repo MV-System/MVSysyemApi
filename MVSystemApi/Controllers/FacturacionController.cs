@@ -91,5 +91,24 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost]
+        [Route("PostAnulaFactura")]
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public ActionResult<FilterAnulaFactura> PostAnulaFactura(FilterAnulaFactura Anulafactura)
+        {
+            try
+            {
+                var result = _accesoDatos.PostAnulaFactura(Anulafactura);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

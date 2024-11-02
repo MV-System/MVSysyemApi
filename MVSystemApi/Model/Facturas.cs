@@ -113,4 +113,10 @@ namespace MVSystemApi.Model
         public DateTime FechaRegistro { get; set; }
         public string Descripcion { get; set; }
     }
+    public class FilterAnulaFactura
+    {
+        public int NumeroFactura { get; set; }
+        public string Usuario { get; set; }
+        public string IDsucursal { get; set; }
+    }
 }

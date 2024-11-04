@@ -163,7 +163,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                                 SC.Sucursal_Telefonos,
                                 SC.Sucursal_Encabezado,
                                 SC.Sucursal_Condiciones_Garantia,
-                                SC.Id_Empresa
+                                SC.Id_Empresa,
+                                SC.Logo
                              FROM dbo.Sucursales_Cata SC
                              WHERE SC.Id_Empresa = @idEmpresa And ID_Sucursal =@ID_Sucursal ";
 
@@ -184,6 +185,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                     DEF.Telefonos = row["Sucursal_Telefonos"].ToString();
                     DEF.Encabezado = row["Sucursal_Encabezado"].ToString();
                     DEF.CondicionesGarantia = row["Sucursal_Condiciones_Garantia"].ToString();
+                    DEF.Logo = row["Logo"].ToString();
                     DEF.StringCon ="";
                 }
 

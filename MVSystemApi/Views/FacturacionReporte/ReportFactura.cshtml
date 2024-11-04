@@ -78,15 +78,15 @@
                     @{
                         foreach (var item in Model.DetalleFacturaList)
                         {
-                            <tr>
-                                <td>@item.IdEquipo</td>
-                                <td>@item.Descripcion</td>
-                                <td>@item.Cantidad.ToString("N0")</td>
-                                <td>@item.Precio.ToString("N2")</td>
-                                <td>@item.SubTotal.ToString("N2")</td>
-                                <td>@item.Descuento.ToString("N2")</td>
-                                <td>@item.Total.ToString("N2")</td>
-                            </tr>
+                                <tr>
+                                    <td>@item.IdEquipo</td>
+                                    <td>@item.Descripcion</td>
+                                    <td>@item.Cantidad.ToString("N0")</td>
+                                    <td>@item.Precio.ToString("N2")</td>
+                                    <td>@item.SubTotal.ToString("N2")</td>
+                                    <td>@item.Descuento.ToString("N2")</td>
+                                    <td>@item.Total.ToString("N2")</td>
+                                </tr>
                         }
                     }
                 </tbody>
@@ -104,7 +104,7 @@
 
     <div class="container">
         <div class="row">
-            <p>Nota: Reimprir Factura</p>
+            <p>Nota: @Model.Factura.Nota</p>
         </div>
 
         <div class="row">

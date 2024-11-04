@@ -36,7 +36,7 @@ namespace MVSystemApi.Controllers
                 DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa),Convert.ToInt32(equipoReporte.IdSucursal));
                 
                 string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-                equipoDisponibles.ForEach(ft => ft.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Empresa + ".png");
+                equipoDisponibles.ForEach(ft => ft.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png");
                
                 // Crear el objeto EmpresaFactura para la vista
                 var data = new EmpresaReportes
@@ -67,7 +67,7 @@ namespace MVSystemApi.Controllers
             DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa), Convert.ToInt32(equipoReporte.IdSucursal));
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            equipoVendidos.ForEach(ft => ft.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Empresa + ".png");
+            equipoVendidos.ForEach(ft => ft.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png");
 
             // Crear el objeto EmpresaFactura para la vista
             var data = new EmpresaReportes
@@ -106,7 +106,7 @@ namespace MVSystemApi.Controllers
             DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(equipoReporte.IdEmpresa), Convert.ToInt32(equipoReporte.IdSucursal));
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            EquipoReporte.ForEach(ft => ft.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Empresa + ".png");
+            EquipoReporte.ForEach(ft => ft.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png");
 
             // Crear el objeto EmpresaFactura para la vista
             var data = new EmpresaReportes

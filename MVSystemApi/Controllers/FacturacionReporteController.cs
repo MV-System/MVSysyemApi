@@ -85,7 +85,8 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// Imrimir reporte de facturas
         public IActionResult ReportFacturaConsulta(FacturaFilter consulta)
         {
-
+            consulta.PageIndex = 1;
+            consulta.PageSize = 10000;
             var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor

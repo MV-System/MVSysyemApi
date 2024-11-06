@@ -85,7 +85,8 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// Imrimir reporte de facturas
         public IActionResult ReportFacturaConsulta(FacturaFilter consulta)
         {
-
+            consulta.PageIndex = 1;
+            consulta.PageSize = 10000;
             var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
@@ -115,7 +116,7 @@ namespace MVSystemApi.Controllers
                 DatosEmpresaFactura = DatosEmpresaFactura,
             };
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            factura.logo = baseUrl + "/assets/" + consulta.empresa + ".png"; // armar la ruta completa para acceder al logo
+            factura.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo
             
             return new ViewAsPdf(data);
         }
@@ -141,7 +142,7 @@ namespace MVSystemApi.Controllers
             };
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            factura.logo = baseUrl + "/assets/" + consulta.empresa + ".png"; // armar la ruta completa para acceder al logo
+            factura.logo = baseUrl + "/assets/" +DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo
 
             return new ViewAsPdf(data);
         }

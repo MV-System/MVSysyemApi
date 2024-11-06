@@ -34,5 +34,23 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet()]
+        [Route("GetUtilidadesAsync")]
+        public async Task<ActionResult<Utilidades>> UtilidadesAsync(int? sucursal, DateTime FI, DateTime FF)
+        {
+            try
+            {
+                var lista = await AD.GetUtilidadesAsync(sucursal, FI, FF);
+                if (lista == null)
+                {
+                    return NotFound();
+                }
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

@@ -33,6 +33,7 @@ namespace MVSystemApi.Model
         public string empresa { get; set; }
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
+        public int ComprobanteCheck { get; set; }
 
     }
     public class FacturaConsulta : PagingDTO
@@ -112,5 +113,11 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
         public DateTime FechaRegistro { get; set; }
         public string Descripcion { get; set; }
+    }
+    public class FilterAnulaFactura
+    {
+        public int NumeroFactura { get; set; }
+        public string Usuario { get; set; }
+        public string IDsucursal { get; set; }
     }
 }

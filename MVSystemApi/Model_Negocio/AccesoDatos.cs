@@ -169,6 +169,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Facturas_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Comprobante", consulta.ComprobanteCheck);
                 cmd.Parameters.AddWithValue("@Criterio", consulta.Criterio);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal); 
@@ -1252,6 +1253,31 @@ namespace MVSystemApi.Model
             catch (Exception ex)
             {
                
+                throw ex;
+            }
+        }
+        public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura)
+        {
+            try
+            {
+                using (cn)
+                {
+                    SqlCommand cmd = new SqlCommand("Proc_Anular_Factura", cn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    cmd.Parameters.AddWithValue("@NumeroFactura", Factura.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@IdSucursal", Factura.IDsucursal);
+                    cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+
+                    return Factura;
+                }
+            }
+            catch (Exception ex)
+            {
+
                 throw ex;
             }
         }

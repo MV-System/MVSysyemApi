@@ -20,14 +20,23 @@
             margin: 0%;
         }
 
-        .notBorder td {
+        /*.notBorder td {
             border: 0;
             border-bottom: 1px solid #000
+        }*/
+
+        .margenes {
+            margin-top: 30px; /* Ajustado a 20px */
+            margin-bottom: 0px;
         }
+
+      
+      
+        
     </style>
 </head>
 
-<body>
+<body class="margenes">
     <div class="container text-center">
         <img src="@Model.FirstOrDefault()?.logo" alt="Logo" />
     </div>
@@ -49,7 +58,7 @@
             </b>
         </div>
 
-        <div class="row">
+        <div class="row margenes">
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -57,8 +66,8 @@
                         <th scope="col">Cliente</th>
                         <th scope="col">tipo fac..</th>
                         <th scope="col">pago</th>
-                        <th scope="col">desc</th>
-                        <th scope="col">abono</th>
+                        <th scope="col">SubTotal</th>
+                        <th scope="col">Descuento</th>
                         <th scope="col">total</th>
                         <th scope="col">fecha</th>
                     </tr>
@@ -85,9 +94,9 @@
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td>@Model.Sum(x=>x.SubTotal).ToString("N2")</td>
-                            <td>@Model.Sum(x=>x.Descuento).ToString("N2")</td>
-                            <td>@Model.Sum(x=>x.Total).ToString("N2")</td>
+                            <td><b>@Model.Sum(x=>x.SubTotal).ToString("N2")</b></td>
+                            <td><b>@Model.Sum(x=>x.Descuento).ToString("N2")</b></td>
+                            <td><b>@Model.Sum(x=>x.Total).ToString("N2")</b></td>
                             <td></td>
 
                         </tr>

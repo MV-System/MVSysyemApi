@@ -72,6 +72,7 @@ namespace MVSystemApi.Interfaz
         //DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null); // trae la lista de comprobantes
 
         public Facturas PostFactura(Facturas Factura);
+        public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura);
         public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal);
         public DataTable GetFacturas(FacturaFilter consulta);
         public DataTable GetFacturasReporte(FacturaFilter consulta);

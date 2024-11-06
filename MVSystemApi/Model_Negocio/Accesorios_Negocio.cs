@@ -108,6 +108,7 @@ namespace MVSystemApi.Model
                                 Cantidad = Convert.ToInt32(dt["Cantidad"]),
                                 Costo = Convert.ToDecimal(dt["Costo"]),
                                 SubTotal = Convert.ToDecimal(dt["SubTotal"]),
+                                Descuento = Convert.ToDecimal(dt["Descuento"]),
                                 Precio = Convert.ToInt32(dt["precio"]),
                                 Total = Convert.ToDecimal(dt["Total"]),
                                 Itbis = Convert.ToDecimal(dt["Itbis"]),

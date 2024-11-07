@@ -829,13 +829,11 @@ namespace MVSystemApi.Model
             try
             {
                 cn.Open();
-
                 SqlCommand cmd = cn.CreateCommand();
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
 
-
-                cmd.CommandText = "Equipos_Insert";
+                cmd.CommandText = "Proc_Equipos_Insert";
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.AddWithValue("@Imei", Equipo.Imei);
@@ -858,17 +856,17 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Numero_Registro", Equipo.Numero_Registro);
                 cmd.Parameters.AddWithValue("@comision_Detalle", Equipo.Comision_Detalle);
                 cmd.Parameters.AddWithValue("@comision_Por_Mayor", Equipo.Comision_Por_Mayor);
-                cmd.ExecuteNonQuery();
+
+                // Execute the query and fill the DataTable
                 da.Fill(dt);
+
                 cn.Close();
                 return dt;
             }
             catch (Exception ex)
             {
-
                 throw ex;
             }
-
         }
 
         public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)

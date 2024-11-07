@@ -67,6 +67,7 @@ namespace MVSystemApi.Model
         public string Disponible { get; set; }
         public string Disponible_Detalle { get; set; }
         public string Mensaje { get;  set; }
+        public string Existe { get; internal set; }
     }
 
 

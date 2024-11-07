@@ -14,18 +14,25 @@ namespace MVSystemApi.Model
         }
         internal object Equipo_Insert(Equipos Equipo)
         {
+            // Llamada al procedimiento almacenado
             var result = (from dt in Ac.Equipo_Insert(Equipo).AsEnumerable()
                           select new Equipo_return
                           {
                               Imei = Convert.ToString(dt["Imei"]),
                               Modelo = Convert.ToString(dt["Modelo"]),
                               Marca = Convert.ToString(dt["Marca"]),
+                              Existe = Convert.ToString(dt["Existe"]),
                               Mensaje = Convert.ToString(dt["Mensaje"])
+                          }).ToList(); // Usamos FirstOrDefault() ya que esperamos un único registro
 
-                          }).ToList();
-                 
+            // Verificamos el valor de Result
+            if (result != null)
+            {
+               return  result;
+            }
 
-            return result;
+            // En caso de no recibir datos o un resultado inesperado, manejamos el error
+            return new { success = false, Mensaje = "Error desconocido" };
         }
         internal object Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {

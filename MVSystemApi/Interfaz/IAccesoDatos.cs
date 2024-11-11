@@ -73,6 +73,7 @@ namespace MVSystemApi.Interfaz
 
         public Facturas PostFactura(Facturas Factura);
         public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura);
+        public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura);
         public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal);
         public DataTable GetFacturas(FacturaFilter consulta);
         public DataTable GetFacturasReporte(FacturaFilter consulta);

@@ -1279,6 +1279,32 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
+        {
+            try
+            {
+                using (cn)
+                {
+                    SqlCommand cmd = new SqlCommand("Detalle_Factura_Cambia_IMEI",cn);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    cmd.Parameters.AddWithValue("@IMEI", EditaDetalleFactura.EquipoActual);
+                    cmd.Parameters.AddWithValue("@IMEI_Nuevo", EditaDetalleFactura.EquipoNuevo);
+                    cmd.Parameters.AddWithValue("@Numero_Factura", EditaDetalleFactura.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@Usuario", EditaDetalleFactura.Usuario);
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+                    cn.Close();
+
+                    return EditaDetalleFactura;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {
             cn.Open();

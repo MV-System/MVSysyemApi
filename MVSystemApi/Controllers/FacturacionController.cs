@@ -110,5 +110,24 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost]
+        [Route("EditaDetalleFactura")]
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public ActionResult<EditaDetalleFactura> EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
+        {
+            try
+            {
+                var result = _accesoDatos.EditaDetalleFactura(EditaDetalleFactura);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

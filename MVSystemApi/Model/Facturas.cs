@@ -120,4 +120,12 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
         public string IDsucursal { get; set; }
     }
+    public class EditaDetalleFactura
+    {
+        public int NumeroFactura { get; set; }
+        public string EquipoActual { get; set; }
+        public string EquipoNuevo { get; set; }
+        public string IDsucursal { get; set; }
+        public string Usuario { get; set; }
+    }
 }

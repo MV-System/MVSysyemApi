@@ -212,33 +212,10 @@ namespace MVSystemApi.Model
                           }).ToList().FirstOrDefault();
             return result;
         }
-
-
-        internal object GetEquiposRecibidos(CriterioFilters filterData)
+        internal DataTable Equipo_Delete(string imei)
         {
-            var result = (from dt in Ac.GetEquiposRecibidos(filterData).AsEnumerable()
-                          select new EquipoRecepcionGet
-                          {
-                              RecepcionNumero = Convert.ToInt32(dt["Recepcion_Numero"]),
-                              Cliente =Convert.ToString(dt["Cliente"]),
-                              Cedula =Convert.ToString(dt["Cedula"]),
-                              Telefono =Convert.ToString(dt["Telefono"]),
-                              ImeiEntrada =Convert.ToString(dt["Imei_Entrada"]),
-                              PrecioImeiEntra = Convert.ToDecimal(dt["Precio_Imei_Entra"]),
-                              Modelo =Convert.ToString(dt["Modelo"]),
-                              ImeiSale =Convert.ToString(dt["Imei_Sale"]),
-                              Nota =Convert.ToString(dt["Nota"]),
-                              Usuario =Convert.ToString(dt["Usuario"]),
-                              FechaRegistro =Convert.ToString(dt["Fecha_registro"]),
-                              Line = Convert.ToInt32(dt["Linea"]),
-                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
-                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"])
-
-                            }).ToList();
-
-            return result;
+          return Ac.Equipo_Delete(imei);
         }
-
         internal void ModificarEquipo(Equipo_return_Imei equipo)
         {
             Ac.ModificarEquipo(equipo);
@@ -252,6 +229,32 @@ namespace MVSystemApi.Model
         {
             Ac.EquipoEstadoActualiza(dataActualizar);
         }
+
+        internal object GetEquiposRecibidos(CriterioFilters filterData)
+        {
+            var result = (from dt in Ac.GetEquiposRecibidos(filterData).AsEnumerable()
+                          select new EquipoRecepcionGet
+                          {
+                              RecepcionNumero = Convert.ToInt32(dt["Recepcion_Numero"]),
+                              Cliente = Convert.ToString(dt["Cliente"]),
+                              Cedula = Convert.ToString(dt["Cedula"]),
+                              Telefono = Convert.ToString(dt["Telefono"]),
+                              ImeiEntrada = Convert.ToString(dt["Imei_Entrada"]),
+                              PrecioImeiEntra = Convert.ToDecimal(dt["Precio_Imei_Entra"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              ImeiSale = Convert.ToString(dt["Imei_Sale"]),
+                              Nota = Convert.ToString(dt["Nota"]),
+                              Usuario = Convert.ToString(dt["Usuario"]),
+                              FechaRegistro = Convert.ToString(dt["Fecha_registro"]),
+                              Line = Convert.ToInt32(dt["Linea"]),
+                              LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"])
+
+                          }).ToList();
+
+            return result;
+        }
+
 
         internal object PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {

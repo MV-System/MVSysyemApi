@@ -1352,6 +1352,28 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public DataTable Equipo_Delete(string imei)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Equipo_Delete";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@imei", imei);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public void ModificarEquipo(Equipo_return_Imei equipo)
         {
             cn.Open();

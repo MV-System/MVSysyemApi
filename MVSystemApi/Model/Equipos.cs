@@ -208,4 +208,9 @@ namespace MVSystemApi.Model
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
     }
+    public class EquipoEliminado
+    {
+        public string mensaje { get; set; }
+    }
+
 }

@@ -1352,26 +1352,40 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable Equipo_Delete(string imei)
+        public string Equipo_Delete(string imei)
         {
-            cn.Open();
-
             try
             {
-                DataTable dt = new DataTable();
-                SqlCommand cmd = cn.CreateCommand();
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                cmd.CommandText = "Equipo_Delete";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@imei", imei);
-                da.Fill(dt);
-                cn.Close();
-                return dt;
+                // Crear comando SQL
+                using (SqlCommand cmd = new SqlCommand("Equipo_Delete", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
 
+                    // Agregar solo el parámetro de entrada @imei
+                    cmd.Parameters.AddWithValue("@imei", imei);
+
+                    // Crear el parámetro de salida para el mensaje
+                    SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
+                    {
+                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                    };
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+
+                    // Abrir la conexión
+                    cn.Open();
+                    cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
+                    cn.Close();
+
+                    // Obtener el valor del mensaje de salida
+                    string mensaje = mensajeParam.Value.ToString();
+
+                    return mensaje;  // Retornar el mensaje que devuelve el procedimiento
+                }
             }
             catch (Exception ex)
             {
-                throw ex;
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
         public void ModificarEquipo(Equipo_return_Imei equipo)

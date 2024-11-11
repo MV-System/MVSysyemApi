@@ -263,5 +263,24 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost]
+        [Route("PostEquipo_Delete")]
+        // [Authorize(Roles = "MNTransfiereEquipos")]
+        public ActionResult<EquipoTransferencia> PostEliminaEquipodeFactura([FromQuery] string imei)
+        {
+            try
+            {
+                var result = AD.Equipo_Delete(imei);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

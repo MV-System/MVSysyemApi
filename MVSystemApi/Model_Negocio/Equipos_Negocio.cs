@@ -212,10 +212,28 @@ namespace MVSystemApi.Model
                           }).ToList().FirstOrDefault();
             return result;
         }
-        internal DataTable Equipo_Delete(string imei)
+        internal object Equipo_Delete(string imei)
         {
-          return Ac.Equipo_Delete(imei);
+            try
+            {
+                // Llamamos al procedimiento almacenado que devuelve el mensaje
+                var mensaje = Ac.Equipo_Delete(imei);  // Este método debería devolver un string (mensaje)
+
+                // Creación de un objeto de tipo EquipoEliminado con el mensaje
+                var result = new EquipoEliminado
+                {
+                    mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                };
+
+                return result;  // Retornamos el objeto con el mensaje
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo.", ex);
+            }
         }
+       
         internal void ModificarEquipo(Equipo_return_Imei equipo)
         {
             Ac.ModificarEquipo(equipo);

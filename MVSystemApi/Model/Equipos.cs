@@ -49,10 +49,10 @@ namespace MVSystemApi.Model
         public int? Sucursal_Destino { get; set; }
 
         // Propiedad para la fecha de inicio, puede ser null
-        public DateTime? FechaInicio { get; set; }
+        public string FechaInicio { get; set; }
 
         // Propiedad para la fecha final, puede ser null
-        public DateTime? FechaFinal { get; set; }
+        public string FechaFinal { get; set; }
     }
         public class EquipoTransferencia
     {

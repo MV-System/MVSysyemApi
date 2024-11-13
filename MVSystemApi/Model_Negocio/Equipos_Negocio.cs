@@ -192,7 +192,7 @@ namespace MVSystemApi.Model
 
             return id;
         }
-        internal object GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, DateTime? FechaInicio, DateTime? FechaFinal)
+        internal object GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal)
         {
             var result = (from dt in Ac.GetTransferenciaEquipos(Sucursal_Salida, Sucursal_Destino, FechaInicio, FechaFinal).AsEnumerable()
                           select new EquipoTransferencia

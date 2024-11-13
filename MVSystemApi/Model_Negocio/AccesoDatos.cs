@@ -1066,15 +1066,19 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, DateTime? FechaInicio, DateTime? FechaFinal)
+        public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal)
         {
             try
             {
                 cn.Open();
-               
-                DataTable dt = new();
-                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencias_trans_Consulta", cn);
-                SqlDataAdapter da = new(cmd);
+
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+
+                cmd.CommandText = "Proc_Equipo_Transferencias_trans_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Sucursal_Salida", Sucursal_Salida);
                 cmd.Parameters.AddWithValue("@Sucursal_Destino", Sucursal_Destino);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", FechaInicio);

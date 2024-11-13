@@ -179,7 +179,7 @@ namespace MVSystemApi.Model
                           }).ToList();
 
             return result;
-        }  
+        }
         internal object GetEquipoUltimoIdTransferencia()
         {
             int id = 0;
@@ -191,7 +191,24 @@ namespace MVSystemApi.Model
 
 
             return id;
-        }    
+        }
+        internal object GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, DateTime? FechaInicio, DateTime? FechaFinal)
+        {
+            var result = (from dt in Ac.GetTransferenciaEquipos(Sucursal_Salida, Sucursal_Destino, FechaInicio, FechaFinal).AsEnumerable()
+                          select new EquipoTransferencia
+                          {
+                              IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
+                              Imei = Convert.ToString(dt["Imei"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),
+                              AlmacenDestino = Convert.ToString(dt["Almacen_Destino"]),
+                              CantidadEquipos = Convert.ToInt32(dt["Cantidad_Equipos"]),
+                              FechaTransferencia = Convert.ToString(dt["Fecha_registro"]),
+
+                          }).ToList();
+
+            return result;
+        }
 
 
         internal object GetEquipoPreciosEstatusByImei(string imei)

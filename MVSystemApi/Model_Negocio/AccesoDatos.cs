@@ -5,6 +5,7 @@ using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
+using System.Drawing;
 using System.Drawing.Printing;
 
 namespace MVSystemApi.Model
@@ -1058,6 +1059,30 @@ namespace MVSystemApi.Model
 
                 cmd.CommandType = CommandType.StoredProcedure;
                 return dr;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
+        public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, DateTime? FechaInicio, DateTime? FechaFinal)
+        {
+            try
+            {
+                cn.Open();
+               
+                DataTable dt = new();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencias_trans_Consulta", cn);
+                SqlDataAdapter da = new(cmd);
+                cmd.Parameters.AddWithValue("@Sucursal_Salida", Sucursal_Salida);
+                cmd.Parameters.AddWithValue("@Sucursal_Destino", Sucursal_Destino);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", FechaFinal);
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
             }
             catch (Exception ex)
             {

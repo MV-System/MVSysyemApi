@@ -38,6 +38,7 @@ namespace MVSystemApi.Interfaz
         internal DataTable GetEquipoPreciosEstatusByImei(string imei);
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
+        public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, DateTime? FechaInicio, DateTime? FechaFinal);
 
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 

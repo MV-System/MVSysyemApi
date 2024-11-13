@@ -263,6 +263,25 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet]
+        [Route("GetTransferenciaEquipos")]
+        public ActionResult<FiltroTransferencias> GetTransferenciaEquipos([FromQuery] FiltroTransferencias param)
+        {
+            try
+            {
+
+                var result = AD.GetTransferenciaEquipos(param.Sucursal_Salida,param.Sucursal_Destino,param.FechaInicio,param.FechaFinal);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         [HttpPost]
         [Route("PostEquipo_Delete")]
         // [Authorize(Roles = "MNTransfiereEquipos")]

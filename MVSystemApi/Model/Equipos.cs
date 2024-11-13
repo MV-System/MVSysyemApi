@@ -39,8 +39,22 @@ namespace MVSystemApi.Model
         public string AlmacenSalida { get; set; }
         public int AlmacenSalidaId { get; set; }
             
-    }  
-    public class EquipoTransferencia
+    }
+    public class FiltroTransferencias
+    {
+        // Propiedad para la sucursal de salida, puede ser null
+        public int? Sucursal_Salida { get; set; }
+
+        // Propiedad para la sucursal de destino, puede ser null
+        public int? Sucursal_Destino { get; set; }
+
+        // Propiedad para la fecha de inicio, puede ser null
+        public DateTime? FechaInicio { get; set; }
+
+        // Propiedad para la fecha final, puede ser null
+        public DateTime? FechaFinal { get; set; }
+    }
+        public class EquipoTransferencia
     {
         public int IdTransferencia { get; set; }
         public string FechaTransferencia { get; set; }

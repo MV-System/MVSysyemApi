@@ -905,7 +905,7 @@ namespace MVSystemApi.Model
             }
 
         }  
-        public DataTable GetEquiposTranferidos()
+        public DataTable GetEquiposTranferidos(int? idTransferencia)
         {
             try
             {
@@ -917,6 +917,7 @@ namespace MVSystemApi.Model
 
                 cmd.CommandText = "Proc_Equipo_Ultimos_Transferidos_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@id_Transferencia", idTransferencia);
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();

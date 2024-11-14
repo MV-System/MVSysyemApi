@@ -29,7 +29,7 @@ namespace MVSystemApi.Interfaz
         public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO);
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter);
         public SqlDataReader GetEquipoByImei(string imei);
-        public DataTable GetEquiposTranferidos();
+        public DataTable GetEquiposTranferidos(int? idTransferencia);
         public DataTable GetEquiposRecibidos(CriterioFilters filterData);
         public void ModificarEquipo(Equipo_return_Imei imei);
         public void InsertarEquipoRecibido(EquipoRecepcion equipo);

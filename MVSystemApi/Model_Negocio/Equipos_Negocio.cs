@@ -163,9 +163,9 @@ namespace MVSystemApi.Model
 
             return equipo;
         }    
-        internal object GetEquiposTranferidos()
+        internal object GetEquiposTranferidos(int? idTransferencia)
         {
-            var result = (from dt in Ac.GetEquiposTranferidos().AsEnumerable()
+            var result = (from dt in Ac.GetEquiposTranferidos(idTransferencia).AsEnumerable()
                           select new EquipoTransferencia
                           {
                               IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
@@ -198,8 +198,8 @@ namespace MVSystemApi.Model
                           select new EquipoTransferencia
                           {
                               IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
-                              Imei = Convert.ToString(dt["Imei"]),
-                              Modelo = Convert.ToString(dt["Modelo"]),
+                              //Imei = Convert.ToString(dt["Imei"]),
+                              //Modelo = Convert.ToString(dt["Modelo"]),
                               AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),
                               AlmacenDestino = Convert.ToString(dt["Almacen_Destino"]),
                               CantidadEquipos = Convert.ToInt32(dt["Cantidad_Equipos"]),

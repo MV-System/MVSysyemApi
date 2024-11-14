@@ -194,7 +194,7 @@ namespace MVSystemApi.Model
         }
         internal object GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal)
         {
-            var result = (from dt in Ac.GetTransferenciaEquipos(Sucursal_Salida, Sucursal_Destino, FechaInicio, FechaFinal).AsEnumerable()
+            var result = (from dt in  Ac.GetTransferenciaEquipos(Sucursal_Salida, Sucursal_Destino, FechaInicio, FechaFinal).AsEnumerable()
                           select new EquipoTransferencia
                           {
                               IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),

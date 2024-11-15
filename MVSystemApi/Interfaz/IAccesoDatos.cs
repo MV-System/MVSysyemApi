@@ -14,7 +14,7 @@ namespace MVSystemApi.Interfaz
 
         #region  // ------------- equipos ---------------------//
         DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen);
-
+        public DataTable Reparaciones_Insert(ReparacionesInsert Reparaciones);
         DataTable Equipo_Insert(Equipos Equipo);
         DataTable Get_Tegnologia_Combo();
         DataTable Get_Garantia_Equipo_Combo();
@@ -39,6 +39,8 @@ namespace MVSystemApi.Interfaz
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
         public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal);
+
+        public DataTable GetDetalleTransferenciaEquipos(int IdTransferencia);
 
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 

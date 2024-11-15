@@ -226,5 +226,17 @@ namespace MVSystemApi.Model
     {
         public string mensaje { get; set; }
     }
+    public class ReparacionesInsert
+    {
+        public string IMEI { get; set; }
+        public int ID_Cliente { get; set; }
+        public int ID_Modelo { get; set; }
+        public string Detalle_Reparacion { get; set; }
+        public int Costo { get; set; }
+        public int Precio { get; set; }
+        public string Usuario { get; set; }
+        public string MensajeSalida { get; set; }
+        
+    }
 
 }

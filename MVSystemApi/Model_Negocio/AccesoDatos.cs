@@ -1095,27 +1095,21 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        public DataTable GetDetalleTransferenciaEquipos(int IdTransferencia)
         {
             try
             {
                 cn.Open();
 
-                
-                DataTable dt = new DataTable();
-                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Guarda", cn);
+                SqlCommand cmd = cn.CreateCommand();
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+
+
+                cmd.CommandText = "Proc_Equipo_Transferencias_Detalle_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
-
-                cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.id);
-                cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
-                cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
-                cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
-                cmd.Parameters.AddWithValue("@Modelo", tranferencia.Modelo);
-                cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
-                cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
-                //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
-
+                cmd.Parameters.AddWithValue("@IdTransferencia", IdTransferencia);
+                cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();
                 return dt;
@@ -1126,6 +1120,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+
         #endregion
         public DataTable GetComprobantes_Combo()
         {
@@ -1598,6 +1593,66 @@ namespace MVSystemApi.Model
             {
                 throw ex;
 
+            }
+        }
+
+        public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
+        {
+            try
+            {
+                cn.Open();
+
+
+                DataTable dt = new DataTable();
+                SqlCommand cmd = new SqlCommand("Proc_Equipo_Transferencia_Trans_Guarda", cn);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@Id_Transferencia", tranferencia.id);
+                cmd.Parameters.AddWithValue("@Imei", tranferencia.Imei);
+                cmd.Parameters.AddWithValue("@Almacen_Salida", tranferencia.AlmacenSalida);
+                cmd.Parameters.AddWithValue("@Almacen_Destino", tranferencia.AlmacenDestino);
+                cmd.Parameters.AddWithValue("@Modelo", tranferencia.Modelo);
+                cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
+                cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
+                //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
+
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
+        public DataTable Reparaciones_Insert(ReparacionesInsert Reparaciones)
+        {
+            try
+            {
+
+
+                DataTable dt = new DataTable();
+                SqlCommand cmd = new SqlCommand("Proc_Reparaciones_Insert", cn);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
+                cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
+                cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion);
+                cmd.Parameters.AddWithValue("@Total", Reparaciones.Costo);
+                cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
+                cmd.Parameters.AddWithValue("@Fecha_Entrega",DateTime.Now);
+                cmd.Parameters.AddWithValue("@modelo", Reparaciones.ID_Modelo);
+                cmd.Parameters.AddWithValue("@Usuario", Reparaciones.Usuario);
+
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 

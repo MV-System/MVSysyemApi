@@ -209,6 +209,20 @@ namespace MVSystemApi.Model
 
             return result;
         }
+        internal object GetDetalleTransferenciaEquipos(int IdTransferencia)
+        {
+            var result = (from dt in Ac.GetDetalleTransferenciaEquipos(IdTransferencia).AsEnumerable()
+                          select new EquipoTransferencia
+                          {
+                              IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
+                              Imei = Convert.ToString(dt["IDEquipo"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              FechaTransferencia = Convert.ToString(dt["Fecha_registro"]),
+
+                          }).ToList();
+
+            return result;
+        }
 
 
         internal object GetEquipoPreciosEstatusByImei(string imei)
@@ -314,6 +328,17 @@ namespace MVSystemApi.Model
 
                 throw ex;
             }
+        }
+        internal object EquiposReparacionInsert(ReparacionesInsert reparacion)
+        {
+            var result = (from dt in Ac.Reparaciones_Insert(reparacion).AsEnumerable()
+                          select new ReparacionesInsert
+                          {
+                              MensajeSalida = Convert.ToString(dt["MensajeSalida"])
+
+                          }).ToList();
+
+            return result;
         }
     }
 }

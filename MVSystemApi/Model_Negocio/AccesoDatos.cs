@@ -538,6 +538,53 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public DataTable Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio)
+        {
+
+            ////SqlConnection cn = new SqlConnection(con);
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "ObtenerClientesConFacturasPendientes";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@FechaInicio", criterio.FechaInicio);
+                cmd.Parameters.AddWithValue("@FechaFin", criterio.FechaFin);
+                cmd.Parameters.AddWithValue("@NombreCliente", criterio.NombreCliente);
+                cmd.Parameters.AddWithValue("@NumeroTelefono", criterio.NumeroTelefono);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DataTable Cliente_FacturasPendientesDetalle(int cliente)
+        {
+
+            ////SqlConnection cn = new SqlConnection(con);
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "ObtenerFacturasPendientesPorCliente";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id_Cliente", cliente);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public DataTable GetTipo_Telefono_Lista()
         {
 

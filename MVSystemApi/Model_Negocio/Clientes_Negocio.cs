@@ -59,6 +59,45 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        internal object Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Cliente_FacturasPendientes(criterio).AsEnumerable()
+                               select new ObtenerClientesConFacturasPendientes
+                               {
+                                   Id_Cliente = Convert.ToInt32(dt["ID"]),
+                                   Cliente = Convert.ToString(dt["Cliente"]),
+                                   MontoPendiente = Convert.ToDecimal(dt["MontoPendiente"]),
+                               }).ToList();
+
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        internal object Cliente_FacturasPendientesDetalle(int cliente)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Cliente_FacturasPendientesDetalle(cliente).AsEnumerable()
+                               select new ObtenerFacturasPendientesPorCliente
+                               {
+                                   NumeroFactura = Convert.ToInt32(dt["Numero_Factura"]),
+                                   TotalFactura = Convert.ToDecimal(dt["Total"]),
+                                   MontoPendiente = Convert.ToDecimal(dt["MontoPendiente"]),
+                                   FechaFactura = Convert.ToString(dt["fecha_registro"]),
+                               }).ToList();
+
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         internal Clientes_consulta Cliente_Consulta_Por_Id_Cliente(int id_Cliente)
         {

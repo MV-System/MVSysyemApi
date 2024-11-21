@@ -263,6 +263,44 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet]
+        [Route("GetTransferenciaEquipos")]
+        public ActionResult<FiltroTransferencias> GetTransferenciaEquipos([FromQuery] FiltroTransferencias param)
+        {
+            try
+            {
+
+                var result = AD.GetTransferenciaEquipos(param.Sucursal_Salida,param.Sucursal_Destino,param.FechaInicio,param.FechaFinal);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpGet]
+        [Route("GetDetalleTransferenciaEquipos")]
+        public ActionResult<FiltroTransferencias> GetDetalleTransferenciaEquipos([FromQuery] int IdTransferencia)
+        {
+            try
+            {
+
+                var result = AD.GetDetalleTransferenciaEquipos(IdTransferencia);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         [HttpPost]
         [Route("PostEquipo_Delete")]
         // [Authorize(Roles = "MNTransfiereEquipos")]
@@ -271,6 +309,25 @@ namespace MVSystemApi.Controllers
             try
             {
                 var result = AD.Equipo_Delete(imei);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPost]
+        [Route("PostReparacionEquipo")]
+        // [Authorize(Roles = "MNTransfiereEquipos")]
+        public ActionResult<ReparacionesInsert> PostReparacionEquipo([FromBody] ReparacionesInsert Reparaciones)
+        {
+            try
+            {
+                var result = AD.EquiposReparacionInsert(Reparaciones);
                 if (result == null)
                 {
                     return NotFound();

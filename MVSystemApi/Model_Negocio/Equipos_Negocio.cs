@@ -164,9 +164,9 @@ namespace MVSystemApi.Model
 
             return equipo;
         }    
-        internal object GetEquiposTranferidos()
+        internal object GetEquiposTranferidos(int? idTransferencia)
         {
-            var result = (from dt in Ac.GetEquiposTranferidos().AsEnumerable()
+            var result = (from dt in Ac.GetEquiposTranferidos(idTransferencia).AsEnumerable()
                           select new EquipoTransferencia
                           {
                               IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
@@ -180,7 +180,7 @@ namespace MVSystemApi.Model
                           }).ToList();
 
             return result;
-        }  
+        }
         internal object GetEquipoUltimoIdTransferencia()
         {
             int id = 0;
@@ -192,7 +192,42 @@ namespace MVSystemApi.Model
 
 
             return id;
-        }    
+        }
+        internal object GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal)
+        {
+            var result = (from dt in  Ac.GetTransferenciaEquipos(Sucursal_Salida, Sucursal_Destino, FechaInicio, FechaFinal).AsEnumerable()
+                          select new EquipoTransferencia
+                          {
+                              IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
+                              //Imei = Convert.ToString(dt["Imei"]),
+                              //Modelo = Convert.ToString(dt["Modelo"]),
+                              AlmacenSalida = Convert.ToString(dt["Almacen_Salida"]),
+                              AlmacenDestino = Convert.ToString(dt["Almacen_Destino"]),
+                              CantidadEquipos = Convert.ToInt32(dt["Cantidad_Equipos"]),
+                              FechaTransferencia = Convert.ToString(dt["Fecha_registro"]),
+                              //LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              //Line = Convert.ToInt32(dt["Linea"]),
+                              //TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+                             
+
+                          }).ToList();
+
+            return result;
+        }
+        internal object GetDetalleTransferenciaEquipos(int IdTransferencia)
+        {
+            var result = (from dt in Ac.GetDetalleTransferenciaEquipos(IdTransferencia).AsEnumerable()
+                          select new EquipoTransferencia
+                          {
+                              IdTransferencia = Convert.ToInt32(dt["Id_Transferencia"]),
+                              Imei = Convert.ToString(dt["IDEquipo"]),
+                              Modelo = Convert.ToString(dt["Modelo"]),
+                              FechaTransferencia = Convert.ToString(dt["Fecha_registro"]),
+
+                          }).ToList();
+
+            return result;
+        }
 
 
         internal object GetEquipoPreciosEstatusByImei(string imei)
@@ -298,6 +333,17 @@ namespace MVSystemApi.Model
 
                 throw ex;
             }
+        }
+        internal object EquiposReparacionInsert(ReparacionesInsert reparacion)
+        {
+            var result = (from dt in Ac.Reparaciones_Insert(reparacion).AsEnumerable()
+                          select new ReparacionesInsert
+                          {
+                              MensajeSalida = Convert.ToString(dt["MensajeSalida"])
+
+                          }).ToList();
+
+            return result;
         }
     }
 }

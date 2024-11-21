@@ -39,8 +39,22 @@ namespace MVSystemApi.Model
         public string AlmacenSalida { get; set; }
         public int AlmacenSalidaId { get; set; }
             
-    }  
-    public class EquipoTransferencia
+    }
+    public class FiltroTransferencias
+    {
+        // Propiedad para la sucursal de salida, puede ser null
+        public int? Sucursal_Salida { get; set; }
+
+        // Propiedad para la sucursal de destino, puede ser null
+        public int? Sucursal_Destino { get; set; }
+
+        // Propiedad para la fecha de inicio, puede ser null
+        public string FechaInicio { get; set; }
+
+        // Propiedad para la fecha final, puede ser null
+        public string FechaFinal { get; set; }
+    }
+        public class EquipoTransferencia
     {
         public int IdTransferencia { get; set; }
         public string FechaTransferencia { get; set; }
@@ -55,6 +69,9 @@ namespace MVSystemApi.Model
         public string Logo { get; set; }
         public int Total { get; set; }
         public string IdSucursal { get; set; }
+        //public int Line { get; set; }
+        //public int LastLine { get; set; }
+        //public int TotalRecord { get; set; }
     }
 
     public class Equipo_return
@@ -211,6 +228,18 @@ namespace MVSystemApi.Model
     public class EquipoEliminado
     {
         public string mensaje { get; set; }
+    }
+    public class ReparacionesInsert
+    {
+        public string IMEI { get; set; }
+        public int ID_Cliente { get; set; }
+        public int ID_Modelo { get; set; }
+        public string Detalle_Reparacion { get; set; }
+        public int Costo { get; set; }
+        public int Precio { get; set; }
+        public string Usuario { get; set; }
+        public string MensajeSalida { get; set; }
+        
     }
 
 }

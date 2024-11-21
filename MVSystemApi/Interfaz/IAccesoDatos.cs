@@ -14,7 +14,7 @@ namespace MVSystemApi.Interfaz
 
         #region  // ------------- equipos ---------------------//
         DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen);
-
+        public DataTable Reparaciones_Insert(ReparacionesInsert Reparaciones);
         DataTable Equipo_Insert(Equipos Equipo);
         DataTable Get_Tegnologia_Combo();
         DataTable Get_Garantia_Equipo_Combo();
@@ -29,7 +29,7 @@ namespace MVSystemApi.Interfaz
         public DataTable GetEquiposDisponible(EquipoDisponibleFilterDTO equipoDisponibleFilterDTO);
         public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter);
         public SqlDataReader GetEquipoByImei(string imei);
-        public DataTable GetEquiposTranferidos();
+        public DataTable GetEquiposTranferidos(int? idTransferencia);
         public DataTable GetEquiposRecibidos(CriterioFilters filterData);
         public void ModificarEquipo(Equipo_return_Imei imei);
         public void InsertarEquipoRecibido(EquipoRecepcion equipo);
@@ -38,6 +38,9 @@ namespace MVSystemApi.Interfaz
         internal DataTable GetEquipoPreciosEstatusByImei(string imei);
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
+        public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal);
+
+        public DataTable GetDetalleTransferenciaEquipos(int IdTransferencia);
 
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 
@@ -50,6 +53,8 @@ namespace MVSystemApi.Interfaz
         DataTable Tipo_Cliente_Cata_Consulta_Combo();
         DataTable Cliente_Insert(Clientes Cliente);
         DataTable Cliente_Consulta(string criterio);
+        DataTable Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio);
+        DataTable Cliente_FacturasPendientesDetalle(int cliente);
         
         #endregion
 

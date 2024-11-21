@@ -98,7 +98,7 @@ namespace MVSystemApi.Controllers
         public IActionResult EquipoTransferenciaReporte(EquipoTransferencia equipoReporte)
         {
 
-            var EquipoReporte = (List<EquipoTransferencia>)_equipos_Negocio.GetEquiposTranferidos();
+            var EquipoReporte = (List<EquipoTransferencia>)_equipos_Negocio.GetEquiposTranferidos(equipoReporte.IdTransferencia);
             if (EquipoReporte == null)
                 return NotFound();
             

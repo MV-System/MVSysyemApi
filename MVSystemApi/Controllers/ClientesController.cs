@@ -61,5 +61,48 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet()]
+        [Route("GetClientesConFacturasPendientes")]
+        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        public ActionResult<ObtenerClientesConFacturasPendientes> GetClientesConFacturasPendientes([FromQuery]Clientes_ConFacturasPendientes_Filtros criterio)
+        {
+
+            try
+            {
+                var lista = AD.Cliente_FacturasPendientes(criterio);
+                if (lista == null)
+                {
+                    return NotFound();
+                }
+                return Ok(lista);
+            }
+
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpGet()]
+        [Route("GetFacturasPendientesPorCliente")]
+        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        public ActionResult<ObtenerClientesConFacturasPendientes> GetFacturasPendientesPorCliente([FromQuery] int cliente)
+        {
+
+            try
+            {
+                var lista = AD.Cliente_FacturasPendientesDetalle(cliente);
+                if (lista == null)
+                {
+                    return NotFound();
+                }
+                return Ok(lista);
+            }
+
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

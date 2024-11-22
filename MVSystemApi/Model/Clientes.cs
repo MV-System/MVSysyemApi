@@ -47,6 +47,7 @@ namespace MVSystemApi.Model
         public decimal TotalFactura { get; set; }
         public decimal MontoPendiente { get; set; }
         public string FechaFactura { get; set; }
+        public string FechaLimitePagoFactura { get; set; }
     }
     public class AbonoFacturaParam
     {

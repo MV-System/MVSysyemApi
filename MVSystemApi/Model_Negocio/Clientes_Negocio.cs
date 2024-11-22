@@ -110,6 +110,7 @@ namespace MVSystemApi.Model
                                    TotalFactura = Convert.ToDecimal(dt["Total"]),
                                    MontoPendiente = Convert.ToDecimal(dt["MontoPendiente"]),
                                    FechaFactura = Convert.ToString(dt["fecha_registro"]),
+                                   FechaLimitePagoFactura = Convert.ToString(dt["Tiempo_Credito"]),
                                }).ToList();
 
                 return solicit;

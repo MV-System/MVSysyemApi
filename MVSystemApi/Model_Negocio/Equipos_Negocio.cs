@@ -6,7 +6,8 @@ namespace MVSystemApi.Model
 {
     public class Equipos_Negocio
     {
-        private readonly IAccesoDatos Ac;
+         private readonly IAccesoDatos Ac;
+        // private readonly AccesoDatos Ac;
 
         public Equipos_Negocio(IAccesoDatos Ad)
         {

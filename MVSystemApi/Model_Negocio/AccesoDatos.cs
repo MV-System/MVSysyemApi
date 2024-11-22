@@ -1460,6 +1460,46 @@ namespace MVSystemApi.Model
                 throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
+        public string AbonoAfactura(AbonoFacturaParam param)
+        {
+            try
+            {
+                // Crear comando SQL
+                using (SqlCommand cmd = new SqlCommand("Proc_AbonoFactura", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Agregar solo el parámetro de entrada @imei
+                    cmd.Parameters.AddWithValue("@IdCliente", param.Id_Cliente);
+                    cmd.Parameters.AddWithValue("@Numero_Factura", param.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@MontoAbono", param.MontoAbono);
+                    cmd.Parameters.AddWithValue("@Id_Sucursal", param.IdSucursal);
+                    cmd.Parameters.AddWithValue("@Usuario", param.Usuario);
+
+                    // Crear el parámetro de salida para el mensaje
+                    SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
+                    {
+                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                    };
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+
+                    // Abrir la conexión
+                    cn.Open();
+                    cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
+                    cn.Close();
+
+                    // Obtener el valor del mensaje de salida
+                   // string mensaje = mensajeParam.Value.ToString();
+
+                    return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
+                }
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo", ex);
+            }
+        }
         public void ModificarEquipo(Equipo_return_Imei equipo)
         {
             cn.Open();

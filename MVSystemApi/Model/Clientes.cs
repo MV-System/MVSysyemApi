@@ -1,4 +1,6 @@
-﻿namespace MVSystemApi.Model
+﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace MVSystemApi.Model
 {
     public class Clientes
     {
@@ -46,5 +48,17 @@
         public decimal MontoPendiente { get; set; }
         public string FechaFactura { get; set; }
         public string FechaLimitePagoFactura { get; set; }
+    }
+    public class AbonoFacturaParam
+    {
+        public int Id_Cliente { get; set; }
+        public int NumeroFactura { get; set; }
+        public decimal MontoAbono { get; set; }
+        public int IdSucursal { get; set; }
+        public string Usuario { get; set; }
+    }
+    public class AbonoFacturaParamRetorn
+    {
+        public string Mensaje { get; internal set; }
     }
 }

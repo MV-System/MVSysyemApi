@@ -38,6 +38,27 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        internal object AbonoAfactura(AbonoFacturaParam param)
+        {
+            try
+            {
+                // Llamamos al procedimiento almacenado que devuelve el mensaje
+                var mensaje = AA.AbonoAfactura(param);  // Este método debería devolver un string (mensaje)
+
+                // Creación de un objeto de tipo EquipoEliminado con el mensaje
+                var result = new AbonoFacturaParamRetorn
+                {
+                    Mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                };
+
+                return result;  // Retornamos el objeto con el mensaje
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo.", ex);
+            }
+        }
         internal object Cliente_Consulta(string criterio)
         {
             try

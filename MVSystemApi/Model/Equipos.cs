@@ -236,7 +236,7 @@ namespace MVSystemApi.Model
         public int Precio { get; set; }
         public string Usuario { get; set; }
         public string MensajeSalida { get; set; }
-        
+        public string IdReparacion { get; internal set; }
     }
 
 }

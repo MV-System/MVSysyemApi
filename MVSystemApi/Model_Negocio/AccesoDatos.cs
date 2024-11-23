@@ -538,6 +538,53 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        public DataTable Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio)
+        {
+
+            ////SqlConnection cn = new SqlConnection(con);
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "ObtenerClientesConFacturasPendientes";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@FechaInicio", criterio.FechaInicio);
+                cmd.Parameters.AddWithValue("@FechaFin", criterio.FechaFin);
+                cmd.Parameters.AddWithValue("@NombreCliente", criterio.NombreCliente);
+                cmd.Parameters.AddWithValue("@NumeroTelefono", criterio.NumeroTelefono);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public DataTable Cliente_FacturasPendientesDetalle(int cliente)
+        {
+
+            ////SqlConnection cn = new SqlConnection(con);
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "ObtenerFacturasPendientesPorCliente";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id_Cliente", cliente);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public DataTable GetTipo_Telefono_Lista()
         {
 
@@ -1405,6 +1452,46 @@ namespace MVSystemApi.Model
                     string mensaje = mensajeParam.Value.ToString();
 
                     return mensaje;  // Retornar el mensaje que devuelve el procedimiento
+                }
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo", ex);
+            }
+        }
+        public string AbonoAfactura(AbonoFacturaParam param)
+        {
+            try
+            {
+                // Crear comando SQL
+                using (SqlCommand cmd = new SqlCommand("Proc_AbonoFactura", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Agregar solo el parámetro de entrada @imei
+                    cmd.Parameters.AddWithValue("@IdCliente", param.Id_Cliente);
+                    cmd.Parameters.AddWithValue("@Numero_Factura", param.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@MontoAbono", param.MontoAbono);
+                    cmd.Parameters.AddWithValue("@Id_Sucursal", param.IdSucursal);
+                    cmd.Parameters.AddWithValue("@Usuario", param.Usuario);
+
+                    // Crear el parámetro de salida para el mensaje
+                    SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
+                    {
+                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                    };
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+
+                    // Abrir la conexión
+                    cn.Open();
+                    cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
+                    cn.Close();
+
+                    // Obtener el valor del mensaje de salida
+                   // string mensaje = mensajeParam.Value.ToString();
+
+                    return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
                 }
             }
             catch (Exception ex)

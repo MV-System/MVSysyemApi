@@ -38,6 +38,27 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        internal object AbonoAfactura(AbonoFacturaParam param)
+        {
+            try
+            {
+                // Llamamos al procedimiento almacenado que devuelve el mensaje
+                var mensaje = AA.AbonoAfactura(param);  // Este método debería devolver un string (mensaje)
+
+                // Creación de un objeto de tipo EquipoEliminado con el mensaje
+                var result = new AbonoFacturaParamRetorn
+                {
+                    Mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                };
+
+                return result;  // Retornamos el objeto con el mensaje
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo.", ex);
+            }
+        }
         internal object Cliente_Consulta(string criterio)
         {
             try
@@ -50,6 +71,46 @@ namespace MVSystemApi.Model
                                    Apellidos = Convert.ToString(dt["Apellidos"]),
                                    Numero_Telefono = Convert.ToInt64(dt["Numero de telefono"]),
                                    Mensaje = Convert.ToString(dt["Mensaje"]),
+                               }).ToList();
+
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        internal object Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Cliente_FacturasPendientes(criterio).AsEnumerable()
+                               select new ObtenerClientesConFacturasPendientes
+                               {
+                                   Id_Cliente = Convert.ToInt32(dt["ID"]),
+                                   Cliente = Convert.ToString(dt["Cliente"]),
+                                   MontoPendiente = Convert.ToDecimal(dt["MontoPendiente"]),
+                               }).ToList();
+
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        internal object Cliente_FacturasPendientesDetalle(int cliente)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Cliente_FacturasPendientesDetalle(cliente).AsEnumerable()
+                               select new ObtenerFacturasPendientesPorCliente
+                               {
+                                   NumeroFactura = Convert.ToInt32(dt["Numero_Factura"]),
+                                   TotalFactura = Convert.ToDecimal(dt["Total"]),
+                                   MontoPendiente = Convert.ToDecimal(dt["MontoPendiente"]),
+                                   FechaFactura = Convert.ToString(dt["fecha_registro"]),
+                                   FechaLimitePagoFactura = Convert.ToString(dt["Tiempo_Credito"]),
                                }).ToList();
 
                 return solicit;

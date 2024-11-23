@@ -52,7 +52,10 @@ namespace MVSystemApi.Interfaz
         DataTable GetTipo_Telefono_Lista();
         DataTable Tipo_Cliente_Cata_Consulta_Combo();
         DataTable Cliente_Insert(Clientes Cliente);
+      
         DataTable Cliente_Consulta(string criterio);
+        DataTable Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio);
+        DataTable Cliente_FacturasPendientesDetalle(int cliente);
         
         #endregion
 
@@ -112,6 +115,7 @@ namespace MVSystemApi.Interfaz
         DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente);
         DataTable AsumeITBIS();
         string Equipo_Delete(string imei);
+        string AbonoAfactura(AbonoFacturaParam param);
 
         #endregion
 

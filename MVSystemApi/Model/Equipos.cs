@@ -69,6 +69,9 @@ namespace MVSystemApi.Model
         public string Logo { get; set; }
         public int Total { get; set; }
         public string IdSucursal { get; set; }
+        //public int Line { get; set; }
+        //public int LastLine { get; set; }
+        //public int TotalRecord { get; set; }
     }
 
     public class Equipo_return

@@ -6,7 +6,8 @@ namespace MVSystemApi.Model
 {
     public class Equipos_Negocio
     {
-        private readonly IAccesoDatos Ac;
+         private readonly IAccesoDatos Ac;
+        // private readonly AccesoDatos Ac;
 
         public Equipos_Negocio(IAccesoDatos Ad)
         {
@@ -204,6 +205,10 @@ namespace MVSystemApi.Model
                               AlmacenDestino = Convert.ToString(dt["Almacen_Destino"]),
                               CantidadEquipos = Convert.ToInt32(dt["Cantidad_Equipos"]),
                               FechaTransferencia = Convert.ToString(dt["Fecha_registro"]),
+                              //LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
+                              //Line = Convert.ToInt32(dt["Linea"]),
+                              //TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
+                             
 
                           }).ToList();
 

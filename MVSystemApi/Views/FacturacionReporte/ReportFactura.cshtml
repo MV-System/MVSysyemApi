@@ -37,7 +37,18 @@
     <div class="container border border-dark">
         <div class="row">
             <div class="col-6 border border-dark">
-                <b>Código: </b>@Model.Factura.ClienteId<br>
+                <p>
+                    @{
+                        if (Model.Factura.Rnc.Length > 0)
+                        {
+                            <b>RNC: </b> @Model.Factura.Rnc
+                        }
+                        else
+                        {
+                            <b>Código: </b> @Model.Factura.ClienteId
+                        }
+                    }
+                </p>
                 <b>Cliente: </b>@Model.Factura.Nombres @Model.Factura.Apellidos<br>
                 <b>Teléfono: </b>@Model.Factura.Telefono<br>
                 <b>Vendedor: </b>@Model.Factura.Vendedor<br>

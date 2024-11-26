@@ -35,7 +35,8 @@
             @{
                 if (Model.Factura.RNC.Length > 0)
                 {
-                    <b>RNC: </b>  @Model.DatosEmpresaFactura.RNC;
+                    <b>RNC: </b>  @Model.DatosEmpresaFactura.RNC
+                    ;
                 }
             }
         </p>
@@ -44,7 +45,18 @@
     <div class="container border border-dark">
         <div class="row">
             <div class="col-6 border border-dark">
-                <b>Código: </b>@Model.Cliente.Id_Cliente<br>
+                <p>
+                    @{
+                        if (Model.Factura.RNC.Length > 0)
+                        {
+                            <b>RNC: </b> @Model.Factura.RNC
+                        }
+                        else
+                        {
+                            <b>Código: </b> @Model.Cliente.Id_Cliente
+                        }
+                    }
+                </p>
                 <b>Cliente: </b>@Model.Cliente.Nombres @Model.Cliente.Apellidos<br>
                 <b>Teléfono: </b>@Model.Cliente.Numero_Telefono<br>
                 <b>Vendedor: </b>@Model.VendedorNombre<br>

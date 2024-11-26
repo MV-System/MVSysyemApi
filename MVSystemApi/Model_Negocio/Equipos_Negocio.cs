@@ -339,7 +339,8 @@ namespace MVSystemApi.Model
             var result = (from dt in Ac.Reparaciones_Insert(reparacion).AsEnumerable()
                           select new ReparacionesInsert
                           {
-                              MensajeSalida = Convert.ToString(dt["MensajeSalida"])
+                              MensajeSalida = Convert.ToString(dt["MensajeSalida"]),
+                              IdReparacion = Convert.ToString(dt["IdReparacion"])
 
                           }).ToList();
 

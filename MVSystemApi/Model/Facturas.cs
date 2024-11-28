@@ -77,7 +77,7 @@ namespace MVSystemApi.Model
         public decimal SubTotal { get; set; }
         public decimal Descuento { get; set; }
         public decimal Itbis { get; set; }
-        public string TiempoCredito { get; set; }
+        public DateTime fechaLimitePago { get; set; }
         public decimal Total { get; set; }
         public int CantidadArticulos { get; set; }
         public string Nota { get; set; }

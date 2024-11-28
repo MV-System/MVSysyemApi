@@ -1300,7 +1300,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@RNC", Factura.RNC);
                     cmd.Parameters.AddWithValue("@SubTotal", Factura.SubTotal);
                     cmd.Parameters.AddWithValue("@Abono", Factura.Abono);
-                    cmd.Parameters.AddWithValue("@Tiempo_Credito", Factura.TiempoCredito);
+                    cmd.Parameters.AddWithValue("@Tiempo_Credito", Factura.fechaLimitePago);
                     cmd.Parameters.AddWithValue("@Total", Factura.Total);
                     cmd.Parameters.AddWithValue("@Descuento", Factura.Descuento);
                     cmd.Parameters.AddWithValue("@Nota", Factura.Nota);

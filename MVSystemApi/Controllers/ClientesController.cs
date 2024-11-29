@@ -65,12 +65,12 @@ namespace MVSystemApi.Controllers
         [HttpGet()]
         [Route("GetClientesConFacturasPendientes")]
         //[Authorize(Roles = "MNU_CONS_CLIENTES")]
-        public ActionResult<ObtenerClientesConFacturasPendientes> GetClientesConFacturasPendientes([FromQuery]Clientes_ConFacturasPendientes_Filtros criterio)
+        public ActionResult<ObtenerClientesConFacturasPendientes> GetClientesConFacturasPendientes([FromQuery] string FechaInicio, string FechaFin, string Criterio)
         {
 
             try
             {
-                var lista = AD.Cliente_FacturasPendientes(criterio);
+                var lista = AD.Cliente_FacturasPendientes(FechaInicio,FechaFin,Criterio);
                 if (lista == null)
                 {
                     return NotFound();

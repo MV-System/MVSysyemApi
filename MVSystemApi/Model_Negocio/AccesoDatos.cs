@@ -538,7 +538,7 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public DataTable Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio)
+        public DataTable Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio)
         {
 
             ////SqlConnection cn = new SqlConnection(con);
@@ -548,10 +548,11 @@ namespace MVSystemApi.Model
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = "ObtenerClientesConFacturasPendientes";
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@FechaInicio", criterio.FechaInicio);
-                cmd.Parameters.AddWithValue("@FechaFin", criterio.FechaFin);
-                cmd.Parameters.AddWithValue("@NombreCliente", criterio.NombreCliente);
-                cmd.Parameters.AddWithValue("@NumeroTelefono", criterio.NumeroTelefono);
+                cmd.Parameters.AddWithValue("@FechaInicio", FechaInicio);
+                cmd.Parameters.AddWithValue("@FechaFin", FechaFin);
+                cmd.Parameters.AddWithValue("@Criterio", Criterio);
+                //cmd.Parameters.AddWithValue("@NombreCliente", criterio.NombreCliente);
+                //cmd.Parameters.AddWithValue("@NumeroTelefono", criterio.NumeroTelefono);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -1515,7 +1516,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Costo_Equipo", equipo.CostoEquipo);
                 cmd.Parameters.AddWithValue("@Precio_Por_Mayor", equipo.PrecioPorMayor);
                 cmd.Parameters.AddWithValue("@Precio_Detalle", equipo.PrecioDetalle);
-                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.Parameters.AddWithValue("@Usuario",equipo.Usuario);
                 cmd.Parameters.AddWithValue("@Comision_Detalle", equipo.ComisionDetalle);
                 cmd.Parameters.AddWithValue("@Comision_Por_Mayor", equipo.ComisionMayor);
                 cmd.Parameters.AddWithValue("@Id_estado_Bloqueo", equipo.EstadoBloqueoId);
@@ -1548,7 +1549,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@ID_Condicion", equipo.IDCondicion);
                 cmd.Parameters.AddWithValue("@Imei_Sale", equipo.ImeiSale);
                 cmd.Parameters.AddWithValue("@Nota", equipo.Nota);
-                cmd.Parameters.AddWithValue("@Usuario", "EmanuelTejada");
+                cmd.Parameters.AddWithValue("@Usuario", equipo.Usuario);
                 cmd.ExecuteNonQuery();
                 cn.Close();
             }

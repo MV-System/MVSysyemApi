@@ -100,6 +100,8 @@ namespace MVSystemApi.Model
         public decimal PrecioDetalle { get; set; }
         public int EstadoBloqueoId { get; set; }
         public string EstadoBloqueoDescripcion { get; set; }
+        public string Usuario { get; set; }
+
     }
 
     public class EquipoRecepcion
@@ -114,6 +116,7 @@ namespace MVSystemApi.Model
         public int IDCondicion { get; set; }
         public string ImeiSale { get; set; }
         public string Nota { get; set; }
+        public object Usuario { get; set; }
     }
 
     public class EquipoRecepcionGet : PagingDTO

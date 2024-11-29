@@ -54,7 +54,7 @@ namespace MVSystemApi.Interfaz
         DataTable Cliente_Insert(Clientes Cliente);
       
         DataTable Cliente_Consulta(string criterio);
-        DataTable Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio);
+        DataTable Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio);
         DataTable Cliente_FacturasPendientesDetalle(int cliente);
         
         #endregion

@@ -80,11 +80,11 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        internal object Cliente_FacturasPendientes(Clientes_ConFacturasPendientes_Filtros criterio)
+        internal object Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio)
         {
             try
             {
-                var solicit = (from dt in AA.Cliente_FacturasPendientes(criterio).AsEnumerable()
+                var solicit = (from dt in AA.Cliente_FacturasPendientes(FechaInicio,FechaFin,Criterio).AsEnumerable()
                                select new ObtenerClientesConFacturasPendientes
                                {
                                    Id_Cliente = Convert.ToInt32(dt["ID"]),

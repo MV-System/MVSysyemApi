@@ -32,9 +32,10 @@ namespace MVSystemApi.Model
     {
         public string FechaInicio { get; set; }
         public string FechaFin { get; set; }
-        public string NombreCliente { get; set; }
-        public string NumeroTelefono { get; set; }
+       // public string NombreCliente { get; set; }
+       // public string NumeroTelefono { get; set; }
         public string FechaVencimiento { get; set; }
+        public string Criterio { get; set; }
     }
     public class ObtenerClientesConFacturasPendientes
     {

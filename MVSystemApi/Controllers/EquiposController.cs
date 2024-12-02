@@ -304,11 +304,11 @@ namespace MVSystemApi.Controllers
         [HttpPost]
         [Route("PostEquipo_Delete")]
         // [Authorize(Roles = "MNTransfiereEquipos")]
-        public ActionResult<EquipoTransferencia> PostEliminaEquipodeFactura([FromQuery] string imei)
+        public ActionResult<EquipoTransferencia> PostEliminaEquipodeFactura([FromQuery] string imei, string Usuario)
         {
             try
             {
-                var result = AD.Equipo_Delete(imei);
+                var result = AD.Equipo_Delete(imei, Usuario);
                 if (result == null)
                 {
                     return NotFound();

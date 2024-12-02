@@ -248,12 +248,12 @@ namespace MVSystemApi.Model
                           }).ToList().FirstOrDefault();
             return result;
         }
-        internal object Equipo_Delete(string imei)
+        internal object Equipo_Delete(string imei, string Usuario)
         {
             try
             {
                 // Llamamos al procedimiento almacenado que devuelve el mensaje
-                var mensaje = Ac.Equipo_Delete(imei);  // Este método debería devolver un string (mensaje)
+                var mensaje = Ac.Equipo_Delete(imei,Usuario);  // Este método debería devolver un string (mensaje)
 
                 // Creación de un objeto de tipo EquipoEliminado con el mensaje
                 var result = new EquipoEliminado

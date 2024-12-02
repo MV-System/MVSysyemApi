@@ -114,8 +114,9 @@ namespace MVSystemApi.Interfaz
         DataTable Modelo_Insert(Modelos Modelo);
         DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente);
         DataTable AsumeITBIS();
-        string Equipo_Delete(string imei);
+        string Equipo_Delete(string imei, string Usuario);
         string AbonoAfactura(AbonoFacturaParam param);
+        string AbonoGeneral(AbonoFacturaParam param);
 
         #endregion
 

@@ -125,5 +125,26 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost()]
+        [Route("AbonoGeneral")]
+        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
+        public ActionResult<string> AbonoGeneral([FromBody] AbonoFacturaParam param)
+        {
+
+            try
+            {
+                var result = AD.AbonoGeneral(param);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

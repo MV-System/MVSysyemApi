@@ -1352,32 +1352,71 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
-        public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
+        public string EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
         {
             try
             {
-                using (cn)
+                // Crear comando SQL
+                using (SqlCommand cmd = new SqlCommand("Detalle_Factura_Cambia_IMEI", cn))
                 {
-                    SqlCommand cmd = new SqlCommand("Detalle_Factura_Cambia_IMEI",cn);
                     cmd.CommandType = CommandType.StoredProcedure;
-                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+
+                    // Agregar solo el parámetro de entrada @imei
                     cmd.Parameters.AddWithValue("@IMEI", EditaDetalleFactura.EquipoActual);
                     cmd.Parameters.AddWithValue("@IMEI_Nuevo", EditaDetalleFactura.EquipoNuevo);
                     cmd.Parameters.AddWithValue("@Numero_Factura", EditaDetalleFactura.NumeroFactura);
                     cmd.Parameters.AddWithValue("@Usuario", EditaDetalleFactura.Usuario);
+
+                    // Crear el parámetro de salida para el mensaje
+                    SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
+                    {
+                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                    };
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+
+                    // Abrir la conexión
                     cn.Open();
-                    cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
 
-                    return EditaDetalleFactura;
+                    // Obtener el valor del mensaje de salida
+                    string mensaje = mensajeParam.Value.ToString();
+
+                    return mensaje;  // Retornar el mensaje que devuelve el procedimiento
                 }
             }
             catch (Exception ex)
             {
-
-                throw ex;
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
+        //public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
+        //{
+        //    try
+        //    {
+        //        using (cn)
+        //        {
+        //            SqlCommand cmd = new SqlCommand("Detalle_Factura_Cambia_IMEI",cn);
+        //            cmd.CommandType = CommandType.StoredProcedure;
+        //            SqlDataAdapter da = new SqlDataAdapter(cmd);
+        //            cmd.Parameters.AddWithValue("@IMEI", EditaDetalleFactura.EquipoActual);
+        //            cmd.Parameters.AddWithValue("@IMEI_Nuevo", EditaDetalleFactura.EquipoNuevo);
+        //            cmd.Parameters.AddWithValue("@Numero_Factura", EditaDetalleFactura.NumeroFactura);
+        //            cmd.Parameters.AddWithValue("@Usuario", EditaDetalleFactura.Usuario);
+        //            cn.Open();
+        //            cmd.ExecuteNonQuery();
+        //            cn.Close();
+
+        //            return EditaDetalleFactura;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        throw ex;
+        //    }
+        //}
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {
             cn.Open();

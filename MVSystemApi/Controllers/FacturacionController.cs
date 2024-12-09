@@ -117,7 +117,7 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-                var result = _accesoDatos.EditaDetalleFactura(EditaDetalleFactura);
+                var result = AD.EditaDetalleFactura(EditaDetalleFactura);
                 if (result == null)
                 {
                     return NotFound();

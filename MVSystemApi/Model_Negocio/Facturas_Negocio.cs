@@ -108,6 +108,30 @@ namespace MVSystemApi.Model_Negocio
 
             return result;
         }
+
+        internal object EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
+        {
+            try
+            {
+                // Llamamos al procedimiento almacenado que devuelve el mensaje
+                var mensaje = Ac.EditaDetalleFactura(EditaDetalleFactura);  // Este método debería devolver un string (mensaje)
+
+                // Creación de un objeto de tipo EquipoEliminado con el mensaje
+                var result = new FacturaEditada
+                {
+                    mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                };
+
+                return result;  // Retornamos el objeto con el mensaje
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo.", ex);
+            }
+        }
+
+
         //internal object PostFactura(Facturas Factura)
         //{
         //    var result = (from dt in Ac.PostFactura(Factura).AsEnumerable()

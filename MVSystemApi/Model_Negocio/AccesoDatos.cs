@@ -364,7 +364,8 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Disponible_Detalle", Accesorio.Disponible_Detalle);
                 cmd.Parameters.AddWithValue("@Usuario", Accesorio.Usuario);
 
-                cmd.ExecuteNonQuery();
+                //cmd.ExecuteNonQuery();
+                da.SelectCommand = cmd;
                 da.Fill(dt);
                 cn.Close();
 

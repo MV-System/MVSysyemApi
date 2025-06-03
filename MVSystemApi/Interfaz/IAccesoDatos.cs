@@ -22,7 +22,6 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Condicion_Equipo_Combo();
         DataTable Get_Almacen_Combo();
         DataTable Get_Sucursal_Combo();
-
         DataTable Get_Marcas_Combo();
         DataTable Get_Modelos_Combo(int? ID_Marca);
         DataTable Get_Suplidor_Combo();

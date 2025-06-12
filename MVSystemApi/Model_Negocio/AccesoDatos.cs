@@ -886,7 +886,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Equipos_Insert";
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@Imei", Equipo.Imei);
+               cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 30).Value = Equipo.Imei;
                 cmd.Parameters.AddWithValue("@ID_Modelo", Equipo.ID_Modelo);
                 cmd.Parameters.AddWithValue("@ID_Tecnologia", Equipo.ID_Tecnologia);
                 cmd.Parameters.AddWithValue("@ID_Garantia", Equipo.ID_Garantia);

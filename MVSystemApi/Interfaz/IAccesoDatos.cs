@@ -9,6 +9,7 @@ namespace MVSystemApi.Interfaz
 {
     public interface IAccesoDatos
     {
+        
         // --------------- Utilidades ------------------------//
         DataTable Vendedor_Consulta_Combo();
 
@@ -43,7 +44,7 @@ namespace MVSystemApi.Interfaz
 
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 
-
+        public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion);
 
         #endregion // ------------- fin de combos para el registro de equipo ----------------------
 

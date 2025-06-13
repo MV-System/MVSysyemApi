@@ -1,5 +1,6 @@
 ﻿using DTO;
 using Microsoft.AspNetCore.Mvc;
+using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio.Seguridad;
 using Rotativa.AspNetCore;
@@ -12,11 +13,13 @@ namespace MVSystemApi.Controllers
     {
         private readonly Equipos_Negocio _equipos_Negocio;
         private readonly SeguridadService _SS;
+        private readonly AccesoDatos _accesoDatos;
 
-        public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS)
+        public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS, AccesoDatos accesoDatos)
         {
             _equipos_Negocio = equipos_Negocio;
             _SS = SS;
+            _accesoDatos = accesoDatos;
         }
 
         [HttpPost]
@@ -115,6 +118,33 @@ namespace MVSystemApi.Controllers
                 EquipoTransferencia = EquipoReporte,
             };
 
+            return new ViewAsPdf(data);
+        }
+
+        [HttpGet]
+        [Route("ReporteReparaciones")]
+        public IActionResult ReporteReparaciones(int idReparacion, int idEmpresa, int idSucursal)
+        {
+            // Obtener la reparación (como lista para mantener la estructura)
+            var reparacion = _accesoDatos.ObtenerReparacionReporte(idReparacion);
+            if (reparacion == null)
+                return NotFound();
+
+            // Obtener los datos de la empresa
+            DatosEmpresa datosEmpresa = _SS.GetDatosEmpresa(idEmpresa, idSucursal);
+
+            // Agregar el logo a la reparación
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+            reparacion.Logo = baseUrl + "/assets/" + datosEmpresa.Logo + ".png";
+
+            // Construir el objeto para la vista
+            var data = new EmpresaReportes
+            {
+                DatosEmpresaFactura = datosEmpresa,
+                Reparaciones = new List<ReparacionReporteDTO> { reparacion }
+            };
+
+            // Retornar la vista PDF
             return new ViewAsPdf(data);
         }
     }

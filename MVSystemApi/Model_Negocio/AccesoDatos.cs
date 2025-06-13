@@ -1796,31 +1796,68 @@ namespace MVSystemApi.Model
         }
         public DataTable Reparaciones_Insert(ReparacionesInsert Reparaciones)
         {
+            DataTable dt = new DataTable();
             try
             {
+                if (cn.State != ConnectionState.Open)
+                    cn.Open();
 
+                using (var cmd = new SqlCommand("Proc_Reparaciones_Insert", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
+                    cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
+                    cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion);
+                    cmd.Parameters.AddWithValue("@Total", Reparaciones.Costo);
+                    cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
+                    cmd.Parameters.AddWithValue("@Fecha_Entrega", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@modelo", Reparaciones.ID_Modelo);
+                    cmd.Parameters.AddWithValue("@Usuario", Reparaciones.Usuario);
 
-                DataTable dt = new DataTable();
-                SqlCommand cmd = new SqlCommand("Proc_Reparaciones_Insert", cn);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
-                cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
-                cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion);
-                cmd.Parameters.AddWithValue("@Total", Reparaciones.Costo);
-                cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
-                cmd.Parameters.AddWithValue("@Fecha_Entrega",DateTime.Now);
-                cmd.Parameters.AddWithValue("@modelo", Reparaciones.ID_Modelo);
-                cmd.Parameters.AddWithValue("@Usuario", Reparaciones.Usuario);
-
-                da.Fill(dt);
-                cn.Close();
-                return dt;
+                    using (var da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                throw;
             }
+            finally
+            {
+                if (cn.State == ConnectionState.Open)
+                    cn.Close();
+            }
+            return dt;
+        }
+
+        public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion)
+        {
+            using var cn = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("SP_Reporte_Reparacion", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@IdReparacion", idReparacion);
+
+            cn.Open();
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return new ReparacionReporteDTO
+                {
+                    IdReparacion = reader.GetInt64(reader.GetOrdinal("ID_Reparacion")),
+                    Imei = reader.IsDBNull(reader.GetOrdinal("Imei")) ? null : reader.GetString(reader.GetOrdinal("Imei")),
+                    NombreCliente = reader.GetString(reader.GetOrdinal("NombreCliente")),
+                    ApellidoCliente = reader.GetString(reader.GetOrdinal("ApellidoCliente")),
+                    Detalle_Reparacion = reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
+                    Total = reader.GetDecimal(reader.GetOrdinal("Total")),
+                    Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
+                    Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),
+                    Usuario = reader.GetString(reader.GetOrdinal("Usuario")),
+                    Modelo = reader.GetString(reader.GetOrdinal("Modelo"))
+                };
+            }
+            return null;
         }
 
     }

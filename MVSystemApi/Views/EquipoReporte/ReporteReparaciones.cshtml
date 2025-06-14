@@ -15,106 +15,106 @@
     <title>Factura</title>
 
     <style>
-        .p0 p {
-            padding: 0;
-            margin: 0;
-        }
-
-        /* Estilos personalizados para ajustar el ancho a 80mm */
         body {
-            width: 80mm; /* Establece el ancho del cuerpo a 80mm */
-            margin: 0; /* Sin márgenes adicionales */
-            font-size: 10pt; /* Ajusta el tamaño de fuente si es necesario */
-        }
-
-        /* Ajustar las tablas para que se adapten al ancho de 80mm */
-        .table {
-            width: 100%;
+            width: 80mm;
+            margin: 0;
             font-size: 10pt;
+            background: #fff;
         }
 
+        .container.text-center p {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
         .container {
             width: 100%;
+            padding: 0 4px;
         }
-
-        .text-right {
-            text-align: right;
+        .logo {
+            display: block;
+            margin: 0 auto 8px auto;
+            max-width: 120px;
         }
-
-        .text-center {
+        .section-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 10px 0 6px 0;
             text-align: center;
         }
-
-        /* Elimina márgenes y relleno para asegurarse que todo esté dentro del área de impresión */
-        .p0 {
-            padding: 0;
-            margin: 0;
+        .table th, .table td {
+            padding: 2px 6px;
         }
 
-        /* Bordes del contenedor */
-        .border {
-            border: 1px solid black;
+        .detalle-label {
+            font-weight: bold;
+            margin-top: 8px;
+            margin-bottom: 2px;
         }
 
-        .border-dark {
-            border-color: black;
+        .detalle-cuadro {
+            min-height: 48px;
+            white-space: pre-wrap;
+            vertical-align: top;
+            background: #f8f9fa;
+            font-size: 11pt;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 6px;
+            margin-bottom: 8px;
         }
-
-        .mb-3 {
-            margin-bottom: 1rem;
-        }
-
-        .mt-4 {
-            margin-top: 1.5rem;
-        }
-
-        hr {
-            border: 1px solid black;
+        @@media print {
+            body {
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container border border-dark">
-        <div class="row">
-            <div class="text-center">
-                <img src="@Model.Reparaciones.FirstOrDefault().Logo" alt="Logo Empresa" style="max-width: 150px;" />
-                <h2>@Model.Reparaciones.FirstOrDefault().NombreCliente</h2>
-                <p>@Model.Reparaciones.FirstOrDefault().ApellidoCliente</p>
-            </div>
+    <img src="@Model.Reparaciones.FirstOrDefault().Logo" alt="Logo Empresa" class="logo" />
+
+    <div class="container text-center p0 mb-1">
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b>RNC: @Model.DatosEmpresaFactura.RNC</b> </p>
+    </div>
+
+    <div class="container border border-dark mb-2">
+        <div class="text-center">
+            <b>Cliente: </b>@Model.Reparaciones.FirstOrDefault().NombreCliente @Model.Reparaciones.FirstOrDefault().ApellidoCliente<br>
+         
         </div>
     </div>
 
     <div class="container">
-        <div class="row text-center mt-4 mb-3">
-            <b>DETALLES DE RECIBO</b>
-        </div>
-        <div class="row">
-            <table class="table table-bordered">
-                <tbody>
-                    <tr><th>IMEI:</th><td>@Model.Reparaciones.FirstOrDefault().Imei</td></tr>
-                    <tr><th>Detalle:</th><td>@Model.Reparaciones.FirstOrDefault().Detalle_Reparacion</td></tr>
-                    <tr><th>Precio:</th><td>@Model.Reparaciones.FirstOrDefault().Precio.ToString("C")</td></tr>
-                    <tr><th>Fecha de Entrega:</th><td>@Model.Reparaciones.FirstOrDefault().Fecha_Entrega.ToShortDateString()</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div class="container">
-        <div class="row">
-            @*  <p>
-                <b>GARANTIA: </b>
-                @Model.DatosEmpresaFactura.CondicionesGarantia
-            </p> *@
-        </div>
+        <div class="section-title">DETALLE DE RECIBO</div>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr><th>IMEI:</th><td>@Model.Reparaciones.FirstOrDefault().Imei</td></tr>
+                <tr><th>Precio:</th><td>@Model.Reparaciones.FirstOrDefault().Precio.ToString("C")</td></tr>
+                @* <tr><th>Fecha de Entrega:</th><td>@Model.Reparaciones.FirstOrDefault().Fecha_Entrega.ToShortDateString()</td></tr> *@
+            </tbody>
+        </table>
+        <div class="detalle-label">Detalle:</div>
+        <div class="detalle-cuadro">@Model.Reparaciones.FirstOrDefault().Detalle_Reparacion</div>
     </div>
 
-    <div class="container">
+    <div class="container mt-2">
+        <p>
+            <b>GARANTIA: </b>
+            @Model.DatosEmpresaFactura?.CondicionesGarantia
+        </p>
+    </div>
+
+    <div class="container mt-2">
         <div class="row">
             <div class="col-6 text-center">
                 <hr>
                 <b>Entregado por</b>
             </div>
-
             <div class="col-6 text-center">
                 <hr>
                 <b>Recibido por</b>
@@ -122,8 +122,8 @@
         </div>
     </div>
 
-    <div class="container text-right">
-        Fecha de Impresión: @DateTime.Now
+    <div class="container text-right mt-2">
+        <small>Fecha de Impresión: @DateTime.Now</small>
     </div>
 </body>
 </html>

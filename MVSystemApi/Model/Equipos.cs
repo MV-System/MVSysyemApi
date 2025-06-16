@@ -238,6 +238,7 @@ namespace MVSystemApi.Model
         public int ID_Cliente { get; set; }
         public int ID_Modelo { get; set; }
         public string Detalle_Reparacion { get; set; }
+        public string Observaciones { get; set; }
         public int Costo { get; set; }
         public int Precio { get; set; }
         public string Usuario { get; set; }

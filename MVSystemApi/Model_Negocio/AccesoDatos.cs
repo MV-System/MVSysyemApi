@@ -60,6 +60,7 @@ namespace MVSystemApi.Model
                         // NombreCliente = reader["NombreCliente"]?.ToString(),
                         // ApellidoCliente = reader["ApellidoCliente"]?.ToString(),
                         Detalle_Reparacion = reader["Detalle_Reparacion"]?.ToString(),
+                        Observaciones = reader["Observaciones"]?.ToString(),
                         descripcion = reader["Detalle_Reparacion"]?.ToString(),
                         // Total = reader.GetDecimal(reader.GetOrdinal("Total")),
                         Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
@@ -1850,6 +1851,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
                     cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
                     cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion);
+                    cmd.Parameters.AddWithValue("@Observaciones", Reparaciones.Observaciones);
                     cmd.Parameters.AddWithValue("@Total", Reparaciones.Costo);
                     cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
                     cmd.Parameters.AddWithValue("@Fecha_Entrega", DateTime.Now);
@@ -1891,7 +1893,9 @@ namespace MVSystemApi.Model
                     Imei = reader.IsDBNull(reader.GetOrdinal("Imei")) ? null : reader.GetString(reader.GetOrdinal("Imei")),
                     NombreCliente = reader.GetString(reader.GetOrdinal("NombreCliente")),
                     ApellidoCliente = reader.GetString(reader.GetOrdinal("ApellidoCliente")),
-                    Detalle_Reparacion = reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
+                    //Detalle_Reparacion = reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
+                    Detalle_Reparacion = reader.IsDBNull(reader.GetOrdinal("Detalle_Reparacion")) ? null : reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
+                    Observaciones = reader.IsDBNull(reader.GetOrdinal("Observaciones")) ? null : reader.GetString(reader.GetOrdinal("Observaciones")),
                     Total = reader.GetDecimal(reader.GetOrdinal("Total")),
                     Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
                     Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),

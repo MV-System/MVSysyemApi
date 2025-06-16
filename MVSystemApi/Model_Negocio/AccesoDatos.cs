@@ -34,7 +34,50 @@ namespace MVSystemApi.Model
 
             cn = new SqlConnection(_connectionStrings);
         }
+        public List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro)
+        {
+            try
+            {
+                var lista = new List<ReparacionReporteDTO>();
+                using var cn = new SqlConnection(_connectionStrings);
+                using var cmd = new SqlCommand("SP_Reparaciones_consulta_facturacion", cn); // Debes tener este SP en tu BD
+                cmd.CommandType = CommandType.StoredProcedure;
 
+                // Agrega los parámetros según tu filtro
+                cmd.Parameters.AddWithValue("@IdReparacion", filtro.IdReparacion ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@IdCliente", filtro.IdCliente ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@FechaInicio", filtro.FechaInicio ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@FechaFin", filtro.FechaFin ?? (object)DBNull.Value);
+
+                cn.Open();
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    lista.Add(new ReparacionReporteDTO
+                    {
+                        IdReparacion = reader.GetInt64(reader.GetOrdinal("ID_Reparacion")),
+                        Imei = reader["Imei"]?.ToString(),
+                        // NombreCliente = reader["NombreCliente"]?.ToString(),
+                        // ApellidoCliente = reader["ApellidoCliente"]?.ToString(),
+                        Detalle_Reparacion = reader["Detalle_Reparacion"]?.ToString(),
+                        descripcion = reader["Detalle_Reparacion"]?.ToString(),
+                        // Total = reader.GetDecimal(reader.GetOrdinal("Total")),
+                        Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
+                        // Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),
+                        // Usuario = reader["Usuario"]?.ToString(),
+                        // Modelo = reader["Modelo"]?.ToString()
+                    });
+                }
+                return lista;
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+           
+        }
         /// <summary>
         /// Author: Xavier Mejia
         /// Date: 21.FEB.2023
@@ -1202,8 +1245,7 @@ namespace MVSystemApi.Model
         }
 
         public DataTable PostDetalleFactura(List<DetalleFactura> detalleFactura, int numeroFactura)
-        {
-
+        {          
 
             DataTable dt = new DataTable();
             using (cn)

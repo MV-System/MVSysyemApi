@@ -9,7 +9,8 @@ namespace MVSystemApi.Interfaz
 {
     public interface IAccesoDatos
     {
-        
+        List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro);
+
         // --------------- Utilidades ------------------------//
         DataTable Vendedor_Consulta_Combo();
 

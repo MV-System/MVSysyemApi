@@ -60,6 +60,7 @@ namespace MVSystemApi.Model
                         // NombreCliente = reader["NombreCliente"]?.ToString(),
                         // ApellidoCliente = reader["ApellidoCliente"]?.ToString(),
                         Detalle_Reparacion = reader["Detalle_Reparacion"]?.ToString(),
+                        Observaciones = reader["Observaciones"]?.ToString(),
                         descripcion = reader["Detalle_Reparacion"]?.ToString(),
                         // Total = reader.GetDecimal(reader.GetOrdinal("Total")),
                         Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),

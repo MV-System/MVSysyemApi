@@ -71,6 +71,23 @@
         hr {
             border: 1px solid black;
         }
+
+        body, table, th, td, p, span, b {
+            color: #000 !important;
+            opacity: 1 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+        @@media print {
+            body, table, th, td, p, span, b
+
+        {
+            color: #000 !important;
+            opacity: 1 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        }
     </style>
 </head>
 
@@ -195,3 +212,4 @@
 
 
 </html>
+

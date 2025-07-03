@@ -60,6 +60,8 @@ namespace MVSystemApi.Model
         public DateTime FechaFacturacion { get; set; }
         public string empresa { get; set; }
         public decimal Abono { get; internal set; }
+        public DatosEmpresa DatosEmpresaFactura { get; internal set; }
+       
     }
     public class Facturas
     {

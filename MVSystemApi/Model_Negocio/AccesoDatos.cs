@@ -214,6 +214,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Facturas_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Vendedor", consulta.IdVendedor);
                 cmd.Parameters.AddWithValue("@Comprobante", consulta.ComprobanteCheck);
                 cmd.Parameters.AddWithValue("@Criterio", consulta.Criterio);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
@@ -240,6 +241,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Facturas_Consulta_reporte";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Vendedor", consulta.IdVendedor);
                 cmd.Parameters.AddWithValue("@Numero_factura", consulta.NumeroFactura);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal);

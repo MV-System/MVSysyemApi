@@ -34,7 +34,7 @@ namespace MVSystemApi.Model
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
         public int ComprobanteCheck { get; set; }
-
+        public int IdVendedor { get; set; }
     }
     public class FacturaConsulta : PagingDTO
     {

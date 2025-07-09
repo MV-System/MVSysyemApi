@@ -119,7 +119,7 @@
         </div>
     </div>
     <div class="container text-right">
-        <div>Subtotal: <b>@subtotal.ToString("N2")</b></div>
+        <div>Subtotal: <b>@Model.Factura?.SubTotal.ToString("N2")</b></div>
         <div>Descuento: <b>@Model.Factura?.Descuento.ToString("N2")</b></div>
         <div>ITBIS: <b>@Model.Factura?.Itbis.ToString("N2")</b></div>
         <div>Total: <b>@Model.Factura?.Total.ToString("N2")</b></div>

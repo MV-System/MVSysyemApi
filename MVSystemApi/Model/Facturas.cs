@@ -136,4 +136,12 @@ namespace MVSystemApi.Model
     {
         public string mensaje { get; set; }
     }
+    public class RebajaEquipoModel
+    {
+        public int NumeroFactura { get; set; }
+        public string imei { get; set; }    
+        public string IDsucursal { get; set; }
+        public string Usuario { get; set; }
+        public string mensaje { get; set; }
+    }
 }

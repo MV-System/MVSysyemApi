@@ -1437,32 +1437,45 @@ namespace MVSystemApi.Model
                 throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
-        //public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
-        //{
-        //    try
-        //    {
-        //        using (cn)
-        //        {
-        //            SqlCommand cmd = new SqlCommand("Detalle_Factura_Cambia_IMEI",cn);
-        //            cmd.CommandType = CommandType.StoredProcedure;
-        //            SqlDataAdapter da = new SqlDataAdapter(cmd);
-        //            cmd.Parameters.AddWithValue("@IMEI", EditaDetalleFactura.EquipoActual);
-        //            cmd.Parameters.AddWithValue("@IMEI_Nuevo", EditaDetalleFactura.EquipoNuevo);
-        //            cmd.Parameters.AddWithValue("@Numero_Factura", EditaDetalleFactura.NumeroFactura);
-        //            cmd.Parameters.AddWithValue("@Usuario", EditaDetalleFactura.Usuario);
-        //            cn.Open();
-        //            cmd.ExecuteNonQuery();
-        //            cn.Close();
+        public string RebajaEquipo(RebajaEquipoModel model)
+        {
+            try
+            {
+                using (SqlCommand cmd = new SqlCommand("Proc_Detalle_Factura_Elimina_Equipo", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
 
-        //            return EditaDetalleFactura;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
+                    cmd.Parameters.AddWithValue("@imei", model.imei);
+                    cmd.Parameters.AddWithValue("@numero_Factura", model.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@IdSucursal", model.IDsucursal);
+                    cmd.Parameters.AddWithValue("@Usuario", model.Usuario);
 
-        //        throw ex;
-        //    }
-        //}
+                    cn.Open();
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return reader["mensaje"].ToString();
+                        }
+                        else
+                        {
+                            return "Equipo rebajado correctamente.";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al rebajar el equipo: " + ex.Message, ex);
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open)
+                    cn.Close();
+            }
+        }
+
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {
             cn.Open();

@@ -129,5 +129,24 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost]
+        [Route("DetalleFacturaRebajaEquipo")]
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public ActionResult<RebajaEquipoModel> DetalleFacturaRebajaEquipo(RebajaEquipoModel model)
+        {
+            try
+            {
+                var result = AD.RebajaEquipo(model);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

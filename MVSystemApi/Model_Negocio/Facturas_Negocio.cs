@@ -29,6 +29,7 @@ namespace MVSystemApi.Model_Negocio
                               Cantidad = Convert.ToInt32(dt["cantidad"]),
                               Precio = Convert.ToInt32(dt["precio"]),
                               SubTotal = Convert.ToDecimal(dt["SubTotal"]),
+                              Itbis = Convert.ToDecimal(dt["Itbis"]),
                               Descuento = Convert.ToDecimal(dt["Descuento"]),
                               Total = Convert.ToDecimal(dt["Total"]),
                               IdTipo = Convert.ToInt32(dt["ID_Tipo"]),

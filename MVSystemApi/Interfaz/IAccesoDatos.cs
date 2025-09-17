@@ -52,7 +52,7 @@ namespace MVSystemApi.Interfaz
         DataTable GetTipo_Telefono_Lista();
         DataTable Tipo_Cliente_Cata_Consulta_Combo();
         DataTable Cliente_Insert(Clientes Cliente);
-      
+        DataTable Cliente_Update(Clientes Cliente);
         DataTable Cliente_Consulta(string criterio);
         DataTable Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio);
         DataTable Cliente_FacturasPendientesDetalle(int cliente);

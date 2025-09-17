@@ -38,6 +38,32 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+
+        public Clientes Cliente_Update(Clientes Cliente)
+        {
+            try
+            {
+                var solicit = (from dt in AA.Cliente_Update(Cliente).AsEnumerable()
+                               select new Clientes
+                               {
+                                   IDContacto = Convert.ToInt32(dt["ID_Cliente"]),
+                                   Nombres = Convert.ToString(dt["Nombres"]),
+                                   Apellidos = Convert.ToString(dt["Apellidos"]),
+                                   Numero_Telefono = Convert.ToInt64(dt["Numero_Telefono"]),
+                                   Limite_Credito = Convert.ToString(dt["Limite_Credito"]),
+                                   Email_Detalle = Convert.ToString(dt["Email_Detalle"]),
+                                   Direccion_Detalle = Convert.ToString(dt["Direccion_Detalle"]),
+                                   Mensaje = Convert.ToString(dt["Mensaje"]),
+                                   ID_Cliente = Convert.ToInt32(dt["ID_Cliente"]),
+                               }).ToList().FirstOrDefault();
+
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         internal object AbonoAfactura(AbonoFacturaParam param)
         {
             try
@@ -87,10 +113,15 @@ namespace MVSystemApi.Model
                 var solicit = (from dt in AA.Cliente_Consulta(criterio).AsEnumerable()
                                select new Clientes_consulta
                                {
-                                   Id_Cliente = Convert.ToInt32(dt["Id_Cliente"]),
+                                   Id_Cliente = Convert.ToInt32(dt["ID_Cliente"]),
+                                   Tipo_de_Cliente = Convert.ToString(dt["Tipo de Cliente"]),
                                    Nombres = Convert.ToString(dt["Nombres"]),
                                    Apellidos = Convert.ToString(dt["Apellidos"]),
-                                   Numero_Telefono = Convert.ToInt64(dt["Numero de telefono"]),
+                                   Numero_de_telefono = Convert.ToInt64(dt["Numero de telefono"]),
+                                   Limite_Credito = Convert.ToString(dt["Limite_Credito"]),
+                                   Extencion = dt["Extencion"] == DBNull.Value ? (int?)null : Convert.ToInt32(dt["Extencion"]),
+                                   Email = Convert.ToString(dt["Email"]),
+                                   Direccion = Convert.ToString(dt["Direccion"]),
                                    Mensaje = Convert.ToString(dt["Mensaje"]),
                                }).ToList();
 
@@ -150,9 +181,14 @@ namespace MVSystemApi.Model
                                select new Clientes_consulta
                                {
                                    Id_Cliente = Convert.ToInt32(dt["Id_Cliente"]),
+                                   Tipo_de_Cliente = dt["Tipo de Cliente"] != DBNull.Value ? Convert.ToString(dt["Tipo de Cliente"]) : "",
                                    Nombres = Convert.ToString(dt["Nombres"]),
                                    Apellidos = Convert.ToString(dt["Apellidos"]),
-                                   Numero_Telefono = Convert.ToInt64(dt["Numero de telefono"]),
+                                   Numero_de_telefono = Convert.ToInt64(dt["Numero de telefono"]),
+                                   Limite_Credito = dt["Limite_Credito"] != DBNull.Value ? Convert.ToString(dt["Limite_Credito"]) : "",
+                                   Extencion = dt["Extencion"] == DBNull.Value ? (int?)null : Convert.ToInt32(dt["Extencion"]),
+                                   Email = dt["Email"] != DBNull.Value ? Convert.ToString(dt["Email"]) : "",
+                                   Direccion = dt["Direccion"] != DBNull.Value ? Convert.ToString(dt["Direccion"]) : "",
                                    Mensaje = Convert.ToString(dt["Mensaje"]),
                                }).ToList();
 

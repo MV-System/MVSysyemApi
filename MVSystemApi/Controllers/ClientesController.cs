@@ -40,16 +40,37 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPut()]
+        [Route("Cliente_Update")]
+        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
+        public ActionResult<Clientes> Cliente_Update([FromBody] Clientes cliente)
+        {
+            try
+            {
+                var resultado = AD.Cliente_Update(cliente);
+                if (resultado == null)
+                {
+                    return NotFound();
+                }
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet()]
         [Route("Get_Cliente")]
         //[Authorize(Roles = "MNU_CONS_CLIENTES")]
-        public ActionResult<Clientes> Get_Cliente(string criterio)
+        public ActionResult<List<Clientes_consulta>> Get_Cliente(string criterio)
         {
 
             try
             {
-                var lista = AD.Cliente_Consulta(criterio);
-                if (lista == null)
+                var lista = AD.Cliente_Consulta(criterio) as List<Clientes_consulta>;
+                if (lista == null || lista.Count == 0)
                 {
                     return NotFound();
                 }

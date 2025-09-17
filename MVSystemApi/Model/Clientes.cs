@@ -23,9 +23,14 @@ namespace MVSystemApi.Model
     public class Clientes_consulta
     {
         public int Id_Cliente { get; set; }
+        public string Tipo_de_Cliente { get; set; }
         public string Nombres { get; set; }
         public string Apellidos { get; set; }
-        public Int64 Numero_Telefono { get; set; }
+        public Int64 Numero_de_telefono { get; set; }
+        public string Limite_Credito { get; set; }
+        public int? Extencion { get; set; }
+        public string Email { get; set; }
+        public string Direccion { get; set; }
         public string Mensaje { get; internal set; }
     }
     public class Clientes_ConFacturasPendientes_Filtros

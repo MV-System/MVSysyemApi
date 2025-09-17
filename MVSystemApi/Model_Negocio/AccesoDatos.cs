@@ -494,6 +494,38 @@ namespace MVSystemApi.Model
             }
         }
 
+        public DataTable Cliente_Update(Clientes clientes)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText = "Cliente_Update";
+
+                cmd.Parameters.AddWithValue("@ID_Cliente", clientes.ID_Cliente);
+                cmd.Parameters.AddWithValue("@Nombres", clientes.Nombres);
+                cmd.Parameters.AddWithValue("@Apellidos", clientes.Apellidos);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Cliente", clientes.ID_Tipo_Cliente);
+                cmd.Parameters.AddWithValue("@Numero_Telefono", clientes.Numero_Telefono);
+                cmd.Parameters.AddWithValue("@Limite_Credito", clientes.Limite_Credito);
+                cmd.Parameters.AddWithValue("@Extencion", clientes.Extencion);
+                cmd.Parameters.AddWithValue("@Email_Detalle", clientes.Email_Detalle);
+                cmd.Parameters.AddWithValue("@Direccion_Detalle", clientes.Direccion_Detalle);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Telefono", clientes.ID_Tipo_Telefono);
+                cmd.Parameters.AddWithValue("@Usuario", clientes.Usuario);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente)
         {
 

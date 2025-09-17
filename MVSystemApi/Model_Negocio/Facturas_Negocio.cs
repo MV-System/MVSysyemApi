@@ -29,6 +29,7 @@ namespace MVSystemApi.Model_Negocio
                               Cantidad = Convert.ToInt32(dt["cantidad"]),
                               Precio = Convert.ToInt32(dt["precio"]),
                               SubTotal = Convert.ToDecimal(dt["SubTotal"]),
+                              Itbis = Convert.ToDecimal(dt["Itbis"]),
                               Descuento = Convert.ToDecimal(dt["Descuento"]),
                               Total = Convert.ToDecimal(dt["Total"]),
                               IdTipo = Convert.ToInt32(dt["ID_Tipo"]),
@@ -131,7 +132,27 @@ namespace MVSystemApi.Model_Negocio
             }
         }
 
+        internal object RebajaEquipo(RebajaEquipoModel model)
+        {
+            try
+            {
+                // Llamamos al procedimiento almacenado que devuelve el mensaje
+                var mensaje = Ac.RebajaEquipo(model);  // Este método debería devolver un string (mensaje)
 
+                // Creación de un objeto de tipo EquipoEliminado con el mensaje
+                var result = new FacturaEditada
+                {
+                    mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                };
+
+                return result;  // Retornamos el objeto con el mensaje
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar eliminar el equipo.", ex);
+            }
+        }
         //internal object PostFactura(Facturas Factura)
         //{
         //    var result = (from dt in Ac.PostFactura(Factura).AsEnumerable()

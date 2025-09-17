@@ -9,6 +9,8 @@ namespace MVSystemApi.Interfaz
 {
     public interface IAccesoDatos
     {
+        List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro);
+
         // --------------- Utilidades ------------------------//
         DataTable Vendedor_Consulta_Combo();
 
@@ -22,7 +24,6 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Condicion_Equipo_Combo();
         DataTable Get_Almacen_Combo();
         DataTable Get_Sucursal_Combo();
-
         DataTable Get_Marcas_Combo();
         DataTable Get_Modelos_Combo(int? ID_Marca);
         DataTable Get_Suplidor_Combo();
@@ -44,7 +45,7 @@ namespace MVSystemApi.Interfaz
 
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia);
 
-
+        public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion);
 
         #endregion // ------------- fin de combos para el registro de equipo ----------------------
 
@@ -78,6 +79,7 @@ namespace MVSystemApi.Interfaz
                                            //DataTable Post_Factura(Facturas Factura, int Cotizacion_Numero, SqlTransaction tran = null); // trae la lista de comprobantes
 
         string EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura);
+        string RebajaEquipo(RebajaEquipoModel RebajaEquipo);
 
         public Facturas PostFactura(Facturas Factura);
         public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura);

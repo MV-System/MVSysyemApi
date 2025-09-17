@@ -1,0 +1,146 @@
+﻿@using MVSystemApi.Model
+@model EmpresaReportes
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Factura</title>
+
+    <style>
+        body {
+            width: 80mm;
+            margin: 0;
+            font-size: 10pt;
+            background: #fff;
+        }
+
+        .container.text-center p {
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+        .container {
+            width: 100%;
+            padding: 0 4px;
+        }
+        .logo {
+            display: block;
+            margin: 0 auto 8px auto;
+            max-width: 120px;
+        }
+        .section-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 10px 0 6px 0;
+            text-align: center;
+        }
+        .table th, .table td {
+            padding: 2px 6px;
+        }
+
+        .detalle-label {
+            font-weight: bold;
+            margin-top: 8px;
+            margin-bottom: 2px;
+        }
+
+        .detalle-cuadro {
+            min-height: 48px;
+            white-space: pre-wrap;
+            vertical-align: top;
+            background: #f8f9fa;
+            font-size: 11pt;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 6px;
+            margin-bottom: 8px;
+        }
+        @@media print {
+            body {
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+
+        body, table, th, td, p, span, b {
+            color: #000 !important;
+            opacity: 1 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        @@media print {
+            body, table, th, td, p, span, b {
+                color: #000 !important;
+                opacity: 1 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="@Model.Reparaciones.FirstOrDefault().Logo" alt="Logo Empresa" class="logo" />
+
+    <div class="container text-center p0 mb-1">
+        <p>@Model.DatosEmpresaFactura.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p> <b>RNC: @Model.DatosEmpresaFactura.RNC</b> </p>
+    </div>
+
+    <div class="container border border-dark mb-2">
+        <div class="text-center">
+            <b>Cliente: </b>@Model.Reparaciones.FirstOrDefault().NombreCliente @Model.Reparaciones.FirstOrDefault().ApellidoCliente<br>
+         
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section-title">DETALLE DE RECIBO</div>
+        <table class="table table-bordered table-sm">
+            <tbody>
+                <tr><th>IMEI:</th><td>@Model.Reparaciones.FirstOrDefault().Imei</td></tr>
+                <tr><th>Precio:</th><td>@Model.Reparaciones.FirstOrDefault().Precio.ToString("C")</td></tr>
+                @* <tr><th>Fecha de Entrega:</th><td>@Model.Reparaciones.FirstOrDefault().Fecha_Entrega.ToShortDateString()</td></tr> *@
+            </tbody>
+        </table>
+        <div class="detalle-label">Detalle de la Reparación:</div>
+        <div class="detalle-cuadro">@Model.Reparaciones.FirstOrDefault().Detalle_Reparacion</div>
+        <div class="detalle-label">Observaciones:</div>
+        <div class="detalle-cuadro">@Model.Reparaciones.FirstOrDefault().Observaciones</div>
+    </div>
+
+    <div class="container mt-2">
+        <p>
+            <b>GARANTIA: </b>
+            @Model.DatosEmpresaFactura?.CondicionesGarantia
+        </p>
+    </div>
+
+    <div class="container mt-2">
+        <div class="row">
+            <div class="col-6 text-center">
+                <hr>
+                <b>Entregado por</b>
+            </div>
+            <div class="col-6 text-center">
+                <hr>
+                <b>Recibido por</b>
+            </div>
+        </div>
+    </div>
+
+    <div class="container text-right mt-2">
+        <small>Fecha de Impresión: @DateTime.Now</small>
+    </div>
+</body>
+</html>

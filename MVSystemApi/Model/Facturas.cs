@@ -34,7 +34,7 @@ namespace MVSystemApi.Model
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
         public int ComprobanteCheck { get; set; }
-
+        public int IdVendedor { get; set; }
     }
     public class FacturaConsulta : PagingDTO
     {
@@ -60,6 +60,8 @@ namespace MVSystemApi.Model
         public DateTime FechaFacturacion { get; set; }
         public string empresa { get; set; }
         public decimal Abono { get; internal set; }
+        public DatosEmpresa DatosEmpresaFactura { get; internal set; }
+       
     }
     public class Facturas
     {
@@ -132,6 +134,14 @@ namespace MVSystemApi.Model
     }
     public class FacturaEditada
     {
+        public string mensaje { get; set; }
+    }
+    public class RebajaEquipoModel
+    {
+        public int NumeroFactura { get; set; }
+        public string imei { get; set; }    
+        public string IDsucursal { get; set; }
+        public string Usuario { get; set; }
         public string mensaje { get; set; }
     }
 }

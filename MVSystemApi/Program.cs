@@ -46,9 +46,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 
+
 #region CONFIGURE SERVICES
 //(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
 builder.Services.AddTransient<IAccesoDatos, AccesoDatos>();
+builder.Services.AddTransient<AccesoDatos>();
 builder.Services.AddScoped<Catalogos_Negocio>();
 builder.Services.AddScoped<Clientes_Negocio>();
 builder.Services.AddScoped<Vendedores_Negocio>();
@@ -61,6 +63,7 @@ builder.Services.AddScoped<Marcas_Negocio>();
 builder.Services.AddScoped<Utilidades_Negocio>();
 builder.Services.AddScoped<SeguridadService>();
 builder.Services.AddScoped<JwtService>();
+
 #endregion
 
 var app = builder.Build();

@@ -339,5 +339,24 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        
+[HttpGet]
+[Route("GetReparaciones")]
+public ActionResult<List<ReparacionReporteDTO>> GetReparaciones([FromQuery] ReparacionReporteFiltro filtro)
+        {
+            try
+            {
+                var result = _accesoDatos.ObtenerReparaciones(filtro);
+                if (result == null || !result.Any())
+                {
+                    return Ok(new { message = "No se encontraron reparaciones.", data = new List<ReparacionReporteDTO>() });
+                }
+                return Ok(new { message = "Consulta exitosa.", data = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

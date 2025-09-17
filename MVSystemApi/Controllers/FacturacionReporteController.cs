@@ -82,19 +82,27 @@ namespace MVSystemApi.Controllers
             return new ViewAsPdf(data);
         }
 
-        [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// Imrimir reporte de facturas
+        [HttpPost("FacturacionReporte/ReportFacturaConsulta")]// Imprimir reporte de facturas para cierre de ventas
         public IActionResult ReportFacturaConsulta(FacturaFilter consulta)
         {
             consulta.PageIndex = 1;
             consulta.PageSize = 10000;
-            var result =(List<FacturaConsulta>) facturasNegocio.GetFacturas(consulta);
 
-            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            result.ForEach(ft => ft.logo = baseUrl + "/assets/" + consulta.empresa + ".png");
+            var facturas = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
+            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
 
-            return new ViewAsPdf(result);
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+           
+            DatosEmpresaFactura.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo
+
+            var data = new FacturaConsultaReporteViewModel
+            {
+                Facturas = facturas,
+                DatosEmpresaFactura = DatosEmpresaFactura
+            };
+
+            return new ViewAsPdf(data);
         }
-
 
         [HttpPost("FacturacionReporte/ReportFactura")]// Reimprimir factura 8.5x11
         public IActionResult ReportFactura(FacturaFilter consulta)
@@ -108,6 +116,8 @@ namespace MVSystemApi.Controllers
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
             DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
 
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
+            DatosEmpresaFactura.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo
 
             var data = new Facturas
             {
@@ -115,9 +125,7 @@ namespace MVSystemApi.Controllers
                 Factura = factura,
                 DatosEmpresaFactura = DatosEmpresaFactura,
             };
-            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            factura.logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo
-            
+           
             return new ViewAsPdf(data);
         }
       

@@ -4,6 +4,16 @@
     Layout = null;
 }
 
+@{
+    // Agrupar por producto y contar la cantidad total de cada uno
+    var resumenPorProducto = Model.FacturaReporte
+        .GroupBy(x => x.PRODUCTO)
+        .Select(g => new {
+            Producto = g.Key,
+            TotalCantidad = g.Sum(x => x.CANTIDAD_PROD)
+        }).ToList();
+}
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -112,6 +122,20 @@
             </table>
         </div>
     </div>
+
+    <div class="container">
+    <div class="row">
+        <div class="col-12">
+            <b>Resumen por modelo:</b>
+            <ul>
+                @foreach (var item in resumenPorProducto)
+                {
+                    <li>@item.Producto: @item.TotalCantidad</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
 
     <div class="container text-right">
         <div>Subtotal: <b> @Model.Factura.SubTotal.ToString("N2")</b></div>

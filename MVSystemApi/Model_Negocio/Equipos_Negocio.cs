@@ -340,7 +340,7 @@ namespace MVSystemApi.Model
                           select new ReparacionesInsert
                           {
                               MensajeSalida = Convert.ToString(dt["MensajeSalida"]),
-                              IdReparacion = Convert.ToString(dt["IdReparacion"])
+                              IdReparacion = Convert.ToString(dt["IDReparacion"])
 
                           }).ToList();
 

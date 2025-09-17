@@ -34,7 +34,51 @@ namespace MVSystemApi.Model
 
             cn = new SqlConnection(_connectionStrings);
         }
+        public List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro)
+        {
+            try
+            {
+                var lista = new List<ReparacionReporteDTO>();
+                using var cn = new SqlConnection(_connectionStrings);
+                using var cmd = new SqlCommand("SP_Reparaciones_consulta_facturacion", cn); // Debes tener este SP en tu BD
+                cmd.CommandType = CommandType.StoredProcedure;
 
+                // Agrega los parámetros según tu filtro
+                cmd.Parameters.AddWithValue("@IdReparacion", filtro.IdReparacion ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@IdCliente", filtro.IdCliente ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@FechaInicio", filtro.FechaInicio ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@FechaFin", filtro.FechaFin ?? (object)DBNull.Value);
+
+                cn.Open();
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    lista.Add(new ReparacionReporteDTO
+                    {
+                        IdReparacion = reader.GetInt64(reader.GetOrdinal("ID_Reparacion")),
+                        Imei = reader["Imei"]?.ToString(),
+                        // NombreCliente = reader["NombreCliente"]?.ToString(),
+                        // ApellidoCliente = reader["ApellidoCliente"]?.ToString(),
+                        Detalle_Reparacion = reader["Detalle_Reparacion"]?.ToString(),
+                        Observaciones = reader["Observaciones"]?.ToString(),
+                        descripcion = reader["Detalle_Reparacion"]?.ToString(),
+                        // Total = reader.GetDecimal(reader.GetOrdinal("Total")),
+                        Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
+                        // Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),
+                        // Usuario = reader["Usuario"]?.ToString(),
+                        // Modelo = reader["Modelo"]?.ToString()
+                    });
+                }
+                return lista;
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+           
+        }
         /// <summary>
         /// Author: Xavier Mejia
         /// Date: 21.FEB.2023
@@ -170,6 +214,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Facturas_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Vendedor", consulta.IdVendedor);
                 cmd.Parameters.AddWithValue("@Comprobante", consulta.ComprobanteCheck);
                 cmd.Parameters.AddWithValue("@Criterio", consulta.Criterio);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
@@ -196,6 +241,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Facturas_Consulta_reporte";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Almacen", consulta.Almacen);
+                cmd.Parameters.AddWithValue("@Vendedor", consulta.IdVendedor);
                 cmd.Parameters.AddWithValue("@Numero_factura", consulta.NumeroFactura);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal);
@@ -918,7 +964,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Proc_Equipos_Insert";
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@Imei", Equipo.Imei);
+               cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 30).Value = Equipo.Imei;
                 cmd.Parameters.AddWithValue("@ID_Modelo", Equipo.ID_Modelo);
                 cmd.Parameters.AddWithValue("@ID_Tecnologia", Equipo.ID_Tecnologia);
                 cmd.Parameters.AddWithValue("@ID_Garantia", Equipo.ID_Garantia);
@@ -1234,8 +1280,7 @@ namespace MVSystemApi.Model
         }
 
         public DataTable PostDetalleFactura(List<DetalleFactura> detalleFactura, int numeroFactura)
-        {
-
+        {          
 
             DataTable dt = new DataTable();
             using (cn)
@@ -1424,32 +1469,45 @@ namespace MVSystemApi.Model
                 throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
-        //public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
-        //{
-        //    try
-        //    {
-        //        using (cn)
-        //        {
-        //            SqlCommand cmd = new SqlCommand("Detalle_Factura_Cambia_IMEI",cn);
-        //            cmd.CommandType = CommandType.StoredProcedure;
-        //            SqlDataAdapter da = new SqlDataAdapter(cmd);
-        //            cmd.Parameters.AddWithValue("@IMEI", EditaDetalleFactura.EquipoActual);
-        //            cmd.Parameters.AddWithValue("@IMEI_Nuevo", EditaDetalleFactura.EquipoNuevo);
-        //            cmd.Parameters.AddWithValue("@Numero_Factura", EditaDetalleFactura.NumeroFactura);
-        //            cmd.Parameters.AddWithValue("@Usuario", EditaDetalleFactura.Usuario);
-        //            cn.Open();
-        //            cmd.ExecuteNonQuery();
-        //            cn.Close();
+        public string RebajaEquipo(RebajaEquipoModel model)
+        {
+            try
+            {
+                using (SqlCommand cmd = new SqlCommand("Proc_Detalle_Factura_Elimina_Equipo", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
 
-        //            return EditaDetalleFactura;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
+                    cmd.Parameters.AddWithValue("@imei", model.imei);
+                    cmd.Parameters.AddWithValue("@numero_Factura", model.NumeroFactura);
+                    cmd.Parameters.AddWithValue("@IdSucursal", model.IDsucursal);
+                    cmd.Parameters.AddWithValue("@Usuario", model.Usuario);
 
-        //        throw ex;
-        //    }
-        //}
+                    cn.Open();
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return reader["mensaje"].ToString();
+                        }
+                        else
+                        {
+                            return "Equipo rebajado correctamente.";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al rebajar el equipo: " + ex.Message, ex);
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open)
+                    cn.Close();
+            }
+        }
+
         public DataTable Equipo_Consulta_Ultimo_Registro()
         {
             cn.Open();
@@ -1828,31 +1886,70 @@ namespace MVSystemApi.Model
         }
         public DataTable Reparaciones_Insert(ReparacionesInsert Reparaciones)
         {
+            DataTable dt = new DataTable();
             try
             {
+                if (cn.State != ConnectionState.Open)
+                    cn.Open();
 
+                using (var cmd = new SqlCommand("Proc_Reparaciones_Insert", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
+                    cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
+                    cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion); 
+                    cmd.Parameters.AddWithValue("@Observaciones", Reparaciones.Observaciones); 
+                    cmd.Parameters.AddWithValue("@Costo", Reparaciones.Costo);
+                    cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
+                    cmd.Parameters.AddWithValue("@Fecha_Entrega", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@modelo", Reparaciones.ID_Modelo);
+                    cmd.Parameters.AddWithValue("@Usuario", Reparaciones.Usuario);
 
-                DataTable dt = new DataTable();
-                SqlCommand cmd = new SqlCommand("Proc_Reparaciones_Insert", cn);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
-                cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
-                cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion);
-                cmd.Parameters.AddWithValue("@Total", Reparaciones.Costo);
-                cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
-                cmd.Parameters.AddWithValue("@Fecha_Entrega",DateTime.Now);
-                cmd.Parameters.AddWithValue("@modelo", Reparaciones.ID_Modelo);
-                cmd.Parameters.AddWithValue("@Usuario", Reparaciones.Usuario);
-
-                da.Fill(dt);
-                cn.Close();
-                return dt;
+                    using (var da = new SqlDataAdapter(cmd))
+                    {
+                        da.Fill(dt);
+                    }
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                throw;
             }
+            finally
+            {
+                if (cn.State == ConnectionState.Open)
+                    cn.Close();
+            }
+            return dt;
+        }
+
+        public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion)
+        {
+            using var cn = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("SP_Reporte_Reparacion", cn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@IdReparacion", idReparacion);
+
+            cn.Open();
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return new ReparacionReporteDTO
+                {
+                    IdReparacion = reader.GetInt64(reader.GetOrdinal("ID_Reparacion")),
+                    Imei = reader.IsDBNull(reader.GetOrdinal("Imei")) ? null : reader.GetString(reader.GetOrdinal("Imei")),
+                    NombreCliente = reader.GetString(reader.GetOrdinal("NombreCliente")),
+                    ApellidoCliente = reader.GetString(reader.GetOrdinal("ApellidoCliente")),
+                    Detalle_Reparacion = reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
+                    Observaciones = reader.GetString(reader.GetOrdinal("Observaciones")),
+                    Total = reader.GetDecimal(reader.GetOrdinal("Costo")),
+                    Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
+                    Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),
+                    Usuario = reader.GetString(reader.GetOrdinal("Usuario")),
+                    Modelo = reader.GetString(reader.GetOrdinal("Modelo"))
+                };
+            }
+            return null;
         }
 
     }

@@ -34,6 +34,27 @@ namespace MVSystemApi.Model
 
             cn = new SqlConnection(_connectionStrings);
         }
+        public DataTable GetCanalesLista(int Id_Canal)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Proc_Canales_Consulta_Combo";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id_Canal", Id_Canal);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro)
         {
             try
@@ -520,6 +541,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Nombres", clientes.Nombres);
                 cmd.Parameters.AddWithValue("@Apellidos", clientes.Apellidos);
                 cmd.Parameters.AddWithValue("@ID_Tipo_Cliente", clientes.ID_Tipo_Cliente);
+                cmd.Parameters.AddWithValue("@ID_Canal", clientes.ID_Canal);
                 cmd.Parameters.AddWithValue("@Numero_Telefono", clientes.Numero_Telefono);
                 cmd.Parameters.AddWithValue("@Limite_Credito", clientes.Limite_Credito);
                 cmd.Parameters.AddWithValue("@Extencion", clientes.Extencion);

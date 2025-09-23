@@ -73,6 +73,7 @@ namespace MVSystemApi.Interfaz
         #region // ------------ Facturacion -------------------------
         DataTable GetUtilidades(int? sucursal, DateTime FI, DateTime FF); // trae la lista de vendedores
         DataTable Accesorios_Consulta_Facturacion(int? Id_accesorio, int? id_sucu);
+        DataTable GetCanalesLista(int Id_Canal);
         DataTable Tipos_Pagos_Cata_Consulta_Combo();
         DataTable GetTipos_Factura_Lista();
         DataTable GetComprobantes_Combo(); // trae la lista de comprobantes

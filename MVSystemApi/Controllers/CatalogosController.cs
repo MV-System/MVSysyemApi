@@ -14,6 +14,27 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet()]
+        [Route("Canales_Combo")]
+        public ActionResult<Canales_Lista> Canales_Combo(int Id_Canal)
+        {
+
+            try
+            {
+                var lista = AD.Canales_Lista(Id_Canal);
+                if (lista == null)
+                {
+                    return NotFound();
+                }
+                return Ok(lista);
+            }
+
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet()]
         [Route("Tipos_Pagos_Combo")]
         public ActionResult<Vendedores_Combo> Tipos_Pagos_Combo()
         {

@@ -8,6 +8,9 @@ namespace MVSystemApi.Model
         public string Nombres { get; set; }
         public string Apellidos { get; set; }
         public int ID_Tipo_Cliente { get; set; }
+        public int ID_Canal { get; set; }
+        public string Canal_Nombre { get; set; }
+
         public string Tipo_Cliente_Descripcion { get; set; }
         public string Limite_Credito { get; set; }
         public Int64 Numero_Telefono { get; set; }
@@ -26,6 +29,8 @@ namespace MVSystemApi.Model
         public string Tipo_de_Cliente { get; set; }
         public string Nombres { get; set; }
         public string Apellidos { get; set; }
+        public int? ID_Canal { get; set; }
+        public string Canal_Nombre { get; set; }
         public Int64 Numero_de_telefono { get; set; }
         public string Limite_Credito { get; set; }
         public int? Extencion { get; set; }

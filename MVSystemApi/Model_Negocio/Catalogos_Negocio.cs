@@ -13,6 +13,26 @@ namespace MVSystemApi.Model
         {
             Ac = db;
         }
+        internal object Canales_Lista(int Id_Canal)
+        {
+
+            try
+            {
+                var Lista = (from dt in Ac.GetCanalesLista(Id_Canal).AsEnumerable()
+                             select new Canales_Lista
+                             {
+                                 ID_Canal = Convert.ToInt32(dt["ID_canal"]),
+                                 Canal_Nombre = Convert.ToString(dt["Canal_Nombre"]),
+
+                             }).ToList();
+
+                return Lista;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         internal object GetTipos_Pagos_Lista()
         {
 

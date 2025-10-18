@@ -575,6 +575,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Nombres", clientes.Nombres);
                 cmd.Parameters.AddWithValue("@Apellidos", clientes.Apellidos);
                 cmd.Parameters.AddWithValue("@ID_Tipo_Cliente", clientes.ID_Tipo_Cliente);
+                cmd.Parameters.AddWithValue("@ID_Canal", clientes.ID_Canal);
                 cmd.Parameters.AddWithValue("@Numero_Telefono", clientes.Numero_Telefono);
                 cmd.Parameters.AddWithValue("@Limite_Credito", clientes.Limite_Credito);
                 cmd.Parameters.AddWithValue("@Extencion", clientes.Extencion);
@@ -1128,7 +1129,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
                 cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
                 cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
-                cmd.Parameters.AddWithValue("@Modelo", equipoVendidoFilter.Modelo);
+                cmd.Parameters.AddWithValue("@ID_Modelo", equipoVendidoFilter.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);
                 //cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
@@ -1974,5 +1975,206 @@ namespace MVSystemApi.Model
             return null;
         }
 
+        public DataTable GetPreFacturasConsulta(PreFacturaFiltro filtro)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "PreFacturas_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Estado", (object)filtro.Estado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Sucursal", (object)filtro.ID_Sucursal ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Cliente", (object)filtro.ID_Cliente ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Criterio", (object)filtro.Criterio ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable GetPreDetalleFacturaConsulta(int numeroPreFactura)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "PreDetalle_Factura_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable InsertarPreDetalleFactura(PreDetalleFactura detalle)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "PreDetalle_Factura_Insert";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", detalle.Numero_PreFactura);
+                cmd.Parameters.AddWithValue("@ID_Equipo", detalle.ID_Equipo);
+                cmd.Parameters.AddWithValue("@Descripcion", detalle.Descripcion ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Tipo", detalle.ID_Tipo);
+                cmd.Parameters.AddWithValue("@ID_Garantia", detalle.ID_Garantia);
+                cmd.Parameters.AddWithValue("@cantidad", detalle.cantidad ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@precio", detalle.precio ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@SubTotal", detalle.SubTotal);
+                cmd.Parameters.AddWithValue("@Descuento", detalle.Descuento ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Itbis", detalle.Itbis ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Total", detalle.Total);
+                cmd.Parameters.AddWithValue("@Usuario", detalle.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Procesar_PreFactura";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                cmd.Parameters.AddWithValue("@Usuario_Procesamiento", usuarioProcesamiento);
+                var nuevoNumeroFacturaParam = new SqlParameter("@Nuevo_Numero_Factura", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(nuevoNumeroFacturaParam);
+                var mensajeParam = new SqlParameter("@Mensaje", SqlDbType.NVarChar, 200)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(mensajeParam);
+                cmd.ExecuteNonQuery();
+                cn.Close();
+                return new {
+                    Cod_Factura = nuevoNumeroFacturaParam.Value,
+                    Mensaje = mensajeParam.Value
+                };
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable AnularPreFactura(int numeroPreFactura)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "PreFacturas_Anular";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                cmd.Parameters.AddWithValue("@Usuario_Anulacion", "suser_sname()" /* Puedes cambiar por usuario real */);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public DataTable InsertarPreFactura(PreFactura prefactura)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "PreFacturas_Insert";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", prefactura.Numero_PreFactura);
+                cmd.Parameters.AddWithValue("@ID_Cliente", prefactura.ID_Cliente);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Factura", prefactura.ID_Tipo_Factura);
+                cmd.Parameters.AddWithValue("@ID_Vendedor", prefactura.ID_Vendedor ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", prefactura.ID_Tipo_Pagos ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@SubTotal", prefactura.SubTotal);
+                cmd.Parameters.AddWithValue("@Descuento", prefactura.Descuento ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Itbis", prefactura.Itbis ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Abono", prefactura.Abono ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Tiempo_Credito", prefactura.Tiempo_Credito ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Total", prefactura.Total);
+                cmd.Parameters.AddWithValue("@Cantidad_Articulos", prefactura.Cantidad_Articulos);
+                cmd.Parameters.AddWithValue("@Nota", prefactura.Nota ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Estado", prefactura.Estado ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", prefactura.Usuario ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Sucursal", prefactura.ID_Sucursal);
+                cmd.Parameters.AddWithValue("@NFCTipoNumero", prefactura.NFCTipoNumero ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@NFCFISCAL", prefactura.NFCFISCAL ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@NCF_NUMERO", prefactura.NCF_NUMERO ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@RNC", prefactura.RNC ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Literal", prefactura.Literal ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Cotizacion_Numero", prefactura.Cotizacion_Numero);
+                cmd.Parameters.AddWithValue("@Fecha_Registro", prefactura.Fecha_Registro ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Fecha_Procesamiento", prefactura.Fecha_Procesamiento ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario_Procesamiento", prefactura.Usuario_Procesamiento ?? (object)DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public object RebajarItemPreFactura(int numeroPreFactura, int idEquipo)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "PreDetalle_Factura_Eliminar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                cmd.Parameters.AddWithValue("@ID_Equipo", idEquipo);
+                var mensajeParam = new SqlParameter("@Mensaje", SqlDbType.NVarChar, 200)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(mensajeParam);
+                cmd.ExecuteNonQuery();
+                cn.Close();
+                return new { Mensaje = mensajeParam.Value };
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
     }
 }

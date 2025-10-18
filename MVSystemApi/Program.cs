@@ -63,6 +63,7 @@ builder.Services.AddScoped<Marcas_Negocio>();
 builder.Services.AddScoped<Utilidades_Negocio>();
 builder.Services.AddScoped<SeguridadService>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<PreFacturas_Negocio>();
 
 #endregion
 

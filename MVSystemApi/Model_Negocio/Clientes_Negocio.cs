@@ -116,6 +116,7 @@ namespace MVSystemApi.Model
                                select new Clientes_consulta
                                {
                                    Id_Cliente = Convert.ToInt32(dt["ID_Cliente"]),
+                                   ID_Tipo_Cliente = Convert.ToInt32(dt["ID_Tipo_Cliente"]),
                                    Tipo_de_Cliente = Convert.ToString(dt["Tipo de Cliente"]),
                                    Nombres = Convert.ToString(dt["Nombres"]),
                                    Apellidos = Convert.ToString(dt["Apellidos"]),

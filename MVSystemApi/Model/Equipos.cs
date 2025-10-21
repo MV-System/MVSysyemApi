@@ -79,6 +79,7 @@ namespace MVSystemApi.Model
         public string Imei { get; internal set; }
         public string Modelo { get; internal set; }
         public string Marca { get; internal set; }
+        public decimal Costo_Equipo { get; set; }
         public decimal precioPorMayor { get; set; }
         public decimal PrecioDetalle { get; set; }
         public string Disponible { get; set; }

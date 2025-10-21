@@ -242,6 +242,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal); 
                 cmd.Parameters.AddWithValue("@PageIndex", consulta.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", consulta.PageSize);
+                cmd.Parameters.AddWithValue("@EstadoFactura", consulta.EstadoFactura);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -1036,7 +1037,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Almacen", equipoDisponibleFilterDTO.Almacen);
                 cmd.Parameters.AddWithValue("@Suplidor", equipoDisponibleFilterDTO.Suplidor);
                 cmd.Parameters.AddWithValue("@Imei", equipoDisponibleFilterDTO.Imei);
-                cmd.Parameters.AddWithValue("@Modelo", equipoDisponibleFilterDTO.Modelo);
+                cmd.Parameters.AddWithValue("@ID_Modelo", equipoDisponibleFilterDTO.Modelo);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoDisponibleFilterDTO.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoDisponibleFilterDTO.PageSize);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoDisponibleFilterDTO.FechaInicio);

@@ -43,7 +43,7 @@ namespace DTO
         public int? Almacen { get; set; }
         public string Suplidor { get; set; }
         public string Imei { get; set; }
-        public string Modelo { get; set; }
+        public int? Modelo { get; set; }
         public string Empresa { get; set; }
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }

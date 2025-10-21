@@ -22,6 +22,9 @@ namespace MVSystemApi.Model
                               Imei = Convert.ToString(dt["Imei"]),
                               Modelo = Convert.ToString(dt["Modelo"]),
                               Marca = Convert.ToString(dt["Marca"]),
+                              Costo_Equipo = Convert.ToDecimal(dt["costo_equipo"]),
+                              precioPorMayor = Convert.ToDecimal(dt["Precio_Por_Mayor"]),
+                              PrecioDetalle = Convert.ToDecimal(dt["Precio_Detalle"]),
                               Existe = Convert.ToString(dt["Existe"]),
                               Mensaje = Convert.ToString(dt["Mensaje"])
                           }).ToList(); // Usamos FirstOrDefault() ya que esperamos un único registro
@@ -43,6 +46,7 @@ namespace MVSystemApi.Model
                               Imei = Convert.ToString(dt["Equipo"]),
                               Marca = Convert.ToString(dt["Marca"]),
                               Modelo = Convert.ToString(dt["Modelo"]),
+                              Costo_Equipo = Convert.ToDecimal(dt["precioCosto"]),
                               precioPorMayor = Convert.ToDecimal(dt["precioPorMayor"]),
                               PrecioDetalle = Convert.ToDecimal(dt["PrecioDetalle"]),
                               Disponible = Convert.ToString(dt["Disponible"]),

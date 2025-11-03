@@ -10,6 +10,7 @@ namespace MVSystemApi.Interfaz
     public interface IAccesoDatos
     {
         List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro);
+       DataTable GetReparacionesLista(ReparacionConsultaFiltro filtro);
 
         // --------------- Utilidades ------------------------//
         DataTable Vendedor_Consulta_Combo();
@@ -24,6 +25,7 @@ namespace MVSystemApi.Interfaz
         DataTable Get_Condicion_Equipo_Combo();
         DataTable Get_Almacen_Combo();
         DataTable Get_Sucursal_Combo();
+        DataTable Get_StatusTaller_Combo();
         DataTable Get_Marcas_Combo();
         DataTable Get_Modelos_Combo(int? ID_Marca);
         DataTable Get_Suplidor_Combo();
@@ -120,6 +122,7 @@ namespace MVSystemApi.Interfaz
         DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente);
         DataTable AsumeITBIS();
         string Equipo_Delete(string imei, string Usuario);
+        string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
         string AbonoAfactura(AbonoFacturaParam param);
         string AbonoGeneral(AbonoFacturaParam param);
 

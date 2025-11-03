@@ -273,7 +273,27 @@ namespace MVSystemApi.Model
                 throw new Exception("Error al intentar eliminar el equipo.", ex);
             }
         }
-       
+        internal object ActualizarCostoPrecioReparacion(ReparacionPendienteUpdateDTO data)
+        {
+            try
+            {
+                // Llamamos al procedimiento almacenado que devuelve el mensaje
+                var mensaje = Ac.Actualizar_CostoPrecio_Reparacion(data);  // Este método debería devolver un string (mensaje)
+                                                                           // Creación de un objeto de tipo EquipoEliminado con el mensaje
+                var result = new ReparacionUpdate_return
+                {
+                    Mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                };
+
+                return result;  // Retornamos el objeto con el mensaje
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones
+                throw new Exception("Error al intentar Actualizar la reparacion.", ex);
+            }
+        }
+
         internal void ModificarEquipo(Equipo_return_Imei equipo)
         {
             Ac.ModificarEquipo(equipo);
@@ -350,5 +370,32 @@ namespace MVSystemApi.Model
 
             return result;
         }
+
+        internal object GetReparacionesLista(ReparacionConsultaFiltro filterData)
+        {
+            var result = (from dt in Ac.GetReparacionesLista(filterData).AsEnumerable()
+                          select new ReparacionListaDTO
+                          {
+                              IdReparacion = Convert.ToInt32(dt["idReparacion"]),
+                              FechaRegistro = Convert.ToDateTime(dt["fechaRegistro"]),
+                              NombreCliente = Convert.ToString(dt["nombreCliente"]),
+                              TelefonoCliente = Convert.ToString(dt["telefonoCliente"]),
+                              Estatus = Convert.ToString(dt["estatus"]),
+                              Precio = Convert.ToDecimal(dt["precio"]),
+                              Costo = Convert.ToDecimal(dt["costo"]),
+                              FechaEntrega = dt["fechaEntrega"] != DBNull.Value ? 
+                                  Convert.ToDateTime(dt["fechaEntrega"]) : (DateTime?)null,
+                              // Propiedades de paginación 
+                              TotalRecord = dt.Table.Columns.Contains("totalRecords") ? 
+                                  Convert.ToInt32(dt["totalRecords"]) : 0,
+                              Line = dt.Table.Columns.Contains("line") ? 
+                                  Convert.ToInt32(dt["line"]) : 0,
+                              LastLine = dt.Table.Columns.Contains("lastLine") ? 
+                                  Convert.ToInt32(dt["lastLine"]) : 0
+                          }).ToList();
+
+            return result;
+        }
+
     }
 }

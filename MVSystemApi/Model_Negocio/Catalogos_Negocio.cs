@@ -292,6 +292,16 @@ namespace MVSystemApi.Model
                           }).ToList();
             return result;
         }
+        internal object GetStatusTaller_Combo()
+        {
+            var result = (from dt in Ac.Get_StatusTaller_Combo().AsEnumerable()
+                          select new Estado_Taller
+                          {
+                              ID_Estado_Taller = Convert.ToInt32(dt["ID_Estado_Taller"]),
+                              Descripcion_Estado_Taller = Convert.ToString(dt["Descripcion_Estado_Taller"])
+                          }).ToList();
+            return result;
+        }
         internal object GetComprobantes_Combo()
         {
             var result = (from dt in Ac.GetComprobantes_Combo().AsEnumerable()

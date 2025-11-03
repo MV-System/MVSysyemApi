@@ -1,4 +1,5 @@
 ﻿using DTO;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model.Seguridad;
@@ -938,7 +939,20 @@ namespace MVSystemApi.Model
 
             cmd.CommandText = "Sucursales_cata_Combo";
             cmd.CommandType = CommandType.StoredProcedure;
+            da.Fill(dt);
+            cn.Close();
+            return dt;
+        }
+        public DataTable Get_StatusTaller_Combo()
+        {
+            cn.Open();
+            DataTable dt = new DataTable();
+            SqlCommand cmd = cn.CreateCommand();
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
 
+            cmd.CommandText = "Estados_Taller_Cata_Combo";
+            cmd.CommandType = CommandType.StoredProcedure;
+            
             da.Fill(dt);
             cn.Close();
             return dt;
@@ -1616,6 +1630,37 @@ namespace MVSystemApi.Model
                 throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
+        public String Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data)
+        {
+            try
+            {
+                using (SqlCommand cmd = new SqlCommand("Reparaciones_Pendiente_Update", cn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    cmd.Parameters.AddWithValue("@ID_Reparacion", data.ID_Reparacion);
+                    cmd.Parameters.AddWithValue("@Costo", data.Costo);
+                    cmd.Parameters.AddWithValue("@Precio", data.Precio);
+                    cmd.Parameters.AddWithValue("@Usuario", data.Usuario);
+
+                    SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(mensajeParam);
+                    cn.Open();
+                    cmd.ExecuteNonQuery();
+
+                    return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         public string AbonoAfactura(AbonoFacturaParam param)
         {
             try
@@ -1945,6 +1990,35 @@ namespace MVSystemApi.Model
                     cn.Close();
             }
             return dt;
+        }
+
+        public DataTable GetReparacionesLista(ReparacionConsultaFiltro Filtros)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "Reparaciones_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Reparacion", Filtros.ID_Reparacion);
+                cmd.Parameters.AddWithValue("@Criterio", Filtros.Criterio ?? "");
+                cmd.Parameters.AddWithValue("@Estatus", Filtros.Estatus);
+                cmd.Parameters.AddWithValue("@FechaInicio", (object)Filtros.FechaInicio ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@FechaFinal", (object)Filtros.FechaFinal ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@PageIndex", Filtros.PageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", Filtros.PageSize);
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion)

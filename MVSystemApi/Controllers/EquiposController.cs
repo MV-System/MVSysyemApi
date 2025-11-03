@@ -339,10 +339,10 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
-        
-[HttpGet]
-[Route("GetReparaciones")]
-public ActionResult<List<ReparacionReporteDTO>> GetReparaciones([FromQuery] ReparacionReporteFiltro filtro)
+
+        [HttpGet]
+        [Route("GetReparaciones")]
+        public ActionResult<List<ReparacionReporteDTO>> GetReparaciones([FromQuery] ReparacionReporteFiltro filtro)
         {
             try
             {
@@ -358,5 +358,44 @@ public ActionResult<List<ReparacionReporteDTO>> GetReparaciones([FromQuery] Repa
                 return BadRequest(ex.Message);
             }
         }
+    
+    [HttpGet]
+        [Route("GetReparaciones_Lista")]
+        public ActionResult<ReparacionListaDTO> GetReparaciones_Lista([FromQuery] ReparacionConsultaFiltro filtro)
+        {
+            try
+            {
+                var result = _accesoDatos.GetReparacionesLista(filtro);
+                if (result == null)
+                {
+                    return Ok(new { message = "No se encontraron reparaciones.", data = new List<ReparacionReporteDTO>() });
+                }
+                return Ok(new { message = "Consulta exitosa.", data = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPut]
+        [Route("ActualizarCostoPrecioReparacion")]
+        // [Authorize(Roles = "MNTransfiereEquipos")]
+        public ActionResult<ReparacionUpdate_return> ActualizarCostoPrecioReparacion([FromBody] ReparacionPendienteUpdateDTO datos)
+        {
+            try
+            {
+                var result = AD.ActualizarCostoPrecioReparacion(datos);
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
+
 }

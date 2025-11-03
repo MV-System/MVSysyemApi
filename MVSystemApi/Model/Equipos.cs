@@ -55,7 +55,7 @@ namespace MVSystemApi.Model
         public string FechaFinal { get; set; }
     }
         public class EquipoTransferencia
-    {
+        {
         public int IdTransferencia { get; set; }
         public string FechaTransferencia { get; set; }
         public string IdEmpresa { get; set; }
@@ -86,6 +86,13 @@ namespace MVSystemApi.Model
         public string Disponible_Detalle { get; set; }
         public string Mensaje { get;  set; }
         public string Existe { get; internal set; }
+    }
+    public class ReparacionUpdate_return
+    {
+      
+        
+        public string Mensaje { get; set; }
+     
     }
 
 
@@ -245,6 +252,13 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
         public string MensajeSalida { get; set; }
         public string IdReparacion { get; internal set; }
+    }
+    public class ReparacionPendienteUpdateDTO
+    {
+        public int ID_Reparacion { get; set; }
+        public decimal Costo { get; set; }
+        public decimal Precio { get; set; }
+        public string Usuario { get; set; }
     }
 
 }

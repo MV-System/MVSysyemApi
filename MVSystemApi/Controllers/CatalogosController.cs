@@ -359,6 +359,25 @@ namespace MVSystemApi.Controllers
 
         }
         [HttpGet]
+        [Route("GetStatusTaller")]
+        public ActionResult<Modelos> GetStatusTaller()
+        {
+            try
+            {
+                var result = AD.GetStatusTaller_Combo();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
+        }
+        [HttpGet]
         [Route("GetComprobantes_Combo")]
         public ActionResult<Comprobantes> GetComprobantes_Combo()
         {

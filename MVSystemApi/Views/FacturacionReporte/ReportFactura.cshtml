@@ -62,18 +62,20 @@
                 <b>Vendedor: </b>@Model.Factura?.Vendedor<br>
             </div>
             <div class="col-6 border border-dark">
-                <b>Factura No.: @Model.Factura?.NumeroFactura</b><br>
-                <b>Tipo de factura: </b> @Model.Factura?.TipoFactura<br>
+                <b>@Model.Factura?.FacturaTitulo: @Model.Factura?.NumeroFactura</b><br>
+                <b>@Model.Factura?.FacturaTituloTipo:</b> @Model.Factura?.TipoFactura<br>
                 <b>Tipo de pago: </b> @Model.Factura?.TipoPago<br>
                 <b>Fecha: </b> @Model.Factura?.FechaFacturacion<br>
-                <b>NCF: </b>@Model.Factura?.Ncf
+                <b>@Model.Factura?.VerNCF</b> @Model.Factura?.Ncf<br>
+
+                @* <b>NCF: </b>@Model.Factura?.Ncf *@
             </div>
         </div>
     </div>
 
     <div class="container">
         <div class="row text-center mt-4 mb-3">
-            <b>DETALLES DE FACTURA</b>
+            <b>DETALLES</b>
         </div>
         <div class="row">
             <table class="table table-bordered">

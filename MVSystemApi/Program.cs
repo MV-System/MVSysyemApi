@@ -46,6 +46,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 
+// Configurar opciones de Facturación
+builder.Services.Configure<FacturacionSettings>(builder.Configuration.GetSection("Facturacion"));
 
 #region CONFIGURE SERVICES
 //(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));

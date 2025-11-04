@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -12,19 +13,21 @@ namespace MVSystemApi.Controllers
     [ApiController]
     public class FacturacionReporteController : Controller
     {
-        private readonly Clientes_Negocio _clientes_Negocio;
-        private readonly Catalogos_Negocio _catalogos_Negocio;
-        private readonly Facturas_Negocio facturasNegocio;
+        private readonly Clientes_Negocio _clientsNegocio;
+        private readonly Catalogos_Negocio _catalogosNegocio;
+        private readonly Facturas_Negocio _facturasNegocio;
         private readonly IAccesoDatos _accesoDatos;
-        private readonly SeguridadService _SS;
+        private readonly SeguridadService _seguridadService;
+        private readonly FacturacionSettings _facturacionSettings;
 
-        public FacturacionReporteController(SeguridadService SS,IAccesoDatos accesoDatos, Clientes_Negocio clientes_Negocio, Catalogos_Negocio catalogos_Negocio,Facturas_Negocio facturasNegocio)
+        public FacturacionReporteController(SeguridadService seguridadService,IAccesoDatos accesoDatos, Clientes_Negocio clientsNegocio, Catalogos_Negocio catalogosNegocio,Facturas_Negocio facturasNegocio, IOptions<FacturacionSettings> facturacionSettings)
         {
             _accesoDatos = accesoDatos;
-            _catalogos_Negocio = catalogos_Negocio;
-            _clientes_Negocio = clientes_Negocio;
-            this.facturasNegocio = facturasNegocio;
-            _SS = SS;
+            _catalogosNegocio = catalogosNegocio;
+            _clientsNegocio = clientsNegocio;
+            _facturasNegocio = facturasNegocio;
+            _seguridadService = seguridadService;
+            _facturacionSettings = facturacionSettings.Value;
         }
 
         [HttpPost]
@@ -33,7 +36,7 @@ namespace MVSystemApi.Controllers
         public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)
-                factura.IdCliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente).Id_Cliente;
+                factura.IdCliente = _clientsNegocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente).Id_Cliente;
 
             var result = _accesoDatos.PostFactura(factura);
             if (result == null)
@@ -42,33 +45,22 @@ namespace MVSystemApi.Controllers
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
             factura.logo = baseUrl + "/assets/" + factura.empresa + ".png"; // armar la ruta completa para acceder al logo
 
-            factura.TipoPago = ((List<Tipos_Pagos>)_catalogos_Negocio
+            factura.TipoPago = ((List<Tipos_Pagos>)_catalogosNegocio
                     .GetTipos_Pagos_Lista())
                     .Where(x => x.ID_Tipo_Pagos == factura.IdTipoPago)
                     .Select(p => p.Descripcion_Tipo_Pagos)
                     .FirstOrDefault();
-            factura.TipoFactura = ((List<Tipos_Facturas>)_catalogos_Negocio
+            factura.TipoFactura = ((List<Tipos_Facturas>)_catalogosNegocio
                   .GetTipos_Factura_Lista())
                   .Where(x => x.ID_Tipo_Factura == factura.IdTipoFactura)
                   .Select(p => p.Descripcion_Factura_Tipo)
                   .FirstOrDefault();
             var facturaReporte = _accesoDatos.ObtenerFacturaReporte(result.NumeroFactura, 1);
-            var cliente = _clientes_Negocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
-            var vendedor = _catalogos_Negocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
+            var cliente = _clientsNegocio.Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
+            var vendedor = _catalogosNegocio.GetVendedor_Lista().Where(x => x.ID_Vendedor == factura.IdVendedor).Select(x => x.Nombres).FirstOrDefault();
 
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
-            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(factura.IdEmpresa), Convert.ToInt32(factura.IdSucursal));
-
-
-            // Crear el objeto EmpresaFactura para la vista
-            //var data = new EmpresaReportes
-            //{
-            //    DatosEmpresaFactura = DatosEmpresaFactura,
-            //    EquiposDTO = equipoDisponibles,
-            //};
-
-            // Devolver la vista PDF con el objeto modificado
-           // return new ViewAsPdf(data);
+            DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(factura.IdEmpresa), Convert.ToInt32(factura.IdSucursal));
 
             var data = new FacturaCliente
             {
@@ -88,8 +80,8 @@ namespace MVSystemApi.Controllers
             consulta.PageIndex = 1;
             consulta.PageSize = 10000;
 
-            var facturas = (List<FacturaConsulta>)facturasNegocio.GetFacturas(consulta);
-            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
+            var facturas = (List<FacturaConsulta>)_facturasNegocio.GetFacturas(consulta);
+            DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
            
@@ -107,39 +99,57 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportFactura")]// Reimprimir factura 8.5x11
         public IActionResult ReportFactura(FacturaFilter consulta)
         {
-               var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
+            var detalleFactura = (List<DetalleFactura>)_facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
             
-            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturasReporte(consulta);
+            var results = (List<FacturaConsulta>)_facturasNegocio.GetFacturasReporte(consulta);
             
             var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
 
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
-            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
+            DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
             DatosEmpresaFactura.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo
 
+            // Obtener usuarios autorizados desde configuración
+            var usuariosAutorizadosCotizacion = new HashSet<string>(
+                _facturacionSettings.UsuariosAutorizadosCotizacion, 
+                StringComparer.OrdinalIgnoreCase);
+
+            // Determinar si debe mostrar como cotización o factura
+            bool esCotizacion = DatosEmpresaFactura.IdEmpresa == 1 
+                             && factura.TipoFactura == "Al Por Mayor"
+                             && usuariosAutorizadosCotizacion.Contains(consulta.Usuario);
+
+            // Solo modificar si es cotización (los valores por defecto ya están en la clase)
+            if (esCotizacion)
+            {
+                factura.FacturaTitulo = "Cotización No.";
+                factura.FacturaTituloTipo = "Cotización Tipo";
+                factura.VerNCF = "";
+            }
+
             var data = new Facturas
             {
-                DetalleFacturaList = detalleFactura,
                 Factura = factura,
+                DetalleFacturaList = detalleFactura,
                 DatosEmpresaFactura = DatosEmpresaFactura,
             };
-           
+
             return new ViewAsPdf(data);
         }
       
         [HttpPost("FacturacionReporte/ReportFacturaMini")]// Reimprimir factura 80mm
         public IActionResult ReportFacturaMini(FacturaFilter consulta)
         {
-            var detalleFactura = (List<DetalleFactura>)facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
+            var detalleFactura = (List<DetalleFactura>)_facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
 
-            var results = (List<FacturaConsulta>)facturasNegocio.GetFacturasReporte(consulta);
+            var results = (List<FacturaConsulta>)_facturasNegocio.GetFacturasReporte(consulta);
 
             var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
 
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
-            DatosEmpresa DatosEmpresaFactura = _SS.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
+            DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
 
 
             var data = new Facturas
@@ -154,6 +164,7 @@ namespace MVSystemApi.Controllers
 
             return new ViewAsPdf(data);
         }
+        
         [HttpPost("FacturacionReporte/ReportCotizacion")]
         public IActionResult ReportCotizacion(CotizacionModel model)
         {
@@ -161,6 +172,5 @@ namespace MVSystemApi.Controllers
             model.Empresa = baseUrl + "/assets/" + model.Empresa + ".png"; // armar la ruta completa para acceder al logo
             return new ViewAsPdf(model);
         }
-
     }
 }

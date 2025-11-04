@@ -36,6 +36,8 @@ namespace MVSystemApi.Model
         public string EstadoFactura { get; set; }
         public int ComprobanteCheck { get; set; }
         public int IdVendedor { get; set; }
+        public string Usuario { get; set; }
+
     }
     public class FacturaConsulta : PagingDTO
     {
@@ -60,6 +62,12 @@ namespace MVSystemApi.Model
         public decimal TotalFacturado { get; set; }
         public DateTime FechaFacturacion { get; set; }
         public string empresa { get; set; }
+        
+        // Valores por defecto para factura normal
+        public string FacturaTitulo { get; set; } = "Factura No.";
+        public string FacturaTituloTipo { get; set; } = "Tipo de factura";
+        public string VerNCF { get; set; } = "NCF:";
+        
         public decimal Abono { get; internal set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }
        
@@ -95,6 +103,7 @@ namespace MVSystemApi.Model
         public Clientes Cliente { get; set; }
         public FacturaConsulta Factura { get; internal set; }
         public string empresa { get; set; }
+        public string FacturaTitulo { get; set; } 
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }

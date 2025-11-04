@@ -73,7 +73,8 @@
             </div>
 
             <div class="col-6 border border-dark">
-                <b>Factura No.: P @Model.Factura.NumeroFactura</b><br>
+                @* <b>@Model.Factura.FacturaTitulo: P @Model.Factura.NumeroFactura</b><br> *@
+                <b>FT1: P @Model.Factura.NumeroFactura</b><br>
                 <b>Tipo de factura: </b> @Model.Factura.TipoFactura<br>
                 <b>Tipo de pago: </b> @Model.Factura.TipoPago<br>
                 <b>Fecha: </b> @Model.Factura.FechaRegistro<br>

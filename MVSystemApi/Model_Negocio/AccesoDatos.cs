@@ -1126,46 +1126,78 @@ namespace MVSystemApi.Model
 
         }
 
-        public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
+        //public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
+        //{
+        //    try
+        //    {
+        //        cn.Open();
+
+        //        SqlCommand cmd = cn.CreateCommand();
+        //        SqlDataAdapter da = new SqlDataAdapter(cmd);
+        //        DataTable dt = new DataTable();
+
+
+        //        cmd.CommandText = "Proc_Equipo_Consulta_Vendidos";
+        //        cmd.CommandType = CommandType.StoredProcedure;
+        //        cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
+        //        cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
+        //        cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
+        //        cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
+        //        cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
+        //        cmd.Parameters.AddWithValue("@ID_Modelo", equipoVendidoFilter.Modelo);
+        //        cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
+        //        cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);
+        //        //cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
+        //        cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoVendidoFilter.FechaInicio);
+        //        cmd.Parameters.AddWithValue("@Fecha_Final", equipoVendidoFilter.FechaFinal);
+        //        cmd.Parameters.AddWithValue("@Fecha_factura_Inicial", equipoVendidoFilter.FechaInicioFactura);
+        //        cmd.Parameters.AddWithValue("@Fecha_factura_Final", equipoVendidoFilter.FechaFinalFactura);
+
+        //        //cmd.Parameters.AddWithValue("@criterio", criterio);
+        //        cmd.ExecuteNonQuery();
+        //        da.Fill(dt);
+        //        cn.Close();
+        //        return dt;
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        throw ex;
+        //    }
+
+        //}
+        public DataTable GetEquiposVendidos(EquipoVendidoFilter f)
         {
-            try
+            DataTable dt = new DataTable();
+
+            using (SqlCommand cmd = new SqlCommand("Proc_Equipo_Consulta_Vendidos", cn))
             {
-                cn.Open();
-
-                SqlCommand cmd = cn.CreateCommand();
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-
-
-                cmd.CommandText = "Proc_Equipo_Consulta_Vendidos";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Almacen", equipoVendidoFilter.Almacen);
-                cmd.Parameters.AddWithValue("@Imei", equipoVendidoFilter.Imei);
-                cmd.Parameters.AddWithValue("@Suplidor", equipoVendidoFilter.Suplidor);
-                cmd.Parameters.AddWithValue("@Vendedor", equipoVendidoFilter.Vendedor);
-                cmd.Parameters.AddWithValue("@Telefono", equipoVendidoFilter.Telefono);
-                cmd.Parameters.AddWithValue("@ID_Modelo", equipoVendidoFilter.Modelo);
-                cmd.Parameters.AddWithValue("@PageIndex", equipoVendidoFilter.PageIndex);
-                cmd.Parameters.AddWithValue("@PageSize", equipoVendidoFilter.PageSize);
-                //cmd.Parameters.AddWithValue("@Fecha_Registro", equipoVendidoFilter.FechaRegistro);
-                cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoVendidoFilter.FechaInicio);
-                cmd.Parameters.AddWithValue("@Fecha_Final", equipoVendidoFilter.FechaFinal);
-                cmd.Parameters.AddWithValue("@Fecha_factura_Inicial", equipoVendidoFilter.FechaInicioFactura);
-                cmd.Parameters.AddWithValue("@Fecha_factura_Final", equipoVendidoFilter.FechaFinalFactura);
 
-                //cmd.Parameters.AddWithValue("@criterio", criterio);
-                cmd.ExecuteNonQuery();
-                da.Fill(dt);
-                cn.Close();
-                return dt;
-            }
-            catch (Exception ex)
-            {
+                cmd.Parameters.Add("@Almacen", SqlDbType.Int).Value = f.Almacen;
+                cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 50).Value = f.Imei ?? "";
+                cmd.Parameters.Add("@Suplidor", SqlDbType.Int).Value = f.Suplidor;
+                cmd.Parameters.Add("@Vendedor", SqlDbType.Int).Value = f.Vendedor;
+                cmd.Parameters.AddWithValue("@Telefono", f.Telefono);
+                cmd.Parameters.Add("@ID_Modelo", SqlDbType.Int).Value = f.Modelo;
+                cmd.Parameters.Add("@PageIndex", SqlDbType.Int).Value = f.PageIndex;
+                cmd.Parameters.Add("@PageSize", SqlDbType.Int).Value = f.PageSize;
+                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.DateTime).Value = f.FechaInicio;
+                cmd.Parameters.Add("@Fecha_Final", SqlDbType.DateTime).Value = f.FechaFinal;
+                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.DateTime).Value = f.FechaInicioFactura;
+                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.DateTime).Value = f.FechaFinalFactura;
 
-                throw ex;
+                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                {
+                    cn.Open();
+                    da.Fill(dt);
+                    cn.Close();
+                }
             }
 
+            return dt;
         }
+
         public DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {
             try

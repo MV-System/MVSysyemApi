@@ -4,6 +4,7 @@ using MVSystemApi.Model.Seguridad;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace MVSystemApi.Interfaz
 {
@@ -125,9 +126,23 @@ namespace MVSystemApi.Interfaz
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
         string AbonoAfactura(AbonoFacturaParam param);
         string AbonoGeneral(AbonoFacturaParam param);
-
         #endregion
 
+        #region // ------------- Métodos Asíncronos para ADO.NET --------------------------
+        /// <summary>
+        /// Ejecuta un query y retorna un valor escalar de forma asíncrona
+        /// </summary>
+        Task<T> ExecuteScalarAsync<T>(string query, params SqlParameter[] parameters);
 
+        /// <summary>
+        /// Ejecuta un query y retorna un DataTable de forma asíncrona
+        /// </summary>
+        Task<DataTable> ExecuteDataTableAsync(string query, params SqlParameter[] parameters);
+
+        /// <summary>
+        /// Ejecuta un comando que no retorna resultados (INSERT, UPDATE, DELETE) de forma asíncrona
+        /// </summary>
+        Task<int> ExecuteNonQueryAsync(string query, params SqlParameter[] parameters);
+        #endregion
     }
 }

@@ -20,6 +20,9 @@ builder.Services.AddMvc(opt => opt.EnableActionInvokers = false);
 builder.Services.AddCors();
 builder.Services.AddDbContext<SEGURIDADContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString(@"MVSystemSeguridad")));
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpClient<WhatsAppService>();
+builder.Services.AddScoped<ITracking, Tracking_Negocio>();
+builder.Services.AddSingleton<WhatsAppService>();
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -70,6 +73,18 @@ builder.Services.AddScoped<PreFacturas_Negocio>();
 #endregion
 
 var app = builder.Build();
+
+var whatsappService = app.Services.GetRequiredService<WhatsAppService>();
+var autoStart = builder.Configuration.GetValue<bool>("WhatsApp:AutoStart");
+
+if (autoStart)
+{
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(3000);
+        await whatsappService.IniciarServidorWhatsApp();
+    });
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

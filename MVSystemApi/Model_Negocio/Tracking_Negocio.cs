@@ -29,6 +29,22 @@ namespace MVSystemApi.Model_Negocio
         {
             try
             {
+                // Validar campos requeridos
+                if (string.IsNullOrEmpty(log.Usuario))
+                {
+                    throw new ArgumentException("Usuario es requerido");
+                }
+                if (string.IsNullOrEmpty(log.Modulo))
+                {
+                    throw new ArgumentException("Modulo es requerido");
+                }
+                if (string.IsNullOrEmpty(log.Accion))
+                {
+                    throw new ArgumentException("Accion es requerida");
+                }
+
+                Console.WriteLine($"[Tracking] Insertando: Usuario={log.Usuario}, Modulo={log.Modulo}, Accion={log.Accion}");
+
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     await connection.OpenAsync();
@@ -42,9 +58,9 @@ namespace MVSystemApi.Model_Negocio
 
                     using (var command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("@Usuario", log.Usuario ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Modulo", log.Modulo ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Accion", log.Accion ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Usuario", log.Usuario);
+                        command.Parameters.AddWithValue("@Modulo", log.Modulo);
+                        command.Parameters.AddWithValue("@Accion", log.Accion);
                         // @FechaHora eliminado - se calcula directo en SQL con DATEADD(HOUR, -4, GETDATE())
                         command.Parameters.AddWithValue("@Metadata", log.Metadata ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@DireccionIP", log.DireccionIP ?? (object)DBNull.Value);
@@ -52,12 +68,18 @@ namespace MVSystemApi.Model_Negocio
                         command.Parameters.AddWithValue("@NotificacionEnviada", log.NotificacionEnviada);
 
                         var result = await command.ExecuteScalarAsync();
-                        return Convert.ToInt32(result);
+                        var idTracking = Convert.ToInt32(result);
+                        
+                        Console.WriteLine($"[Tracking] ✅ Registro guardado exitosamente. ID: {idTracking}");
+                        
+                        return idTracking;
                     }
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[Tracking] ❌ Error al registrar tracking: {ex.Message}");
+                Console.WriteLine($"[Tracking] StackTrace: {ex.StackTrace}");
                 throw new Exception($"Error al registrar tracking: {ex.Message}", ex);
             }
         }

@@ -55,8 +55,8 @@ namespace MVSystemApi.Controllers
                     Accion = dto.Accion,
                     Metadata = dto.Metadata,
                     DireccionIP = ObtenerDireccionIP(),
-                    UserAgent = Request.Headers["User-Agent"].ToString(),
-                    FechaHora = DateTime.Now
+                    UserAgent = Request.Headers["User-Agent"].ToString()
+                    // FechaHora se asignará en SQL con DATEADD(HOUR, -4, GETDATE())
                 };
 
                 var idTracking = await _trackingService.RegistrarTracking(log);
@@ -275,7 +275,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Determina si debe enviar notificación según módulo y acción
         /// </summary>
-        // M�todo DebeNotificar movido a Tracking_Negocio para usar configuraci�n de BD
+        // M�todo DebeNotificar movido a Tracking_Negocio para usar configuraci�n de BD
     }
 }
 

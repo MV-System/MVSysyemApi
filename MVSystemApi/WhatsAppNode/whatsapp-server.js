@@ -1,6 +1,7 @@
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode'); // Para generar QR como imagen
 const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
@@ -17,6 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 let whatsappClient = null;
 let isReady = false;
 let qrCodeGenerated = false;
+let lastQRCode = ''; // Almacenar último QR para mostrarlo como imagen
 
 // Inicializar cliente de WhatsApp
 console.log('🚀 Iniciando servicio de WhatsApp para MVSystem...');
@@ -45,7 +47,9 @@ whatsappClient.on('qr', (qr) => {
     console.log('\n📱 ESCANEA ESTE CÓDIGO QR CON TU WHATSAPP:\n');
     qrcode.generate(qr, { small: true });
     console.log('\n⚠️  Abre WhatsApp en tu teléfono > Dispositivos vinculados > Vincular dispositivo');
-    console.log('⚠️  Escanea el código QR mostrado arriba\n');
+    console.log('⚠️  Escanea el código QR mostrado arriba');
+    console.log('🌐 O visita: http://localhost:' + PORT + '/qr-image\n');
+    lastQRCode = qr; // Guardar QR para mostrarlo como imagen
     qrCodeGenerated = true;
 });
 
@@ -226,13 +230,142 @@ app.get('/qr', async(req, res) => {
 
         res.json({
             success: true,
-            message: 'QR regenerado. Revisa la consola del servidor.'
+            message: 'QR regenerado. Revisa la consola del servidor o visita /qr-image'
         });
     } catch (error) {
         res.status(500).json({
             success: false,
             error: error.message
         });
+    }
+});
+
+/**
+ * GET /qr-image
+ * Muestra el código QR como imagen en el navegador
+ */
+app.get('/qr-image', async(req, res) => {
+    try {
+        if (isReady) {
+            return res.send(`
+                <html>
+                    <head><title>WhatsApp QR - MVSystem</title></head>
+                    <body style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;font-family:Arial;">
+                        <h2 style="color:green;">✅ WhatsApp ya está conectado</h2>
+                        <p>No necesitas escanear el QR</p>
+                        <a href="/status">Ver estado del servicio</a>
+                    </body>
+                </html>
+            `);
+        }
+
+        if (!lastQRCode) {
+            return res.send(`
+                <html>
+                    <head>
+                        <title>WhatsApp QR - MVSystem</title>
+                        <meta http-equiv="refresh" content="3">
+                    </head>
+                    <body style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;font-family:Arial;">
+                        <h2>⏳ Esperando código QR...</h2>
+                        <p>La página se actualizará automáticamente</p>
+                        <p style="color:gray;">Si no aparece en 30 segundos, recarga manualmente</p>
+                    </body>
+                </html>
+            `);
+        }
+
+        // Generar QR como imagen
+        const qrImageUrl = await QRCode.toDataURL(lastQRCode, {
+            width: 400,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        });
+
+        res.send(`
+            <html>
+                <head>
+                    <title>WhatsApp QR - MVSystem</title>
+                    <style>
+                        body {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            height: 100vh;
+                            flex-direction: column;
+                            font-family: Arial, sans-serif;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            margin: 0;
+                        }
+                        .container {
+                            background: white;
+                            padding: 30px;
+                            border-radius: 15px;
+                            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                            text-align: center;
+                            color: #333;
+                        }
+                        h1 { color: #667eea; margin-bottom: 10px; }
+                        img { border: 5px solid #667eea; border-radius: 10px; margin: 20px 0; }
+                        .instructions {
+                            background: #f0f0f0;
+                            padding: 15px;
+                            border-radius: 8px;
+                            margin-top: 20px;
+                            text-align: left;
+                        }
+                        .instructions ol { margin: 10px 0; padding-left: 20px; }
+                        .instructions li { margin: 8px 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>📱 MVSystem WhatsApp Service</h1>
+                        <p><strong>Escanea este código QR para conectar WhatsApp</strong></p>
+                        <img src="${qrImageUrl}" alt="QR Code" />
+                        <div class="instructions">
+                            <strong>📋 Instrucciones:</strong>
+                            <ol>
+                                <li>Abre WhatsApp en tu teléfono</li>
+                                <li>Ve a <strong>Configuración</strong> → <strong>Dispositivos vinculados</strong></li>
+                                <li>Toca en <strong>"Vincular un dispositivo"</strong></li>
+                                <li>Escanea este código QR</li>
+                            </ol>
+                        </div>
+                        <p style="margin-top:20px;color:gray;font-size:12px;">
+                            Esta página se cerrará automáticamente cuando esté conectado
+                        </p>
+                    </div>
+                    <script>
+                        // Verificar estado cada 3 segundos
+                        setInterval(async () => {
+                            try {
+                                const response = await fetch('/status');
+                                const data = await response.json();
+                                if (data.ready) {
+                                    location.reload();
+                                }
+                            } catch (error) {
+                                console.error('Error verificando estado:', error);
+                            }
+                        }, 3000);
+                    </script>
+                </body>
+            </html>
+        `);
+    } catch (error) {
+        res.status(500).send(`
+            <html>
+                <body style="display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;font-family:Arial;">
+                    <h2 style="color:red;">❌ Error generando QR</h2>
+                    <p>${error.message}</p>
+                </body>
+            </html>
+        `);
     }
 });
 
@@ -276,6 +409,7 @@ app.get('/', (req, res) => {
             sendMessage: 'POST /send-message',
             sendBulk: 'POST /send-bulk',
             qr: 'GET /qr',
+            qrImage: 'GET /qr-image (Ver QR en navegador)',
             logout: 'POST /logout'
         }
     });
@@ -286,6 +420,7 @@ app.listen(PORT, () => {
     console.log(`\n🌐 Servidor Express escuchando en http://localhost:${PORT}`);
     console.log(`📡 Endpoints disponibles:`);
     console.log(`   - GET  http://localhost:${PORT}/status`);
+    console.log(`   - GET  http://localhost:${PORT}/qr-image (👁️  Ver QR en navegador)`);
     console.log(`   - POST http://localhost:${PORT}/send-message`);
     console.log(`   - POST http://localhost:${PORT}/send-bulk`);
     console.log(`   - GET  http://localhost:${PORT}/qr`);

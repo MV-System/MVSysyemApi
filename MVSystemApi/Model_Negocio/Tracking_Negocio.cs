@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace MVSystemApi.Model_Negocio
 {
     /// <summary>
-    /// Implementación de lógica de negocio para Tracking usando connection string SEGURIDAD
+    /// Implementaciï¿½n de lï¿½gica de negocio para Tracking usando connection string SEGURIDAD
     /// </summary>
     public class Tracking_Negocio : ITracking
     {
@@ -23,7 +23,7 @@ namespace MVSystemApi.Model_Negocio
         }
 
         /// <summary>
-        /// Registra una interacción del usuario
+        /// Registra una interacciï¿½n del usuario
         /// </summary>
         public async Task<int> RegistrarTracking(TrackingLog log)
         {
@@ -37,7 +37,7 @@ namespace MVSystemApi.Model_Negocio
                         INSERT INTO [dbo].[TrackingLogs]
                         (Usuario, Modulo, Accion, FechaHora, Metadata, DireccionIP, UserAgent, NotificacionEnviada)
                         VALUES
-                        (@Usuario, @Modulo, @Accion, @FechaHora, @Metadata, @DireccionIP, @UserAgent, @NotificacionEnviada);
+                        (@Usuario, @Modulo, @Accion, DATEADD(HOUR, -4, GETDATE()), @Metadata, @DireccionIP, @UserAgent, @NotificacionEnviada);
                         SELECT CAST(SCOPE_IDENTITY() as int);";
 
                     using (var command = new SqlCommand(query, connection))
@@ -45,7 +45,7 @@ namespace MVSystemApi.Model_Negocio
                         command.Parameters.AddWithValue("@Usuario", log.Usuario ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Modulo", log.Modulo ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Accion", log.Accion ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@FechaHora", log.FechaHora);
+                        // @FechaHora eliminado - se calcula directo en SQL con DATEADD(HOUR, -4, GETDATE())
                         command.Parameters.AddWithValue("@Metadata", log.Metadata ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@DireccionIP", log.DireccionIP ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@UserAgent", log.UserAgent ?? (object)DBNull.Value);
@@ -162,7 +162,7 @@ namespace MVSystemApi.Model_Negocio
         }
 
         /// <summary>
-        /// Obtiene estadísticas de uso por módulo
+        /// Obtiene estadï¿½sticas de uso por mï¿½dulo
         /// </summary>
         public async Task<Dictionary<string, int>> ObtenerEstadisticasPorModulo(DateTime? fechaDesde = null, DateTime? fechaHasta = null)
         {
@@ -218,12 +218,12 @@ namespace MVSystemApi.Model_Negocio
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error al obtener estadísticas: {ex.Message}", ex);
+                throw new Exception($"Error al obtener estadï¿½sticas: {ex.Message}", ex);
             }
         }
 
         /// <summary>
-        /// Obtiene usuarios más activos
+        /// Obtiene usuarios mï¿½s activos
         /// </summary>
         public async Task<List<(string Usuario, int Interacciones)>> ObtenerUsuariosMasActivos(int top = 10)
         {
@@ -275,7 +275,7 @@ namespace MVSystemApi.Model_Negocio
                     var query = @"
                         UPDATE [dbo].[TrackingLogs]
                         SET NotificacionEnviada = 1,
-                            FechaNotificacion = GETDATE()
+                            FechaNotificacion = DATEADD(HOUR, -4, GETDATE())
                         WHERE IdTracking = @IdTracking";
 
                     using (var command = new SqlCommand(query, connection))
@@ -294,7 +294,7 @@ namespace MVSystemApi.Model_Negocio
         }
 
         /// <summary>
-        /// Verifica si debe enviar notificación WhatsApp según configuración en BD
+        /// Verifica si debe enviar notificaciï¿½n WhatsApp segï¿½n configuraciï¿½n en BD
         /// </summary>
         public async Task<bool> DebeNotificar(string modulo, string accion)
         {
@@ -304,7 +304,7 @@ namespace MVSystemApi.Model_Negocio
                 {
                     await connection.OpenAsync();
 
-                    // Buscar configuración específica: Modulo + Accion
+                    // Buscar configuraciï¿½n especï¿½fica: Modulo + Accion
                     var query = @"
                         SELECT TOP 1 NotificarWhatsApp
                         FROM [dbo].[TrackingNotificacionConfig]
@@ -316,14 +316,14 @@ namespace MVSystemApi.Model_Negocio
                             -- Coincidencia: Modulo + cualquier Accion
                             (Modulo = @Modulo AND Accion IS NULL)
                             OR
-                            -- Coincidencia: cualquier Modulo + Accion específica
+                            -- Coincidencia: cualquier Modulo + Accion especï¿½fica
                             (Modulo IS NULL AND Accion = @Accion)
                             OR
                             -- Coincidencia: TODO (Modulo y Accion NULL)
                             (Modulo IS NULL AND Accion IS NULL)
                         )
                         ORDER BY 
-                            -- Prioridad: más específico primero
+                            -- Prioridad: mï¿½s especï¿½fico primero
                             CASE 
                                 WHEN Modulo = @Modulo AND Accion = @Accion THEN 1
                                 WHEN Modulo = @Modulo AND Accion IS NULL THEN 2
@@ -338,7 +338,7 @@ namespace MVSystemApi.Model_Negocio
 
                         var result = await command.ExecuteScalarAsync();
                         
-                        // Si no hay configuración, por defecto NO notifica
+                        // Si no hay configuraciï¿½n, por defecto NO notifica
                         return result != null && Convert.ToBoolean(result);
                     }
                 }
@@ -346,7 +346,7 @@ namespace MVSystemApi.Model_Negocio
             catch (Exception ex)
             {
                 // En caso de error, no notificar para evitar spam
-                Console.WriteLine($"Error al verificar configuración de notificaciones: {ex.Message}");
+                Console.WriteLine($"Error al verificar configuraciï¿½n de notificaciones: {ex.Message}");
                 return false;
             }
         }

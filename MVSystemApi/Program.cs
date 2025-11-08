@@ -15,7 +15,14 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddControllersWithViews().AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore).AddRazorRuntimeCompilation();
+builder.Services.AddControllers().AddNewtonsoftJson(x => {
+    x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    x.SerializerSettings.ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+});
+builder.Services.AddControllersWithViews().AddNewtonsoftJson(x => {
+    x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    x.SerializerSettings.ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+}).AddRazorRuntimeCompilation();
 builder.Services.AddMvc(opt => opt.EnableActionInvokers = false);
 builder.Services.AddCors();
 builder.Services.AddDbContext<SEGURIDADContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString(@"MVSystemSeguridad")));
@@ -49,7 +56,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthorizationHandler, RolesAuthorizationHandler>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 
-// Configurar opciones de Facturación
+// Configurar opciones de Facturaciï¿½n
 builder.Services.Configure<FacturacionSettings>(builder.Configuration.GetSection("Facturacion"));
 
 #region CONFIGURE SERVICES
@@ -69,6 +76,7 @@ builder.Services.AddScoped<Utilidades_Negocio>();
 builder.Services.AddScoped<SeguridadService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PreFacturas_Negocio>();
+builder.Services.AddScoped<Inventario_Negocio>();
 
 #endregion
 
@@ -118,6 +126,8 @@ app.UseEndpoints(endpoints =>
     endpoints.MapControllers().RequireAuthorization();
 });
 
+#pragma warning disable CS0618
 RotativaConfiguration.Setup((Microsoft.AspNetCore.Hosting.IHostingEnvironment)app.Environment);
+#pragma warning restore CS0618
 
 app.Run();

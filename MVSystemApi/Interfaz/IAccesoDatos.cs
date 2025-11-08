@@ -10,6 +10,9 @@ namespace MVSystemApi.Interfaz
 {
     public interface IAccesoDatos
     {
+        // Propiedad para acceder a la cadena de conexión
+        string ConnectionString { get; }
+
         List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro);
        DataTable GetReparacionesLista(ReparacionConsultaFiltro filtro);
 

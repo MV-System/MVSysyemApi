@@ -19,6 +19,9 @@ namespace MVSystemApi.Model
         private readonly IMemoryCache _memoryCache;
         public static Int64 codigo;
 
+        // Propiedad pública para acceder a la cadena de conexión
+        public string ConnectionString => _connectionStrings;
+
         public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache)
         {
             _memoryCache = memoryCache;

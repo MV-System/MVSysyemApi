@@ -1,4 +1,4 @@
-﻿using DTO;
+using DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using MVSystemApi.Interfaz;
@@ -19,7 +19,7 @@ namespace MVSystemApi.Model
         private readonly IMemoryCache _memoryCache;
         public static Int64 codigo;
 
-        // Propiedad pública para acceder a la cadena de conexión
+        // Propiedad p�blica para acceder a la cadena de conexi�n
         public string ConnectionString => _connectionStrings;
 
         public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache)
@@ -54,9 +54,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public List<ReparacionReporteDTO> ObtenerReparaciones(ReparacionReporteFiltro filtro)
@@ -68,7 +68,7 @@ namespace MVSystemApi.Model
                 using var cmd = new SqlCommand("SP_Reparaciones_consulta_facturacion", cn); // Debes tener este SP en tu BD
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                // Agrega los parámetros según tu filtro
+                // Agrega los par�metros seg�n tu filtro
                 cmd.Parameters.AddWithValue("@IdReparacion", filtro.IdReparacion ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@IdCliente", filtro.IdCliente ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@FechaInicio", filtro.FechaInicio ?? (object)DBNull.Value);
@@ -130,9 +130,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         /// <summary>
@@ -159,9 +159,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         /// <summary>
@@ -186,9 +186,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }      
         /// <summary>
@@ -217,9 +217,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         /// <summary>
@@ -253,9 +253,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable GetFacturasReporte(FacturaFilter consulta)
@@ -277,9 +277,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         #region Accesorios
@@ -309,9 +309,9 @@ namespace MVSystemApi.Model
 
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         /// <summary>
@@ -348,9 +348,9 @@ namespace MVSystemApi.Model
 
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable GetAccesorios(Paginate paginate,string accesorio, int almacen)
@@ -373,10 +373,9 @@ namespace MVSystemApi.Model
 
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public DataTable GetAccesoriosVendidos(Paginate paginate, string filter, int almacen)
@@ -402,10 +401,9 @@ namespace MVSystemApi.Model
 
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public DataTable Accesorio_Insert(Accesorio Accesorio)
@@ -443,10 +441,9 @@ namespace MVSystemApi.Model
 
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
 
         }
@@ -528,10 +525,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public DataTable Cliente_Insert(Clientes clientes)
@@ -561,9 +557,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -595,9 +591,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente)
@@ -617,9 +613,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -640,9 +636,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio)
@@ -666,9 +662,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Cliente_FacturasPendientesDetalle(int cliente)
@@ -688,9 +684,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable GetTipo_Telefono_Lista()
@@ -709,9 +705,9 @@ namespace MVSystemApi.Model
                 da.Fill(dt);
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Tipos_Pagos_Cata_Consulta_Combo()
@@ -730,9 +726,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable GetTipos_Factura_Lista()
@@ -751,9 +747,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Accesorios_Consulta_Facturacion(int? Id_accesorio, int? id_sucu)
@@ -774,9 +770,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Vendedor_Consulta_Combo()
@@ -795,9 +791,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Get_Marcas_Combo()
@@ -816,9 +812,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Tipo_Cliente_Cata_Consulta_Combo()
@@ -837,9 +833,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Tipo_Suplidor_Cata_Consulta_Combo()
@@ -858,9 +854,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Get_Tegnologia_Combo()
@@ -1032,9 +1028,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -1066,10 +1062,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
 
         }  
@@ -1091,10 +1086,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
 
         }
@@ -1121,10 +1115,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
 
         }
@@ -1165,7 +1158,7 @@ namespace MVSystemApi.Model
         //    catch (Exception ex)
         //    {
 
-        //        throw ex;
+        //        throw;
         //    }
 
         //}
@@ -1185,10 +1178,10 @@ namespace MVSystemApi.Model
                 cmd.Parameters.Add("@ID_Modelo", SqlDbType.Int).Value = f.Modelo;
                 cmd.Parameters.Add("@PageIndex", SqlDbType.Int).Value = f.PageIndex;
                 cmd.Parameters.Add("@PageSize", SqlDbType.Int).Value = f.PageSize;
-                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.DateTime).Value = f.FechaInicio == DateTime.MinValue ? DBNull.Value : (object)f.FechaInicio;
-                cmd.Parameters.Add("@Fecha_Final", SqlDbType.DateTime).Value = f.FechaFinal == DateTime.MinValue ? DBNull.Value : (object)f.FechaFinal;
-                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.DateTime).Value = f.FechaInicioFactura == DateTime.MinValue ? DBNull.Value : (object)f.FechaInicioFactura;
-                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.DateTime).Value = f.FechaFinalFactura == DateTime.MinValue ? DBNull.Value : (object)f.FechaFinalFactura;
+                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaInicio) ? DBNull.Value : (object)f.FechaInicio;
+                cmd.Parameters.Add("@Fecha_Final", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaFinal) ? DBNull.Value : (object)f.FechaFinal;
+                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaInicioFactura) ? DBNull.Value : (object)f.FechaInicioFactura;
+                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaFinalFactura) ? DBNull.Value : (object)f.FechaFinalFactura;
 
                 using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                 {
@@ -1222,10 +1215,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
 
         }
@@ -1243,10 +1235,9 @@ namespace MVSystemApi.Model
 
                 return dr;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public SqlDataReader GetEquipoUltimoIdTransferencia()
@@ -1261,10 +1252,9 @@ namespace MVSystemApi.Model
                 cmd.CommandType = CommandType.StoredProcedure;
                 return dr;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal)
@@ -1289,10 +1279,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public DataTable GetDetalleTransferenciaEquipos(int IdTransferencia)
@@ -1314,10 +1303,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
 
@@ -1472,10 +1460,9 @@ namespace MVSystemApi.Model
                     return Factura;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-               
-                throw ex;
+                throw;
             }
         }
         public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura)
@@ -1497,10 +1484,9 @@ namespace MVSystemApi.Model
                     return Factura;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public string EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
@@ -1512,20 +1498,20 @@ namespace MVSystemApi.Model
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Agregar solo el parámetro de entrada @imei
+                    // Agregar solo el par�metro de entrada @imei
                     cmd.Parameters.AddWithValue("@IMEI", EditaDetalleFactura.EquipoActual);
                     cmd.Parameters.AddWithValue("@IMEI_Nuevo", EditaDetalleFactura.EquipoNuevo);
                     cmd.Parameters.AddWithValue("@Numero_Factura", EditaDetalleFactura.NumeroFactura);
                     cmd.Parameters.AddWithValue("@Usuario", EditaDetalleFactura.Usuario);
 
-                    // Crear el parámetro de salida para el mensaje
+                    // Crear el par�metro de salida para el mensaje
                     SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
                     {
-                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                        Direction = ParameterDirection.Output  // Definir como par�metro de salida
                     };
-                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
 
-                    // Abrir la conexión
+                    // Abrir la conexi�n
                     cn.Open();
                     cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
@@ -1598,9 +1584,9 @@ namespace MVSystemApi.Model
                 return dt;
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
 
 
@@ -1623,9 +1609,9 @@ namespace MVSystemApi.Model
                 return dt;
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public string Equipo_Delete(string imei, string Usuario)
@@ -1637,18 +1623,18 @@ namespace MVSystemApi.Model
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Agregar solo el parámetro de entrada @imei
+                    // Agregar solo el par�metro de entrada @imei
                     cmd.Parameters.AddWithValue("@imei", imei);
                     cmd.Parameters.AddWithValue("@Usuario", Usuario);
 
-                    // Crear el parámetro de salida para el mensaje
+                    // Crear el par�metro de salida para el mensaje
                     SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
                     {
-                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                        Direction = ParameterDirection.Output  // Definir como par�metro de salida
                     };
-                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
 
-                    // Abrir la conexión
+                    // Abrir la conexi�n
                     cn.Open();
                     cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
@@ -1691,9 +1677,9 @@ namespace MVSystemApi.Model
                 }
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public string AbonoAfactura(AbonoFacturaParam param)
@@ -1705,21 +1691,21 @@ namespace MVSystemApi.Model
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Agregar solo el parámetro de entrada @imei
+                    // Agregar solo el par�metro de entrada @imei
                     cmd.Parameters.AddWithValue("@IdCliente", param.Id_Cliente);
                     cmd.Parameters.AddWithValue("@Numero_Factura", param.NumeroFactura);
                     cmd.Parameters.AddWithValue("@MontoAbono", param.MontoAbono);
                     cmd.Parameters.AddWithValue("@Id_Sucursal", param.IdSucursal);
                     cmd.Parameters.AddWithValue("@Usuario", param.Usuario);
 
-                    // Crear el parámetro de salida para el mensaje
+                    // Crear el par�metro de salida para el mensaje
                     SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
                     {
-                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                        Direction = ParameterDirection.Output  // Definir como par�metro de salida
                     };
-                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
 
-                    // Abrir la conexión
+                    // Abrir la conexi�n
                     cn.Open();
                     cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
@@ -1745,19 +1731,19 @@ namespace MVSystemApi.Model
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Agregar solo el parámetro de entrada @imei
+                    // Agregar solo el par�metro de entrada @imei
                     cmd.Parameters.AddWithValue("@IdCliente", param.Id_Cliente);
                     cmd.Parameters.AddWithValue("@MontoAbono", param.MontoAbono);
                     cmd.Parameters.AddWithValue("@Usuario", param.Usuario);
 
-                    // Crear el parámetro de salida para el mensaje
+                    // Crear el par�metro de salida para el mensaje
                     SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
                     {
-                        Direction = ParameterDirection.Output  // Definir como parámetro de salida
+                        Direction = ParameterDirection.Output  // Definir como par�metro de salida
                     };
-                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el parámetro de salida
+                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
 
-                    // Abrir la conexión
+                    // Abrir la conexi�n
                     cn.Open();
                     cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
@@ -1796,9 +1782,9 @@ namespace MVSystemApi.Model
                 cmd.ExecuteNonQuery();
                 cn.Close();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -1826,9 +1812,9 @@ namespace MVSystemApi.Model
                 cmd.ExecuteNonQuery();
                 cn.Close();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -1849,9 +1835,9 @@ namespace MVSystemApi.Model
                 cmd.ExecuteNonQuery();
                 cn.Close();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -1871,9 +1857,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
         public DataTable Modelo_Insert(Modelos Modelo)
@@ -1894,9 +1880,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -1950,9 +1936,9 @@ namespace MVSystemApi.Model
 
               
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
 
             }
         }
@@ -1982,10 +1968,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
         }
         public DataTable Reparaciones_Insert(ReparacionesInsert Reparaciones)
@@ -2050,9 +2035,9 @@ namespace MVSystemApi.Model
                 return dt;
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2103,9 +2088,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2124,9 +2109,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2156,9 +2141,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2189,9 +2174,9 @@ namespace MVSystemApi.Model
                     Mensaje = mensajeParam.Value
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2211,9 +2196,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2256,9 +2241,9 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -2281,13 +2266,13 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return new { Mensaje = mensajeParam.Value };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
-        #region Métodos Asíncronos para Tracking
+        #region M�todos As�ncronos para Tracking
 
         public async Task<T> ExecuteScalarAsync<T>(string query, params SqlParameter[] parameters)
         {
@@ -2323,3 +2308,4 @@ namespace MVSystemApi.Model
         #endregion
     }
 }
+

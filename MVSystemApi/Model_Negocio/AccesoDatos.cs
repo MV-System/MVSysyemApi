@@ -1178,17 +1178,17 @@ namespace MVSystemApi.Model
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@Almacen", SqlDbType.Int).Value = f.Almacen;
-                cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 50).Value = f.Imei ?? "";
-                cmd.Parameters.Add("@Suplidor", SqlDbType.Int).Value = f.Suplidor;
-                cmd.Parameters.Add("@Vendedor", SqlDbType.Int).Value = f.Vendedor;
-                cmd.Parameters.AddWithValue("@Telefono", f.Telefono);
+                cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 30).Value = f.Imei ?? "";
+                cmd.Parameters.Add("@Telefono", SqlDbType.BigInt).Value = f.Telefono;
+                cmd.Parameters.Add("@Suplidor", SqlDbType.VarChar, 150).Value = f.Suplidor ?? "";
+                cmd.Parameters.Add("@Vendedor", SqlDbType.VarChar, 150).Value = f.Vendedor ?? "";
                 cmd.Parameters.Add("@ID_Modelo", SqlDbType.Int).Value = f.Modelo;
                 cmd.Parameters.Add("@PageIndex", SqlDbType.Int).Value = f.PageIndex;
                 cmd.Parameters.Add("@PageSize", SqlDbType.Int).Value = f.PageSize;
-                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.DateTime).Value = f.FechaInicio;
-                cmd.Parameters.Add("@Fecha_Final", SqlDbType.DateTime).Value = f.FechaFinal;
-                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.DateTime).Value = f.FechaInicioFactura;
-                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.DateTime).Value = f.FechaFinalFactura;
+                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.DateTime).Value = f.FechaInicio == DateTime.MinValue ? DBNull.Value : (object)f.FechaInicio;
+                cmd.Parameters.Add("@Fecha_Final", SqlDbType.DateTime).Value = f.FechaFinal == DateTime.MinValue ? DBNull.Value : (object)f.FechaFinal;
+                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.DateTime).Value = f.FechaInicioFactura == DateTime.MinValue ? DBNull.Value : (object)f.FechaInicioFactura;
+                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.DateTime).Value = f.FechaFinalFactura == DateTime.MinValue ? DBNull.Value : (object)f.FechaFinalFactura;
 
                 using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                 {

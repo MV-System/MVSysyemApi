@@ -1178,10 +1178,10 @@ namespace MVSystemApi.Model
                 cmd.Parameters.Add("@ID_Modelo", SqlDbType.Int).Value = f.Modelo;
                 cmd.Parameters.Add("@PageIndex", SqlDbType.Int).Value = f.PageIndex;
                 cmd.Parameters.Add("@PageSize", SqlDbType.Int).Value = f.PageSize;
-                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaInicio) ? DBNull.Value : (object)f.FechaInicio;
-                cmd.Parameters.Add("@Fecha_Final", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaFinal) ? DBNull.Value : (object)f.FechaFinal;
-                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaInicioFactura) ? DBNull.Value : (object)f.FechaInicioFactura;
-                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.DateTime).Value = string.IsNullOrEmpty(f.FechaFinalFactura) ? DBNull.Value : (object)f.FechaFinalFactura;
+                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.VarChar, 50).Value = f.FechaInicio ?? "";
+                cmd.Parameters.Add("@Fecha_Final", SqlDbType.VarChar, 50).Value = f.FechaFinal ?? "";
+                cmd.Parameters.Add("@Fecha_factura_Inicial", SqlDbType.VarChar, 50).Value = f.FechaInicioFactura ?? "";
+                cmd.Parameters.Add("@Fecha_factura_Final", SqlDbType.VarChar, 50).Value = f.FechaFinalFactura ?? "";
 
                 using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                 {

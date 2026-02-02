@@ -20,9 +20,10 @@ let isReady = false;
 let qrCodeGenerated = false;
 let lastQRCode = ''; // Almacenar último QR para mostrarlo como imagen
 
-// Inicializar cliente de WhatsApp
+// Inicializar cliente de WhatsApp - DESACTIVADO TEMPORALMENTE
 console.log('🚀 Iniciando servicio de WhatsApp para MVSystem...');
 
+/*
 whatsappClient = new Client({
     authStrategy: new LocalAuth({
         clientId: 'mvsystem-tracking',
@@ -41,7 +42,10 @@ whatsappClient = new Client({
         ]
     }
 });
+*/
 
+// ========== EVENT LISTENERS - DESACTIVADOS TEMPORALMENTE ==========
+/*
 // Evento: Generación de QR Code
 whatsappClient.on('qr', (qr) => {
     console.log('\n📱 ESCANEA ESTE CÓDIGO QR CON TU WHATSAPP:\n');
@@ -87,6 +91,7 @@ whatsappClient.on('message', async(msg) => {
 
 // Inicializar cliente
 whatsappClient.initialize();
+*/
 
 // ========== ENDPOINTS REST API ==========
 

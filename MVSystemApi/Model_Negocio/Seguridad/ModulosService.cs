@@ -39,9 +39,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<ModuloResponseDTO>> ObtenerTodos()
         {
             var modulos = new List<ModuloResponseDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -72,9 +71,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
         public async Task<ModuloResponseDTO> ObtenerPorCodigo(int codigo)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -106,9 +103,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<ModuloResponseDTO>> ObtenerPorSistema(int codigoSistema)
         {
             var modulos = new List<ModuloResponseDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -145,14 +141,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (await NombreExiste(dto.Nombre))
                 throw new Exception($"El módulo '{dto.Nombre}' ya existe");
 
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO seg.Modulos (Nombre, Descripcion, Sistema, Estado, FechaRegistro)
-                VALUES (@Nombre, @Descripcion, @Sistema, @Estado, GETDATE());
+                INSERT INTO seg.Modulos (Nombre, Descripcion, Sistema, Estado, FechaRegistro, EstadoRegistro)
+                VALUES (@Nombre, @Descripcion, @Sistema, @Estado, GETDATE(), 'A');
                 SELECT SCOPE_IDENTITY();", conn);
 
             cmd.Parameters.AddWithValue("@Nombre", dto.Nombre);
@@ -161,14 +155,14 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var resultado = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(resultado);
+            var codigoModulo = Convert.ToInt32(resultado);
+            Console.WriteLine($"✅ Módulo {codigoModulo} creado en SEGURIDAD");
+            return codigoModulo;
         }
 
         public async Task<bool> Actualizar(ActualizarModuloDTO dto)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -187,14 +181,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"✅ Módulo {dto.Codigo} actualizado en SEGURIDAD");
             return filasAfectadas > 0;
         }
 
         public async Task<bool> Eliminar(int codigo)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             // Primero eliminar permisos relacionados
@@ -207,14 +200,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Codigo", codigo);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"✅ Módulo {codigo} eliminado de SEGURIDAD");
             return filasAfectadas > 0;
         }
 
         private async Task<bool> NombreExiste(string nombre)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand("SELECT COUNT(*) FROM seg.Modulos WHERE Nombre = @Nombre", conn);

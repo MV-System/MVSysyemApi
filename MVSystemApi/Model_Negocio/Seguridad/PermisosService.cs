@@ -38,14 +38,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
 
         /// <summary>
-        /// Obtiene todos los permisos del sistema
+        /// Obtiene todos los permisos del sistema desde SEGURIDAD
         /// </summary>
         public async Task<List<PermisoResponseDTO>> ObtenerTodosPermisos()
         {
             var permisos = new List<PermisoResponseDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -76,14 +75,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
 
         /// <summary>
-        /// Obtiene permisos de un módulo específico
+        /// Obtiene permisos de un módulo específico desde SEGURIDAD
         /// </summary>
         public async Task<List<PermisoResponseDTO>> ObtenerPermisosPorModulo(int codigoModulo)
         {
             var permisos = new List<PermisoResponseDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -121,9 +119,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<PermisoResponseDTO> ObtenerPermisoPorCodigo(int codigoPermiso)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -161,9 +157,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (await NombrePermisoExiste(permisoDTO.Nombre))
                 throw new Exception($"El permiso '{permisoDTO.Nombre}' ya existe");
 
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -178,20 +172,20 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", permisoDTO.Estado ?? 1);
 
             var resultado = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(resultado);
+            var codigoPermiso = Convert.ToInt32(resultado);
+            
+            Console.WriteLine($"✅ Permiso {codigoPermiso} creado en SEGURIDAD");
+            return codigoPermiso;
         }
 
         /// <summary>
-        /// <summary>
-        /// Actualiza un permiso
+        /// Actualiza un permiso en SEGURIDAD
         /// </summary>
         public async Task<bool> ActualizarPermiso(ActualizarPermisoDTO permisoDTO)
         {
             Console.WriteLine($"🔍 ActualizarPermiso - Datos recibidos: Código={permisoDTO.Codigo}, Nombre={permisoDTO.Nombre}, Basico={permisoDTO.Basico}, Estado={permisoDTO.Estado}");
 
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             // Si Estado no viene o es inválido, dejar el actual
@@ -229,13 +223,11 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
 
         /// <summary>
-        /// Elimina un permiso
+        /// Elimina un permiso (SEGURIDAD es la única fuente de verdad)
         /// </summary>
         public async Task<bool> EliminarPermiso(int codigoPermiso)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             // Primero eliminar las relaciones
@@ -251,14 +243,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Codigo", codigoPermiso);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"✅ Permiso {codigoPermiso} eliminado de SEGURIDAD");
             return filasAfectadas > 0;
         }
 
         private async Task<bool> NombrePermisoExiste(string nombrePermiso)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand("SELECT COUNT(*) FROM seg.Permisos WHERE Nombre = @Nombre", conn);

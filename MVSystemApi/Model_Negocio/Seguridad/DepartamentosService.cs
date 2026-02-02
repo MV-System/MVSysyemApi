@@ -39,9 +39,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<DepartamentoResponseDTO>> ObtenerTodos()
         {
             var departamentos = new List<DepartamentoResponseDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -68,9 +67,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
         public async Task<DepartamentoResponseDTO> ObtenerPorCodigo(int codigo)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -100,14 +97,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (await NombreExiste(dto.Nombre))
                 throw new Exception($"El departamento '{dto.Nombre}' ya existe");
 
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO seg.Departamentos (Nombre, Descripcion, Estado, FechaRegistro)
-                VALUES (@Nombre, @Descripcion, @Estado, GETDATE());
+                INSERT INTO seg.Departamentos (Nombre, Descripcion, Estado, FechaRegistro, EstadoRegistro)
+                VALUES (@Nombre, @Descripcion, @Estado, GETDATE(), 'A');
                 SELECT SCOPE_IDENTITY();", conn);
 
             cmd.Parameters.AddWithValue("@Nombre", dto.Nombre);
@@ -115,14 +110,14 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var resultado = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(resultado);
+            var codigoDepartamento = Convert.ToInt32(resultado);
+            Console.WriteLine($"✅ Departamento {codigoDepartamento} creado en SEGURIDAD");
+            return codigoDepartamento;
         }
 
         public async Task<bool> Actualizar(ActualizarDepartamentoDTO dto)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -139,28 +134,26 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"✅ Departamento {dto.Codigo} actualizado en SEGURIDAD");
             return filasAfectadas > 0;
         }
 
         public async Task<bool> Eliminar(int codigo)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand("DELETE FROM seg.Departamentos WHERE Codigo = @Codigo", conn);
             cmd.Parameters.AddWithValue("@Codigo", codigo);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"✅ Departamento {codigo} eliminado de SEGURIDAD");
             return filasAfectadas > 0;
         }
 
         private async Task<bool> NombreExiste(string nombre)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand("SELECT COUNT(*) FROM seg.Departamentos WHERE Nombre = @Nombre", conn);

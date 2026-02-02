@@ -42,9 +42,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<PerfilDTO>> ObtenerTodosPerfiles()
         {
             var perfiles = new List<PerfilDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -75,9 +74,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<PerfilDTO> ObtenerPerfilPorCodigo(int codigoPerfil)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -107,14 +104,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<int> CrearPerfil(CrearPerfilDTO dto)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO seg.Perfiles (Nombre, Descripcion, Sistema, Estado, FechaRegistro)
-                VALUES (@Nombre, @Descripcion, @Sistema, @Estado, GETDATE());
+                INSERT INTO seg.Perfiles (Nombre, Descripcion, Sistema, Estado, FechaRegistro, EstadoRegistro)
+                VALUES (@Nombre, @Descripcion, @Sistema, @Estado, GETDATE(), 'A');
                 SELECT SCOPE_IDENTITY();", conn);
 
             cmd.Parameters.AddWithValue("@Nombre", dto.Nombre);
@@ -123,7 +118,9 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var resultado = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(resultado);
+            var codigoPerfil = Convert.ToInt32(resultado);
+            Console.WriteLine($"✅ Perfil {codigoPerfil} creado en SEGURIDAD");
+            return codigoPerfil;
         }
 
         /// <summary>
@@ -131,9 +128,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> ActualizarPerfil(ActualizarPerfilDTO dto)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -150,6 +145,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            Console.WriteLine($"✅ Perfil {dto.Codigo} actualizado en SEGURIDAD");
             return filasAfectadas > 0;
         }
 
@@ -158,9 +154,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> AsignarPermisosAlPerfil(int codigoPerfil, List<int> permisosIds)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var transaction = conn.BeginTransaction();
@@ -176,19 +170,21 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 foreach (var permisoId in permisosIds)
                 {
                     using var cmdInsert = new SqlCommand(
-                        @"INSERT INTO seg.PermisosPerfiles (Perfil, Permiso, Estado, FechaRegistro)
-                        VALUES (@Perfil, @Permiso, 1, GETDATE())", conn, transaction);
+                        @"INSERT INTO seg.PermisosPerfiles (Perfil, Permiso, Estado, FechaRegistro, EstadoRegistro)
+                        VALUES (@Perfil, @Permiso, 1, GETDATE(), 'A')", conn, transaction);
                     cmdInsert.Parameters.AddWithValue("@Perfil", codigoPerfil);
                     cmdInsert.Parameters.AddWithValue("@Permiso", permisoId);
                     await cmdInsert.ExecuteNonQueryAsync();
                 }
 
                 transaction.Commit();
+                Console.WriteLine($"✅ Permisos asignados al perfil {codigoPerfil} en SEGURIDAD");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
                 transaction.Rollback();
+                Console.WriteLine($"⚠️ Error asignando permisos al perfil {codigoPerfil}: {ex.Message}");
                 throw;
             }
         }
@@ -198,9 +194,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> EliminarPerfil(int codigo)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var transaction = conn.BeginTransaction();
@@ -219,11 +213,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 var filasAfectadas = await cmdDelete.ExecuteNonQueryAsync();
 
                 transaction.Commit();
+                Console.WriteLine($"✅ Perfil {codigo} eliminado de SEGURIDAD");
                 return filasAfectadas > 0;
             }
-            catch
+            catch (Exception ex)
             {
                 transaction.Rollback();
+                Console.WriteLine($"⚠️ Error eliminando perfil {codigo}: {ex.Message}");
                 throw;
             }
         }

@@ -70,6 +70,10 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 var empresa = await GetUserEmpresa(usuarioDb.Id_Empresa); // Obtener la empresa de manera asíncrona
                 usuarioDb.Empresa = empresa.NombreEmpresa;
                 usuarioDb.EmpresaMostrar = empresa.NombreEmpresaMostrar;
+                
+                // Obtener el Perfil de la tabla seg.Usuarios de la base de datos de la empresa (por Login)
+                var connectionStringEmpresa = GetConnStringByUser(usuarioDb.Login);
+                usuarioDb.Perfil = await GetPerfilUsuario(usuarioDb.Login, connectionStringEmpresa);
             }
 
             if (usuarioDb == null || usuarioIn.Password != AES.Decrypt(usuarioDb.Password))
@@ -79,6 +83,27 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             var roles = await GetRoles(usuarioDb.Login, conecion);
             return jwtService.BuildToken(usuarioDb, roles);
         }
+
+        private async Task<int> GetPerfilUsuario(string login, string connectionString)
+        {
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand("SELECT [Perfil] FROM [seg].[Usuarios] WHERE [Login] = @Login", conn);
+                cmd.Parameters.AddWithValue("@Login", login);
+
+                var result = await cmd.ExecuteScalarAsync();
+                return result != null && result != DBNull.Value ? (int)result : 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error obteniendo perfil del usuario: {ex.Message}");
+                return 0;
+            }
+        }
+
         public async Task<EmpresaDTO> GetUserEmpresa(int idEmpresa)
         {
             using var dataTable = new DataTable();

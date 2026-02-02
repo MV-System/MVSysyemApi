@@ -78,6 +78,15 @@ builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PreFacturas_Negocio>();
 builder.Services.AddScoped<Inventario_Negocio>();
 
+// Servicios de Seguridad
+builder.Services.AddScoped<UsuariosService>();
+builder.Services.AddScoped<PermisosService>();
+builder.Services.AddScoped<RolesService>();  // RolesService hereda de PerfilesService
+builder.Services.AddScoped<AsignacionesService>();
+builder.Services.AddScoped<DepartamentosService>();
+builder.Services.AddScoped<ModulosService>();
+builder.Services.AddScoped<SistemasService>();
+
 #endregion
 
 var app = builder.Build();
@@ -110,7 +119,7 @@ else
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT").AllowAnyHeader());
+app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader());
 
 app.UseAuthentication();
 app.UseAuthorization();

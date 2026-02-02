@@ -28,6 +28,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         new Claim(JwtRegisteredClaimNames.Name, user.Login),
         new Claim(JwtRegisteredClaimNames.GivenName, user.Nombre),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new Claim("Perfil", user.Perfil.ToString()),
     };
 
             // Añadir los roles al token (sin incluir sucursal en el arreglo de roles)

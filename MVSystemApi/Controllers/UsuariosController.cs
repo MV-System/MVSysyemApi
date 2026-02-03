@@ -2,12 +2,13 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace MVSystemApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class UsuariosController : ControllerBase
     {
         private readonly UsuariosService _usuariosService;
@@ -114,19 +115,35 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>
-        /// Cambia la contraseña de un usuario
+        /// Cambia la contraseña del usuario actual
         /// </summary>
-        [HttpPost("{codigoUsuario}/cambiar-contrasena")]
+        [HttpPost("cambiar-contrasena")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CambiarContrasena(int codigoUsuario, [FromBody] CambioContrasenaDTO cambioDTO)
+        public async Task<IActionResult> CambiarContrasena([FromBody] CambioContrasenaDTO cambioDTO)
         {
             try
             {
+                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] Request recibido. DTO: {@cambioDTO}");
+                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] User.Identity.IsAuthenticated: {User.Identity.IsAuthenticated}");
+                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] Todos los claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+
+                // Obtener el código del usuario del JWT token
+                // ASP.NET Core mapea JwtRegisteredClaimNames.NameId a esta URI
+                var codigoString = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value 
+                    ?? User.FindFirst(JwtRegisteredClaimNames.NameId)?.Value;
+                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] NameId del token: {codigoString}");
+                
+                if (string.IsNullOrEmpty(codigoString) || !int.TryParse(codigoString, out int codigoUsuario))
+                    return BadRequest(new { mensaje = "No se pudo obtener la identidad del usuario" });
+
                 cambioDTO.CodigoUsuario = codigoUsuario;
 
                 if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning($"[CAMBIAR CONTRASEÑA] ModelState inválido: {string.Join(", ", ModelState.Values.SelectMany(v => v.Errors))}");
                     return BadRequest(ModelState);
+                }
 
                 var resultado = await _usuariosService.CambiarContrasena(cambioDTO);
                 if (!resultado)

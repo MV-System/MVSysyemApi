@@ -37,12 +37,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 claims.Add(new Claim("role", rol.Nombre));
             }
 
-            // Añadir solo un ID de sucursal en lugar de un arreglo
-            var sucursalId = roles.FirstOrDefault()?.IdSucursal;
-            if (sucursalId.HasValue)
-            {
-                claims.Add(new Claim("idSucursal", sucursalId.Value.ToString()));
-            }
+            // Añadir el ID de sucursal directamente de la tabla Usuarios (no de los roles)
+            claims.Add(new Claim("idSucursal", user.Id_Sucursal.ToString()));
 
             claims.Add(new Claim("IdEmpresa", user.Id_Empresa.ToString()));
             claims.Add(new Claim("Empresa", user.Empresa));

@@ -94,6 +94,9 @@ var app = builder.Build();
 var whatsappService = app.Services.GetRequiredService<WhatsAppService>();
 var autoStart = builder.Configuration.GetValue<bool>("WhatsApp:AutoStart");
 
+// Desactivar servicio WhatsApp al iniciar la API
+autoStart = false;
+
 if (autoStart)
 {
     _ = Task.Run(async () =>

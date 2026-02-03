@@ -40,24 +40,33 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
 
         /// <summary>
-        /// Obtiene todos los usuarios del sistema
+        /// Obtiene todos los usuarios del sistema filtrados por empresa del usuario logueado
+        /// Lee usuarios y roles de SEGURIDAD, filtra por sucursal del usuario logueado
         /// </summary>
         public async Task<List<UsuarioResponseDTO>> ObtenerTodosUsuarios()
         {
             var usuarios = new List<UsuarioResponseDTO>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
+            
+            // Obtener IdEmpresa del token
+            var idEmpresa = _httpContextAccessor.HttpContext?.User?.FindFirst("IdEmpresa")?.Value;
+            
+            if (string.IsNullOrEmpty(idEmpresa))
+                throw new Exception("No se encontró IdEmpresa en el token");
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
                 SELECT u.Codigo, u.Nombre, u.Login, u.Descripcion, u.Perfil, p.Nombre as NombrePerfil,
-                       u.Departamento, d.Nombre as NombreDepartamento, u.Estado, u.Id_Sucursal,
+                       u.Departamento, d.Nombre as NombreDepartamento, u.Estado, u.Id_Sucursal, u.Id_Empresa,
                        u.FechaRegistro, u.FechaModificado
-                FROM seg.Usuarios u
+                FROM [Usuarios] u
                 LEFT JOIN seg.Perfiles p ON u.Perfil = p.Codigo
                 LEFT JOIN seg.Departamentos d ON u.Departamento = d.Codigo
+                WHERE u.Id_Empresa = @IdEmpresa
                 ORDER BY u.Nombre", conn);
+            
+            cmd.Parameters.AddWithValue("@IdEmpresa", int.Parse(idEmpresa));
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -73,6 +82,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                     Departamento = reader["Departamento"] == DBNull.Value ? null : (int)reader["Departamento"],
                     NombreDepartamento = reader["NombreDepartamento"].ToString(),
                     Estado = reader["Estado"] == DBNull.Value ? null : (int)reader["Estado"],
+                    Id_Empresa = reader["Id_Empresa"] == DBNull.Value ? null : (int)reader["Id_Empresa"],
                     Id_Sucursal = reader["Id_Sucursal"] == DBNull.Value ? null : (int)reader["Id_Sucursal"],
                     FechaRegistro = reader["FechaRegistro"] == DBNull.Value ? null : (DateTime)reader["FechaRegistro"],
                     FechaModificado = reader["FechaModificado"] == DBNull.Value ? null : (DateTime)reader["FechaModificado"]
@@ -87,14 +97,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<UsuarioConPermisosDTO> ObtenerUsuarioPorCodigo(int codigoUsuario)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
                 SELECT u.Codigo, u.Nombre, u.Login, u.Estado, u.Perfil, p.Nombre as NombrePerfil
-                FROM seg.Usuarios u
+                FROM [Usuarios] u
                 LEFT JOIN seg.Perfiles p ON u.Perfil = p.Codigo
                 WHERE u.Codigo = @Codigo", conn);
 
@@ -147,7 +155,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             var passwordEncriptada = AES.Encrypt(usuarioDTO.Password);
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO seg.Usuarios (Nombre, Login, Password, Departamento, Descripcion, Perfil, Id_Sucursal, Estado, FechaRegistro)
+                INSERT INTO [Usuarios] (Nombre, Login, Password, Departamento, Descripcion, Perfil, Id_Sucursal, Estado, FechaRegistro)
                 VALUES (@Nombre, @Login, @Password, @Departamento, @Descripcion, @Perfil, @Id_Sucursal, @Estado, GETDATE());
                 SELECT SCOPE_IDENTITY();", conn);
 
@@ -176,7 +184,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
             // Si Estado no viene o viene como null/0, no lo actualizamos
             string updateStatement = @"
-                UPDATE seg.Usuarios
+                UPDATE [Usuarios]
                 SET Nombre = @Nombre,
                     Descripcion = @Descripcion,
                     Perfil = @Perfil,
@@ -213,77 +221,44 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> CambiarContrasena(CambioContrasenaDTO cambioDTO)
         {
-            if (cambioDTO.ContraseñaNueva != cambioDTO.ConfirmarContraseña)
-                throw new Exception("Las contraseñas no coinciden");
-
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
-            await conn.OpenAsync();
-
-            // Obtener contraseña actual y login
-            using var cmd = new SqlCommand("SELECT Password, Login FROM seg.Usuarios WHERE Codigo = @Codigo", conn);
-            cmd.Parameters.AddWithValue("@Codigo", cambioDTO.CodigoUsuario);
-
-            string login = null;
-            var passwordEncriptada = await cmd.ExecuteScalarAsync();
-            
-            using var readerCmd = new SqlCommand("SELECT Password, Login FROM seg.Usuarios WHERE Codigo = @Codigo", conn);
-            readerCmd.Parameters.AddWithValue("@Codigo", cambioDTO.CodigoUsuario);
-            using var reader = await readerCmd.ExecuteReaderAsync();
-            
-            if (!await reader.ReadAsync())
-                throw new Exception("Usuario no encontrado");
-            
-            passwordEncriptada = reader["Password"];
-            login = reader["Login"].ToString();
-
-            var passwordDesencriptada = AES.Decrypt(passwordEncriptada.ToString());
-            if (cambioDTO.ContraseñaActual != passwordDesencriptada)
-                throw new Exception("La contraseña actual es incorrecta");
-
-            var passwordNuevaEncriptada = AES.Encrypt(cambioDTO.ContraseñaNueva);
-
-            // Actualizar contraseña en la tabla de la empresa
-            using var cmdUpdate = new SqlCommand(
-                "UPDATE seg.Usuarios SET Password = @PasswordNueva, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
-
-            cmdUpdate.Parameters.AddWithValue("@Codigo", cambioDTO.CodigoUsuario);
-            cmdUpdate.Parameters.AddWithValue("@PasswordNueva", passwordNuevaEncriptada);
-
-            var filasAfectadas = await cmdUpdate.ExecuteNonQueryAsync();
-            if (filasAfectadas == 0)
-                throw new Exception("No se pudo actualizar la contraseña en la tabla de la empresa");
-            
-            // También actualizar la contraseña en la base de datos SEGURIDAD usando el Login
-            using var connSeguridad = new SqlConnection(_connectionStringSeguridad);
-            await connSeguridad.OpenAsync();
-
-            using var cmdUpdateSeguridad = new SqlCommand(
-                "UPDATE dbo.Usuarios SET Password = @PasswordNueva, FechaModificado = GETDATE() WHERE Login = @Login", connSeguridad);
-
-            cmdUpdateSeguridad.Parameters.AddWithValue("@Login", login);
-            cmdUpdateSeguridad.Parameters.AddWithValue("@PasswordNueva", passwordNuevaEncriptada);
-
-            var filasAfectadasSeguridad = await cmdUpdateSeguridad.ExecuteNonQueryAsync();
-            
-            // Si no se actualizó en SEGURIDAD, lanzar excepción detallada
-            if (filasAfectadasSeguridad == 0)
+            try
             {
-                // Verificar si el usuario existe en SEGURIDAD con ese login
-                using var connVerif = new SqlConnection(_connectionStringSeguridad);
-                await connVerif.OpenAsync();
-                using var cmdVerif = new SqlCommand("SELECT COUNT(*) FROM dbo.Usuarios WHERE Login = @Login", connVerif);
-                cmdVerif.Parameters.AddWithValue("@Login", login);
-                var exists = (int)await cmdVerif.ExecuteScalarAsync();
-                
-                if (exists == 0)
-                    throw new Exception($"Usuario con login '{login}' no existe en la base de datos SEGURIDAD");
-                else
-                    throw new Exception($"No se pudo actualizar la contraseña en la base de datos SEGURIDAD para login '{login}'");
-            }
+                if (cambioDTO.ContrasenaNueva != cambioDTO.ConfirmarContrasena)
+                    throw new Exception("Las contraseñas no coinciden");
 
-            return true;
+                // Usar la conexión de SEGURIDAD directamente
+                using var conn = new SqlConnection(_connectionStringSeguridad);
+                await conn.OpenAsync();
+
+                // Obtener contraseña actual
+                using var cmd = new SqlCommand("SELECT Password FROM [Usuarios] WHERE Codigo = @Codigo", conn);
+                cmd.Parameters.AddWithValue("@Codigo", cambioDTO.CodigoUsuario);
+
+                var passwordEncriptadaObj = await cmd.ExecuteScalarAsync();
+                
+                if (passwordEncriptadaObj == null)
+                    throw new Exception("Usuario no encontrado");
+                
+                var passwordDesencriptada = AES.Decrypt(passwordEncriptadaObj.ToString());
+                if (cambioDTO.ContrasenaActual != passwordDesencriptada)
+                    throw new Exception("La contraseña actual es incorrecta");
+
+                var passwordNuevaEncriptada = AES.Encrypt(cambioDTO.ContrasenaNueva);
+
+                // Actualizar contraseña en SEGURIDAD
+                using var cmdUpdate = new SqlCommand(
+                    "UPDATE [Usuarios] SET Password = @PasswordNueva, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
+
+                cmdUpdate.Parameters.AddWithValue("@Codigo", cambioDTO.CodigoUsuario);
+                cmdUpdate.Parameters.AddWithValue("@PasswordNueva", passwordNuevaEncriptada);
+
+                var filasAfectadas = await cmdUpdate.ExecuteNonQueryAsync();
+                return filasAfectadas > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al cambiar contraseña: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -291,60 +266,36 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> CambiarContrasenaAdmin(int codigoUsuario, string nuevaContrasena)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
-            await conn.OpenAsync();
-
-            // Obtener el login del usuario
-            using var cmdLogin = new SqlCommand("SELECT Login FROM seg.Usuarios WHERE Codigo = @Codigo", conn);
-            cmdLogin.Parameters.AddWithValue("@Codigo", codigoUsuario);
-            var login = await cmdLogin.ExecuteScalarAsync();
-            
-            if (login == null)
-                throw new Exception("Usuario no encontrado en la tabla de la empresa");
-
-            var passwordEncriptada = AES.Encrypt(nuevaContrasena);
-
-            using var cmd = new SqlCommand(
-                "UPDATE seg.Usuarios SET Password = @Password, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
-
-            cmd.Parameters.AddWithValue("@Codigo", codigoUsuario);
-            cmd.Parameters.AddWithValue("@Password", passwordEncriptada);
-
-            var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            if (filasAfectadas == 0)
-                throw new Exception("No se pudo actualizar la contraseña en la tabla de la empresa");
-            
-            // También actualizar la contraseña en la base de datos SEGURIDAD usando el Login
-            using var connSeguridad = new SqlConnection(_connectionStringSeguridad);
-            await connSeguridad.OpenAsync();
-
-            using var cmdSeguridad = new SqlCommand(
-                "UPDATE dbo.Usuarios SET Password = @Password, FechaModificado = GETDATE() WHERE Login = @Login", connSeguridad);
-
-            cmdSeguridad.Parameters.AddWithValue("@Login", login.ToString());
-            cmdSeguridad.Parameters.AddWithValue("@Password", passwordEncriptada);
-
-            var filasAfectadasSeguridad = await cmdSeguridad.ExecuteNonQueryAsync();
-            
-            // Si no se actualizó en SEGURIDAD, lanzar excepción detallada
-            if (filasAfectadasSeguridad == 0)
+            try
             {
-                // Verificar si el usuario existe en SEGURIDAD
-                using var connVerif = new SqlConnection(_connectionStringSeguridad);
-                await connVerif.OpenAsync();
-                using var cmdVerif = new SqlCommand("SELECT COUNT(*) FROM dbo.Usuarios WHERE Login = @Login", connVerif);
-                cmdVerif.Parameters.AddWithValue("@Login", login.ToString());
-                var exists = (int)await cmdVerif.ExecuteScalarAsync();
-                
-                if (exists == 0)
-                    throw new Exception($"Usuario con login '{login}' no existe en la base de datos SEGURIDAD");
-                else
-                    throw new Exception($"No se pudo actualizar la contraseña en la base de datos SEGURIDAD para login '{login}'");
-            }
+                // Obtener el login del usuario desde SEGURIDAD
+                using var connSeguridad = new SqlConnection(_connectionStringSeguridad);
+                await connSeguridad.OpenAsync();
 
-            return true;
+                using var cmdLogin = new SqlCommand("SELECT Login FROM [Usuarios] WHERE Codigo = @Codigo", connSeguridad);
+                cmdLogin.Parameters.AddWithValue("@Codigo", codigoUsuario);
+                var login = await cmdLogin.ExecuteScalarAsync();
+                
+                if (login == null)
+                    throw new Exception("Usuario no encontrado en la base de datos SEGURIDAD");
+
+                var passwordEncriptada = AES.Encrypt(nuevaContrasena);
+
+                // Actualizar la contraseña en la base de datos SEGURIDAD
+                using var cmdUpdate = new SqlCommand(
+                    "UPDATE [Usuarios] SET Password = @Password, FechaModificado = GETDATE() WHERE Codigo = @Codigo", connSeguridad);
+
+                cmdUpdate.Parameters.AddWithValue("@Codigo", codigoUsuario);
+                cmdUpdate.Parameters.AddWithValue("@Password", passwordEncriptada);
+
+                var filasAfectadas = await cmdUpdate.ExecuteNonQueryAsync();
+                
+                return filasAfectadas > 0;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al cambiar contraseña del administrador: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -358,7 +309,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(
-                "UPDATE seg.Usuarios SET Estado = 0, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
+                "UPDATE [Usuarios] SET Estado = 0, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
 
             cmd.Parameters.AddWithValue("@Codigo", codigoUsuario);
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
@@ -376,7 +327,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(
-                "UPDATE seg.Usuarios SET Estado = 1, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
+                "UPDATE [Usuarios] SET Estado = 1, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
 
             cmd.Parameters.AddWithValue("@Codigo", codigoUsuario);
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
@@ -404,7 +355,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
                 // 2. Eliminar el usuario
                 using var cmdDeleteUsuario = new SqlCommand(
-                    "DELETE FROM seg.Usuarios WHERE Codigo = @Codigo", conn, transaction);
+                    "DELETE FROM [Usuarios] WHERE Codigo = @Codigo", conn, transaction);
                 cmdDeleteUsuario.Parameters.AddWithValue("@Codigo", codigoUsuario);
                 var filasAfectadas = await cmdDeleteUsuario.ExecuteNonQueryAsync();
 
@@ -433,7 +384,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             using var conn = new SqlConnection(connectionString);
             await conn.OpenAsync();
 
-            using var cmd = new SqlCommand("SELECT COUNT(*) FROM seg.Usuarios WHERE Login = @Login", conn);
+            using var cmd = new SqlCommand("SELECT COUNT(*) FROM [Usuarios] WHERE Login = @Login", conn);
             cmd.Parameters.AddWithValue("@Login", login);
 
             var resultado = await cmd.ExecuteScalarAsync();

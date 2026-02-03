@@ -15,35 +15,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             _httpContextAccessor = httpContextAccessor;
         }
 
-        private async Task<string> ObtenerConnectionStringEmpresa()
-        {
-            var idEmpresa = _httpContextAccessor.HttpContext?.User?.FindFirst("IdEmpresa")?.Value;
-            
-            if (string.IsNullOrEmpty(idEmpresa))
-                throw new Exception("No se encontró IdEmpresa en el token");
-
-            using var conn = new SqlConnection(_connectionStringSeguridad);
-            await conn.OpenAsync();
-
-            using var cmd = new SqlCommand(@"
-                SELECT StringCon FROM dbo.Empresas WHERE ID_Empresa = @IdEmpresa", conn);
-            cmd.Parameters.AddWithValue("@IdEmpresa", int.Parse(idEmpresa));
-
-            var result = await cmd.ExecuteScalarAsync();
-            if (result == null)
-                throw new Exception($"No se encontró connection string para la empresa {idEmpresa}");
-
-            return result.ToString();
-        }
-
         /// <summary>
         /// Modifica los permisos de un usuario (agrega y elimina según sea necesario)
         /// </summary>
         public async Task<bool> ModificarPermisosUsuario(AsignacionPermisoDTO asignacionDTO)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             // Obtener permisos actuales del usuario (incluyendo los desactivados para mantener consistencia)
@@ -89,18 +66,55 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
 
         /// <summary>
+        /// Obtiene el perfil del usuario logueado desde el token JWT
+        /// </summary>
+        private int ObtenerPerfilUsuarioLogueado()
+        {
+            var perfilClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("Perfil")?.Value;
+            return !string.IsNullOrEmpty(perfilClaim) && int.TryParse(perfilClaim, out var perfil) ? perfil : 0;
+        }
+
+        /// <summary>
+        /// Obtiene información del permiso incluyendo si es básico
+        /// </summary>
+        private async Task<(bool Existe, bool? EsBasico)> ObtenerInfoPermiso(int codigoPermiso, SqlConnection conn)
+        {
+            using var cmd = new SqlCommand("SELECT Basico FROM seg.Permisos WHERE Codigo = @Codigo", conn);
+            cmd.Parameters.AddWithValue("@Codigo", codigoPermiso);
+            
+            var result = await cmd.ExecuteScalarAsync();
+            if (result == null)
+                return (false, null);
+            
+            bool? esBasico = result == DBNull.Value ? null : (bool?)(Convert.ToInt32(result) == 1);
+            return (true, esBasico);
+        }
+
+        /// <summary>
         /// Asigna permisos directamente a un usuario (solo agrega, no elimina)
+        /// Validación: Solo perfil 3 puede asignar permisos no básicos
         /// </summary>
         public async Task<bool> AsignarPermisosUsuario(AsignacionPermisoDTO asignacionDTO)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
+
+            // Obtener perfil del usuario logueado
+            int perfilUsuarioLogueado = ObtenerPerfilUsuarioLogueado();
 
             // Insertar solo los permisos que no existan ya
             foreach (var permisoId in asignacionDTO.PermisosIds)
             {
+                // Verificar información del permiso (si es básico o no)
+                var (permiso_existe, es_basico) = await ObtenerInfoPermiso(permisoId, conn);
+                
+                if (!permiso_existe)
+                    throw new Exception($"El permiso {permisoId} no existe en el sistema");
+
+                // Validación: Si el permiso NO es básico y el usuario no es perfil 3, rechazar
+                if (es_basico == false && perfilUsuarioLogueado != 3)
+                    throw new Exception($"No tienes permiso para asignar el permiso '{permisoId}'. Solo usuarios con perfil 3 pueden asignar permisos no básicos.");
+
                 // Verificar si el permiso ya existe
                 using var cmdCheck = new SqlCommand(
                     "SELECT COUNT(*) FROM seg.PermisosUsuario WHERE Usuario = @Usuario AND Permiso = @Permiso", conn);
@@ -129,13 +143,11 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> AsignarPerfilUsuario(AsignacionPerfilDTO asignacionDTO)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
-                UPDATE seg.Usuarios 
+                UPDATE [Usuarios] 
                 SET Perfil = @Perfil, FechaModificado = GETDATE()
                 WHERE Codigo = @Codigo", conn);
 
@@ -153,9 +165,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         {
             try
             {
-                var connectionString = await ObtenerConnectionStringEmpresa();
-
-                using var conn = new SqlConnection(connectionString);
+                using var conn = new SqlConnection(_connectionStringSeguridad);
                 await conn.OpenAsync();
 
                 // Primero verificar que el permiso existe
@@ -202,13 +212,11 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> DesasignarPerfilUsuario(DesasignacionPerfilDTO desasignacionDTO)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(
-                "UPDATE seg.Usuarios SET Perfil = NULL, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
+                "UPDATE [Usuarios] SET Perfil = NULL, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
 
             cmd.Parameters.AddWithValue("@Codigo", desasignacionDTO.CodigoUsuario);
 
@@ -222,9 +230,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<Dictionary<string, object>>> ObtenerPermisosEfectivosConDatos(int codigoUsuario)
         {
             var permisos = new List<Dictionary<string, object>>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             // Obtener permisos DIRECTOS del usuario
@@ -261,7 +268,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             using var cmd2 = new SqlCommand(@"
                 SELECT DISTINCT p.Codigo, p.Nombre, p.Descripcion, m.Nombre as NombreModulo, 
                        p.Basico, p.Estado, p.FechaRegistro
-                FROM seg.Usuarios u
+                FROM [Usuarios] u
                 INNER JOIN seg.Perfiles pf ON u.Perfil = pf.Codigo
                 INNER JOIN seg.PermisosPerfiles pp ON pf.Codigo = pp.Perfil
                 INNER JOIN seg.Permisos p ON pp.Permiso = p.Codigo
@@ -302,9 +309,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         private async Task<List<int>> ObtenerPermisosEfectivosIds(int codigoUsuario)
         {
             var permisos = new List<int>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             // Obtener permisos DIRECTOS del usuario
@@ -326,7 +332,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             // Obtener permisos HEREDADOS del perfil del usuario
             using var cmd2 = new SqlCommand(@"
                 SELECT DISTINCT pp.Permiso
-                FROM seg.Usuarios u
+                FROM [Usuarios] u
                 INNER JOIN seg.Perfiles pf ON u.Perfil = pf.Codigo
                 INNER JOIN seg.PermisosPerfiles pp ON pf.Codigo = pp.Perfil
                 WHERE u.Codigo = @Usuario AND u.Perfil IS NOT NULL", conn);
@@ -361,9 +367,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<Dictionary<string, object>>> ObtenerPermisosDirectosConDatos(int codigoUsuario)
         {
             var permisos = new List<Dictionary<string, object>>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
@@ -402,15 +407,14 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         public async Task<List<Dictionary<string, object>>> ObtenerPermisosHeredadosConDatos(int codigoUsuario)
         {
             var permisos = new List<Dictionary<string, object>>();
-            var connectionString = await ObtenerConnectionStringEmpresa();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
                 SELECT DISTINCT p.Codigo, p.Nombre, p.Descripcion, m.Nombre as NombreModulo, 
                        p.Basico, p.Estado, p.FechaRegistro
-                FROM seg.Usuarios u
+                FROM [Usuarios] u
                 INNER JOIN seg.Perfiles pf ON u.Perfil = pf.Codigo
                 INNER JOIN seg.PermisosPerfiles pp ON pf.Codigo = pp.Perfil
                 INNER JOIN seg.Permisos p ON pp.Permiso = p.Codigo
@@ -444,15 +448,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<PerfilResponseDTO> ObtenerPerfilUsuario(int codigoUsuario)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
                 SELECT pf.Codigo, pf.Nombre, pf.Descripcion, pf.Sistema, s.Nombre as NombreSistema,
                        pf.Estado, pf.FechaRegistro, pf.FechaModificado
-                FROM seg.Usuarios u
+                FROM [Usuarios] u
                 LEFT JOIN seg.Perfiles pf ON u.Perfil = pf.Codigo
                 LEFT JOIN seg.Sistemas s ON pf.Sistema = s.Codigo
                 WHERE u.Codigo = @Codigo", conn);

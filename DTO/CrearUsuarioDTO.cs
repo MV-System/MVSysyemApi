@@ -55,14 +55,14 @@ namespace DTO
         public int CodigoUsuario { get; set; }
 
         [Required(ErrorMessage = "La contraseña actual es requerida")]
-        public string ContraseñaActual { get; set; }
+        public string ContrasenaActual { get; set; }
 
         [Required(ErrorMessage = "La contraseña nueva es requerida")]
         [StringLength(200, MinimumLength = 6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
-        public string ContraseñaNueva { get; set; }
+        public string ContrasenaNueva { get; set; }
 
         [Required(ErrorMessage = "Debe confirmar la contraseña")]
-        public string ConfirmarContraseña { get; set; }
+        public string ConfirmarContrasena { get; set; }
     }
 
     public class UsuarioResponseDTO
@@ -76,6 +76,7 @@ namespace DTO
         public int? Departamento { get; set; }
         public string NombreDepartamento { get; set; }
         public int? Estado { get; set; }
+        public int? Id_Empresa { get; set; }
         public int? Id_Sucursal { get; set; }
         public DateTime? FechaRegistro { get; set; }
         public DateTime? FechaModificado { get; set; }

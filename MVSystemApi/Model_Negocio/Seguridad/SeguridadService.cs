@@ -24,25 +24,19 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         }
         public DataTable ChangePassword(Usuario usuario)
         {
-
-            using var cn = new SqlConnection(ConnectionStrings);
-            cn.Open();
             try
             {
-                DataTable dt = new();
-
                 using var conn = new SqlConnection(ConnectionStrings);
-                conn.OpenAsync();
+                conn.Open();
 
-                using var cmd = new SqlCommand("UPDATE Usuarios SET Password = @ClaveNueva WHERE Codigo = @CodUsuario", conn);
+                using var cmd = new SqlCommand("UPDATE [Usuarios] SET [Password] = @ClaveNueva WHERE [Codigo] = @CodUsuario", conn);
                 cmd.Parameters.AddWithValue("@CodUsuario", usuario.Codigo);
                 cmd.Parameters.AddWithValue("@ClaveNueva", AES.Encrypt(usuario.Password));
 
-                using var da = new SqlDataAdapter(cmd);
-                cmd.ExecuteNonQuery();
-
-                da.Fill(dt);
-                cn.Close();
+                int filasActualizadas = cmd.ExecuteNonQuery();
+                
+                // Retornar un DataTable vacío (mantener compatibilidad con la firma existente)
+                DataTable dt = new();
                 return dt;
             }
             catch (Exception ex)
@@ -50,6 +44,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 throw ex;
             }
         }
+
         public async Task<CredentialsDTO> Login(UsuarioDTO usuarioIn)
         {
             using var dataTable = new DataTable();
@@ -71,16 +66,15 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 usuarioDb.Empresa = empresa.NombreEmpresa;
                 usuarioDb.EmpresaMostrar = empresa.NombreEmpresaMostrar;
                 
-                // Obtener el Perfil de la tabla seg.Usuarios de la base de datos de la empresa (por Login)
-                var connectionStringEmpresa = GetConnStringByUser(usuarioDb.Login);
-                usuarioDb.Perfil = await GetPerfilUsuario(usuarioDb.Login, connectionStringEmpresa);
+                // Obtener el Perfil de la tabla seg.Usuarios de SEGURIDAD (por Login)
+                usuarioDb.Perfil = await GetPerfilUsuarioSeguridad(usuarioDb.Login);
             }
 
             if (usuarioDb == null || usuarioIn.Password != AES.Decrypt(usuarioDb.Password))
                 return default;
 
-            var conecion = GetConnStringByUser(usuarioDb.Login);
-            var roles = await GetRoles(usuarioDb.Login, conecion);
+            // Obtener roles desde SEGURIDAD
+            var roles = await GetRolesSeguridad(usuarioDb.Login);
             return jwtService.BuildToken(usuarioDb, roles);
         }
 
@@ -91,7 +85,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 using var conn = new SqlConnection(connectionString);
                 await conn.OpenAsync();
 
-                using var cmd = new SqlCommand("SELECT [Perfil] FROM [seg].[Usuarios] WHERE [Login] = @Login", conn);
+                using var cmd = new SqlCommand("SELECT [Perfil] FROM [Usuarios] WHERE [Login] = @Login", conn);
                 cmd.Parameters.AddWithValue("@Login", login);
 
                 var result = await cmd.ExecuteScalarAsync();
@@ -266,6 +260,56 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 IdSucursal = row.Field<int>("id_Sucursal")
             }).ToList();
 
+
+            return roles;
+        }
+
+        private async Task<int> GetPerfilUsuarioSeguridad(string login)
+        {
+            try
+            {
+                using var conn = new SqlConnection(ConnectionStrings);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand("SELECT [Perfil] FROM [Usuarios] WHERE [Login] = @Login", conn);
+                cmd.Parameters.AddWithValue("@Login", login);
+
+                var result = await cmd.ExecuteScalarAsync();
+                return result != null && result != DBNull.Value ? (int)result : 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error obteniendo perfil del usuario desde SEGURIDAD: {ex.Message}");
+                return 0;
+            }
+        }
+
+        private async Task<List<RolSucursal>> GetRolesSeguridad(string userName)
+        {
+            using var dataTable = new DataTable();
+            var roles = new List<RolSucursal>();
+            
+            using var conn = new SqlConnection(ConnectionStrings); // Usar SEGURIDAD
+
+            using var cmd = new SqlCommand(@"
+                                             SELECT P.Nombre, U.Codigo as id_Sucursal
+                                             FROM [Usuarios] U 
+                                             JOIN [seg].[PermisosUsuario] PU ON PU.Usuario = U.Codigo 
+                                             JOIN [seg].[Permisos] P ON P.Codigo = PU.Permiso 
+                                             WHERE U.Login = @userName 
+                                               AND PU.Estado = 1", conn);
+
+            cmd.Parameters.AddWithValue("@userName", userName);
+
+            using var dataAdapter = new SqlDataAdapter(cmd);
+            dataAdapter.Fill(dataTable);
+
+            // Extraer los roles desde SEGURIDAD
+            roles = dataTable.AsEnumerable().Select(row => new RolSucursal
+            {
+                Nombre = row.Field<string>("Nombre"),
+                IdSucursal = row.Field<int>("id_Sucursal")
+            }).ToList();
 
             return roles;
         }

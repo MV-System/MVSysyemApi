@@ -282,6 +282,60 @@ namespace MVSystemApi.Model
                 throw;
             }
         }
+
+        public DataTable GetCierreCajaReport(FacturaFilter filtro)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        F.ID_Tipo_Pagos,
+                        COUNT(DISTINCT F.Numero_Factura) as CantidadFacturas,
+                        COUNT(DISTINCT CASE
+                            WHEN F.Abono > 0
+                            THEN F.Numero_Factura
+                        END) as CantidadAbonosRecibidos,
+                        SUM(F.SubTotal) as SubTotal,
+                        SUM(F.Descuento) as Descuento,
+                        SUM(F.Itbis) as Itbis,
+                        SUM(F.Total) as TotalFacturado,
+                        SUM(CASE 
+                            WHEN F.ID_Tipo_Pagos = 1 THEN F.Total
+                            ELSE ISNULL(F.Abono, 0)
+                        END) as EfectivoReal,
+                        SUM(CASE
+                            WHEN F.ID_Tipo_Pagos <> 1 THEN F.Total - ISNULL(F.Abono, 0)
+                            ELSE 0
+                        END) as SaldoPendiente
+                    FROM Facturas F
+                    WHERE CAST(F.Fecha_Registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
+                        AND F.ID_Sucursal = @Almacen
+                        AND F.Estado = @EstadoFactura
+                        AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
+                    GROUP BY F.ID_Tipo_Pagos
+                    ORDER BY TotalFacturado DESC";
+                
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", filtro.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", filtro.FechaFinal);
+                cmd.Parameters.AddWithValue("@Almacen", filtro.Almacen);
+                cmd.Parameters.AddWithValue("@EstadoFactura", filtro.EstadoFactura ?? "");
+                cmd.Parameters.AddWithValue("@IdVendedor", filtro.IdVendedor);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         #region Accesorios
         /// <summary>
         /// Return a equipo by Imei    

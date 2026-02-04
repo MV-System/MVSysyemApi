@@ -172,5 +172,22 @@ namespace MVSystemApi.Controllers
             model.Empresa = baseUrl + "/assets/" + model.Empresa + ".png"; // armar la ruta completa para acceder al logo
             return new ViewAsPdf(model);
         }
+
+        [HttpPost("FacturacionReporte/CierreCajaReport")]
+        public IActionResult GetCierreCajaReport(FacturaFilter filtro)
+        {
+            try
+            {
+                var result = _facturasNegocio.GetCierreCajaReporte(filtro);
+                if (result == null)
+                    return NotFound();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

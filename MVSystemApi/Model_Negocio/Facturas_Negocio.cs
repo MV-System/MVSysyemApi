@@ -184,5 +184,113 @@ namespace MVSystemApi.Model_Negocio
         //    return result;
         //}
 
+        /// <summary>
+        /// Obtiene el reporte de cierre de caja con desglose por tipo de pago
+        /// </summary>
+        internal object GetCierreCajaReporte(FacturaFilter filtro)
+        {
+            try
+            {
+                // Obtener datos de la base de datos
+                var dt = Ac.GetCierreCajaReport(filtro);
+                
+                if (dt == null || dt.Rows.Count == 0)
+                {
+                    return new CierreCajaReporteResumen
+                    {
+                        FechaInicio = DateTime.Parse(filtro.FechaInicio),
+                        FechaFinal = DateTime.Parse(filtro.FechaFinal),
+                        Almacen = filtro.Almacen.ToString(),
+                        DetallesPorTipoPago = new List<CierreCajaDetalleReporte>(),
+                        TotalFacturado = 0,
+                        TotalEfectivoReal = 0,
+                        TotalAbonos = 0,
+                        TotalSaldoPendiente = 0
+                    };
+                }
+
+                // Obtener tipos de pagos para tener las descripciones
+                var tiposPagosData = Ac.Tipos_Pagos_Cata_Consulta_Combo();
+                var tiposPagos = new Dictionary<int, Tipos_Pagos>();
+                
+                foreach (DataRow row in tiposPagosData.Rows)
+                {
+                    var idTipo = Convert.ToInt32(row["ID_Tipo_Pagos"]);
+                    tiposPagos[idTipo] = new Tipos_Pagos
+                    {
+                        ID_Tipo_Pagos = idTipo,
+                        Descripcion_Tipo_Pagos = Convert.ToString(row["Descripcion_Tipo_Pagos"])
+                    };
+                }
+
+                // Mapear datos a DTO
+                var detalles = new List<CierreCajaDetalleReporte>();
+                decimal totalFacturado = 0, totalEfectivoReal = 0, totalAbonos = 0, totalSaldoPendiente = 0;
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    var idTipoPago = Convert.ToInt32(row["ID_Tipo_Pagos"]);
+                    var tipoPagoDesc = tiposPagos.ContainsKey(idTipoPago) 
+                        ? tiposPagos[idTipoPago].Descripcion_Tipo_Pagos 
+                        : "Desconocido";
+
+                    var efectivoReal = Convert.ToDecimal(row["EfectivoReal"]);
+                    var saldoPendiente = Convert.ToDecimal(row["SaldoPendiente"]);
+                    var rowTotalFacturado = Convert.ToDecimal(row["TotalFacturado"]);
+
+                    var detalle = new CierreCajaDetalleReporte
+                    {
+                        TipoPago = tipoPagoDesc,
+                        CantidadFacturas = Convert.ToInt32(row["CantidadFacturas"]),
+                        CantidadAbonosRecibidos = Convert.ToInt32(row["CantidadAbonosRecibidos"] ?? 0),
+                        MontoAbonos = efectivoReal, // Abonos recibidos (efectivo real para crédito)
+                        SubTotal = Convert.ToDecimal(row["SubTotal"]),
+                        Descuento = Convert.ToDecimal(row["Descuento"]),
+                        Itbis = Convert.ToDecimal(row["Itbis"]),
+                        TotalFacturado = rowTotalFacturado,
+                        EfectivoReal = efectivoReal,
+                        SaldoPendiente = saldoPendiente,
+                        PorcentajeDelTotal = 0 // Se calcula después
+                    };
+
+                    detalles.Add(detalle);
+
+                    totalFacturado += detalle.TotalFacturado;
+                    totalEfectivoReal += efectivoReal;
+                    totalAbonos += efectivoReal;
+                    totalSaldoPendiente += saldoPendiente;
+                }
+
+                // Calcular porcentajes
+                if (totalFacturado > 0)
+                {
+                    foreach (var detalle in detalles)
+                    {
+                        detalle.PorcentajeDelTotal = Math.Round((detalle.TotalFacturado / totalFacturado) * 100, 2);
+                    }
+                }
+
+                // Crear resumen
+                var resumen = new CierreCajaReporteResumen
+                {
+                    FechaInicio = DateTime.Parse(filtro.FechaInicio),
+                    FechaFinal = DateTime.Parse(filtro.FechaFinal),
+                    Almacen = filtro.Almacen.ToString(),
+                    CantidadTotalFacturas = detalles.Sum(x => x.CantidadFacturas),
+                    TotalFacturado = totalFacturado,
+                    TotalEfectivoReal = totalEfectivoReal,
+                    TotalAbonos = totalAbonos,
+                    TotalSaldoPendiente = totalSaldoPendiente,
+                    DetallesPorTipoPago = detalles
+                };
+
+                return resumen;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al obtener el cierre de caja: " + ex.Message, ex);
+            }
+        }
+
     }
 }

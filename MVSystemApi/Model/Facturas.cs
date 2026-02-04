@@ -37,6 +37,8 @@ namespace MVSystemApi.Model
         public int ComprobanteCheck { get; set; }
         public int IdVendedor { get; set; }
         public string Usuario { get; set; }
+        public string FechaInicio { get; set; }
+        public string FechaFinal { get; set; }
 
     }
     public class FacturaConsulta : PagingDTO

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace DTO
 {
@@ -55,13 +56,16 @@ namespace DTO
         public int CodigoUsuario { get; set; }
 
         [Required(ErrorMessage = "La contraseña actual es requerida")]
+        [JsonPropertyName("contrasenaActual")]
         public string ContrasenaActual { get; set; }
 
         [Required(ErrorMessage = "La contraseña nueva es requerida")]
         [StringLength(200, MinimumLength = 6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        [JsonPropertyName("contrasenaNueva")]
         public string ContrasenaNueva { get; set; }
 
         [Required(ErrorMessage = "Debe confirmar la contraseña")]
+        [JsonPropertyName("confirmarContrasena")]
         public string ConfirmarContrasena { get; set; }
     }
 

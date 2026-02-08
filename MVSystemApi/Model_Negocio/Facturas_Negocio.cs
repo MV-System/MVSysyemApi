@@ -58,6 +58,7 @@ namespace MVSystemApi.Model_Negocio
                               Descuento = Convert.ToDecimal(dt["Descuento"]),
                               Total = Convert.ToDecimal(dt["Total"]),
                               Itbis = Convert.ToDecimal(dt["Itbis"]),
+                              Abono = dt.Table.Columns.Contains("Abono") ? Convert.ToDecimal(dt["Abono"]) : 0m,
                               Nota = Convert.ToString(dt["Nota"]),
                               FechaFacturacion = Convert.ToDateTime(dt["Fecha de la Factura"]),
                               LastLine = Convert.ToInt32(dt["Ultima_Linea"]),

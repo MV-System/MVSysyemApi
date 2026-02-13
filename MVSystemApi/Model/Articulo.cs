@@ -18,9 +18,16 @@
         public int PrecioMayor { get; set; }
     }
 
+    public class CotizacionReporteModel
+    {
+        public CotizacionModel Cotizacion { get; set; }
+        public DatosEmpresa DatosEmpresa { get; set; }
+    }
 
     public class CotizacionModel
     {
+        public string IdEmpresa { get; set; }
+        public string IdSucursal { get; set; }
         public int IdCliente { get; set; }
         public string Nombre { get; set; }
         public string Apellido { get; set; }
@@ -40,6 +47,11 @@
         public object Articulo { get; set; }
         public List<Articulo> Articulos { get; set; }
         public bool AplicarItbis { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Descuento { get; set; }
+        public decimal Itbis { get; set; }
+        public decimal Total { get; set; }
+        public DatosEmpresa DatosEmpresaCotizacion { get; set; }
     }
 
 

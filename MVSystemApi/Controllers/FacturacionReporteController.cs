@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -19,9 +20,11 @@ namespace MVSystemApi.Controllers
         private readonly IAccesoDatos _accesoDatos;
         private readonly SeguridadService _seguridadService;
         private readonly FacturacionSettings _facturacionSettings;
+        private readonly ILogger<FacturacionReporteController> _logger;
 
-        public FacturacionReporteController(SeguridadService seguridadService,IAccesoDatos accesoDatos, Clientes_Negocio clientsNegocio, Catalogos_Negocio catalogosNegocio,Facturas_Negocio facturasNegocio, IOptions<FacturacionSettings> facturacionSettings)
+        public FacturacionReporteController(ILogger<FacturacionReporteController> logger, SeguridadService seguridadService,IAccesoDatos accesoDatos, Clientes_Negocio clientsNegocio, Catalogos_Negocio catalogosNegocio,Facturas_Negocio facturasNegocio, IOptions<FacturacionSettings> facturacionSettings)
         {
+            _logger = logger;
             _accesoDatos = accesoDatos;
             _catalogosNegocio = catalogosNegocio;
             _clientsNegocio = clientsNegocio;
@@ -168,8 +171,17 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportCotizacion")]
         public IActionResult ReportCotizacion(CotizacionModel model)
         {
-            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
-            model.Empresa = baseUrl + "/assets/" + model.Empresa + ".png"; // armar la ruta completa para acceder al logo
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+            
+            // Obtener datos de empresa desde la BD
+            DatosEmpresa datosEmpresa = _seguridadService.GetDatosEmpresa(Convert.ToInt32(model.IdEmpresa), Convert.ToInt32(model.IdSucursal));
+            
+            // Armar URL completa del logo usando el nombre que viene de la BD
+            datosEmpresa.Logo = baseUrl + "/assets/" + datosEmpresa.Logo + ".png";
+            
+            // Pasar datos de empresa dentro del modelo
+            model.DatosEmpresaCotizacion = datosEmpresa;
+            
             return new ViewAsPdf(model);
         }
 

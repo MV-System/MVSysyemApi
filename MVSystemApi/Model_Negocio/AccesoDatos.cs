@@ -2326,6 +2326,49 @@ namespace MVSystemApi.Model
             }
         }
 
+        public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos)
+        {
+            using var connection = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("InsertDetallesPagoFactura", connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            // Convertir lista a JSON
+            var json = System.Text.Json.JsonSerializer.Serialize(detallesPagos);
+
+            cmd.Parameters.AddWithValue("@NumeroFactura", numeroFactura);
+            cmd.Parameters.AddWithValue("@DetallesPagosJSON", json);
+
+            connection.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura)
+        {
+            var lista = new List<DetallePagoDTO>();
+
+            using var connection = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("GetDetallesPagoFactura", connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@NumeroFactura", numeroFactura);
+
+            connection.Open();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                lista.Add(new DetallePagoDTO
+                {
+                    ID_Tipo_Pago = reader.GetInt32(reader.GetOrdinal("ID_Tipo_Pago")),
+                    Descripcion_Tipo_Pago = reader["Descripcion_Tipo_Pagos"]?.ToString(),
+                    Monto_Pago = reader.GetDecimal(reader.GetOrdinal("Monto_Pago")),
+                    Numero_Referencia = reader["Numero_Referencia"]?.ToString(),
+                    Observacion = reader["Observacion"]?.ToString()
+                });
+            }
+
+            return lista;
+        }
+
         #region M�todos As�ncronos para Tracking
 
         public async Task<T> ExecuteScalarAsync<T>(string query, params SqlParameter[] parameters)

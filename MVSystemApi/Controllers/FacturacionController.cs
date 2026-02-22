@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using DTO;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -18,10 +19,12 @@ namespace MVSystemApi.Controllers
     {
         private readonly Facturas_Negocio AD;
         private readonly IAccesoDatos _accesoDatos;
+        private readonly PagoMixto_Negocio _pagoMixtoNegocio;
         public FacturacionController(Facturas_Negocio _en, IAccesoDatos accesoDatos)
         {
             _accesoDatos = accesoDatos;
             AD = _en;
+            _pagoMixtoNegocio = new PagoMixto_Negocio();
         }
         [HttpPost]
         [Route("PostFactura")]
@@ -40,6 +43,108 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("PostFacturaPagoMixto")]
+        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        public ActionResult PostFacturaPagoMixto([FromBody] FacturaRegistroDTO request)
+        {
+            try
+            {
+                // Validar que si es pago mixto (idTipoPago == 6), tenga detalles
+                if (request.IdTipoPago == 6) // 6 = Mixto
+                {
+                    if (request.DetallesPagos == null || request.DetallesPagos.Count == 0)
+                        return BadRequest(new { error = "Pago Mixto requiere al menos 2 métodos de pago" });
+
+                    if (request.DetallesPagos.Count < 2)
+                        return BadRequest(new { error = "Pago Mixto debe tener mínimo 2 métodos de pago" });
+
+                    // Validar que la suma de pagos = total factura
+                    if (!_pagoMixtoNegocio.ValidarPagoMixto(request.Total, request.DetallesPagos))
+                        return BadRequest(new { error = "La suma de pagos no coincide con el total de la factura" });
+
+                    // Validar que los montos sean positivos
+                    if (!_pagoMixtoNegocio.ValidarMontosPositivos(request.DetallesPagos))
+                        return BadRequest(new { error = "Todos los montos de pago deben ser positivos" });
+                }
+
+                // Convertir DTO a modelo Facturas
+                var factura = new Facturas
+                {
+                    NumeroFactura = request.NumeroFactura,
+                    IdCliente = request.IdCliente,
+                    IdVendedor = request.IdVendedor,
+                    IdTipoFactura = request.IdTipoFactura,
+                    IdTipoPago = request.IdTipoPago,
+                    NcfTipoNumero = request.NcfTipoNumero,
+                    FechaRegistro = request.FechaRegistro,
+                    fechaLimitePago = request.FechaLimitePago,
+                    SubTotal = request.SubTotal,
+                    Descuento = request.Descuento,
+                    Itbis = request.Itbis,
+                    Total = request.Total,
+                    Abono = (int)request.Abono,
+                    RNC = request.RNC,
+                    Nota = request.Nota,
+                    Usuario = request.Usuario,
+                    IdAlmacen = request.IdAlmacen,
+                    empresa = request.Empresa,
+                    IdEmpresa = request.IdEmpresa,
+                    IdSucursal = request.IdSucursal,
+                    CantidadArticulos = request.CantidadArticulos
+                };
+
+                // Guardar factura
+                var resultFactura = _accesoDatos.PostFactura(factura);
+                if (resultFactura == null)
+                    return NotFound(new { error = "No se pudo guardar la factura" });
+
+                // Si es pago MIXTO, guardar detalles
+                if (request.IdTipoPago == 6 && request.DetallesPagos?.Any() == true)
+                {
+                    try
+                    {
+                        _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, request.DetallesPagos);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Si falla al guardar detalles, aún retornamos éxito en la factura
+                        // pero informamos del error
+                        return Ok(new 
+                        { 
+                            factura = resultFactura,
+                            advertencia = "Factura guardada pero hubo error al guardar detalles de pago: " + ex.Message 
+                        });
+                    }
+                }
+
+                return Ok(new { factura = resultFactura, mensaje = "Factura guardada exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Route("GetDesglosePagos/{numeroFactura}")]
+        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        public IActionResult GetDesglosePagos([FromRoute] int numeroFactura)
+        {
+            try
+            {
+                var result = _accesoDatos.GetDetallesPagoFactura(numeroFactura);
+                if (result == null)
+                    return NotFound(new { error = "No se encontraron detalles de pago" });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
         }
         [HttpGet]

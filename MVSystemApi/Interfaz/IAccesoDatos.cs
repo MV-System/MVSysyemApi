@@ -98,6 +98,10 @@ namespace MVSystemApi.Interfaz
         public DataTable GetCierreCajaReport(FacturaFilter filtro);
 
         public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal);
+        
+        // Métodos para Pago Mixto
+        public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos);
+        public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura);
 
         #endregion
 

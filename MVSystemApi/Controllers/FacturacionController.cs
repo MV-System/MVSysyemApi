@@ -53,6 +53,16 @@ namespace MVSystemApi.Controllers
         {
             try
             {
+                Console.WriteLine($"🔵 BACKEND: Recibido PostFacturaPagoMixto - IdTipoPago: {request.IdTipoPago}");
+                Console.WriteLine($"🔵 BACKEND: DetallesPagos count: {request.DetallesPagos?.Count ?? 0}");
+                if (request.DetallesPagos?.Any() == true)
+                {
+                    foreach (var pago in request.DetallesPagos)
+                    {
+                        Console.WriteLine($"   - Tipo: {pago.ID_Tipo_Pago}, Monto: {pago.Monto_Pago}, Ref: {pago.Numero_Referencia}");
+                    }
+                }
+
                 // Validar que si es pago mixto (idTipoPago == 6), tenga detalles
                 if (request.IdTipoPago == 6) // 6 = Mixto
                 {
@@ -72,6 +82,7 @@ namespace MVSystemApi.Controllers
                 }
 
                 // Convertir DTO a modelo Facturas
+                Console.WriteLine($"🔴 Convirtiendo DTO a modelo Facturas...");
                 var factura = new Facturas
                 {
                     NumeroFactura = request.NumeroFactura,
@@ -87,32 +98,58 @@ namespace MVSystemApi.Controllers
                     Itbis = request.Itbis,
                     Total = request.Total,
                     Abono = (int)request.Abono,
-                    RNC = request.RNC,
-                    Nota = request.Nota,
-                    Usuario = request.Usuario,
+                    RNC = request.RNC ?? "",
+                    Nota = request.Nota ?? "",
+                    Usuario = request.Usuario ?? "",
                     IdAlmacen = request.IdAlmacen,
-                    empresa = request.Empresa,
-                    IdEmpresa = request.IdEmpresa,
-                    IdSucursal = request.IdSucursal,
-                    CantidadArticulos = request.CantidadArticulos
+                    empresa = request.Empresa ?? "",
+                    IdEmpresa = request.IdEmpresa ?? "0",
+                    IdSucursal = request.IdSucursal ?? "0",
+                    CantidadArticulos = request.CantidadArticulos,
+                    // Mapear detalles de artículos del DTO al modelo
+                    DetalleFacturaList = request.DetalleFacturaList?.Select(dto => new DetalleFactura
+                    {
+                        NumeroFactura = dto.NumeroFactura,
+                        IdEquipo = dto.IdEquipo,
+                        IdTipo = dto.IdTipo,
+                        IdVendedor = request.IdVendedor,
+                        IdTipoFactura = request.IdTipoFactura,
+                        IdGarantia = dto.IdGarantia,
+                        Cantidad = dto.Cantidad,
+                        Precio = dto.Precio,
+                        SubTotal = dto.SubTotal,
+                        Descuento = dto.Descuento,
+                        Itbis = dto.Itbis,
+                        Total = dto.Total,
+                        Usuario = dto.Usuario,
+                        FechaRegistro = dto.FechaRegistro,
+                        Descripcion = dto.Descripcion
+                    }).ToList() ?? new List<DetalleFactura>()
                 };
+                Console.WriteLine($"✅ DTO convertido correctamente - Detalles: {factura.DetalleFacturaList?.Count ?? 0}");
 
                 // Guardar factura
+                Console.WriteLine($"💾 Guardando factura...");
                 var resultFactura = _accesoDatos.PostFactura(factura);
                 if (resultFactura == null)
                     return NotFound(new { error = "No se pudo guardar la factura" });
+                Console.WriteLine($"✅ Factura guardada: {resultFactura.NumeroFactura}");
 
                 // Si es pago MIXTO, guardar detalles
                 if (request.IdTipoPago == 6 && request.DetallesPagos?.Any() == true)
                 {
                     try
                     {
+                        Console.WriteLine($"📝 Intentando guardar {request.DetallesPagos.Count} detalles de pago...");
                         _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, request.DetallesPagos);
+                        Console.WriteLine($"✅ Detalles de pago guardados correctamente");
                     }
                     catch (Exception ex)
                     {
                         // Si falla al guardar detalles, aún retornamos éxito en la factura
                         // pero informamos del error
+                        Console.WriteLine($"❌ Error al guardar detalles de pago: {ex.Message}");
+                        Console.WriteLine($"   Stack: {ex.StackTrace}");
                         return Ok(new 
                         { 
                             factura = resultFactura,
@@ -125,7 +162,9 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                Console.WriteLine($"❌ ERROR GENERAL en PostFacturaPagoMixto: {ex.Message}");
+                Console.WriteLine($"   Stack: {ex.StackTrace}");
+                return BadRequest(new { error = ex.Message, stackTrace = ex.StackTrace });
             }
         }
 

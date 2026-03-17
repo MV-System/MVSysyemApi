@@ -1509,7 +1509,12 @@ namespace MVSystemApi.Model
                     cmd.ExecuteNonQuery();
                     Factura.NumeroFactura = Convert.ToInt32(cmd.Parameters["@Numero_factura"].Value.ToString());
                     cn.Close();
-                    PostDetalleFactura(Factura.DetalleFacturaList, Factura.NumeroFactura);
+                    
+                    // Solo guardar detalles si hay artículos en la factura
+                    if (Factura.DetalleFacturaList != null && Factura.DetalleFacturaList.Count > 0)
+                    {
+                        PostDetalleFactura(Factura.DetalleFacturaList, Factura.NumeroFactura);
+                    }
 
                     return Factura;
                 }
@@ -2328,18 +2333,39 @@ namespace MVSystemApi.Model
 
         public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos)
         {
+            Console.WriteLine($"🗄️ AccesoDatos.PostDetallesPagoFactura - Factura: {numeroFactura}, Detalles: {detallesPagos?.Count ?? 0}");
+            
             using var connection = new SqlConnection(_connectionStrings);
             using var cmd = new SqlCommand("InsertDetallesPagoFactura", connection);
             cmd.CommandType = CommandType.StoredProcedure;
 
-            // Convertir lista a JSON
-            var json = System.Text.Json.JsonSerializer.Serialize(detallesPagos);
-
-            cmd.Parameters.AddWithValue("@NumeroFactura", numeroFactura);
-            cmd.Parameters.AddWithValue("@DetallesPagosJSON", json);
-
             connection.Open();
-            cmd.ExecuteNonQuery();
+            Console.WriteLine($"📡 Conexión abierta a la BD");
+
+            foreach (var item in detallesPagos)
+            {
+                Console.WriteLine($"   Insertando: TipoPago={item.ID_Tipo_Pago}, Monto={item.Monto_Pago}, Ref={item.Numero_Referencia}");
+                
+                cmd.Parameters.Clear();
+
+                cmd.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Pago", item.ID_Tipo_Pago);
+                cmd.Parameters.AddWithValue("@Monto_Pago", item.Monto_Pago);
+                cmd.Parameters.AddWithValue("@Numero_Referencia", item.Numero_Referencia ?? "");
+                cmd.Parameters.AddWithValue("@Observacion", item.Observacion ?? "");
+
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    Console.WriteLine($"   ✅ Detalle insertado");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"   ❌ Error: {ex.Message}");
+                    throw;
+                }
+            }
+            Console.WriteLine($"✅ PostDetallesPagoFactura completado");
         }
 
         public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura)

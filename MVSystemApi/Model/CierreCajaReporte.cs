@@ -65,6 +65,17 @@ namespace MVSystemApi.Model
         /// Porcentaje del total facturado
         /// </summary>
         public decimal PorcentajeDelTotal { get; set; }
+
+        /// <summary>
+        /// Monto que vino del desglose de pagos MIXTO
+        /// Se usa para mostrar etiquetas de trazabilidad como "mixto: RD$100"
+        /// </summary>
+        public decimal MontoDesdeDesgloseMixto { get; set; } = 0;
+
+        /// <summary>
+        /// Cantidad de facturas MIXTO que contribuyeron a este tipo de pago
+        /// </summary>
+        public int CantidadFacturasDesdeMixto { get; set; } = 0;
     }
 
     /// <summary>

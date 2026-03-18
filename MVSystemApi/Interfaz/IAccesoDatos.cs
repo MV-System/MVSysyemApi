@@ -96,6 +96,8 @@ namespace MVSystemApi.Interfaz
         public DataTable GetFacturasReporte(FacturaFilter consulta);
         public DataTable GetFacturaNumeroUltimo();
         public DataTable GetCierreCajaReport(FacturaFilter filtro);
+        
+        public DataTable GetFacturasMixtoEnPeriodo(FacturaFilter filtro);
 
         public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal);
         

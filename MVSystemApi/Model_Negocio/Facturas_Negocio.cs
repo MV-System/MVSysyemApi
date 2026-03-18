@@ -10,6 +10,16 @@ using System.Threading.Tasks;
 
 namespace MVSystemApi.Model_Negocio
 {
+    /// <summary>
+    /// Clase auxiliar para procesar ajustes en cierre de caja con pagos mixtos
+    /// </summary>
+    internal class AjusteTipoPago
+    {
+        public decimal MontoAnadido { get; set; }
+        public decimal MontoEfectivoAnadido { get; set; }
+        public int CantidadFacturasAnadidas { get; set; }
+    }
+
     public class Facturas_Negocio
     {
         private readonly IAccesoDatos Ac;
@@ -188,12 +198,24 @@ namespace MVSystemApi.Model_Negocio
         /// <summary>
         /// Obtiene el reporte de cierre de caja con desglose por tipo de pago
         /// </summary>
+        /// <summary>
+        /// Obtiene el reporte de cierre de caja considerando pagos mixtos
+        /// Si hay facturas MIXTO, desglosa los pagos y suma cada componente correctamente
+        /// </summary>
         internal object GetCierreCajaReporte(FacturaFilter filtro)
         {
             try
             {
+                const int ID_TIPO_PAGO_MIXTO = 6;
+                const int ID_TIPO_PAGO_CONTADO = 1;
+                const int ID_TIPO_PAGO_CREDITO = 2;
+
+                Console.WriteLine($"\n🔍 [CIERRE CAJA] Iniciando reporte - Período: {filtro.FechaInicio} a {filtro.FechaFinal}");
+                Console.WriteLine($"   Almacén: {filtro.Almacen}, Vendedor ID: {filtro.IdVendedor}");
+
                 // Obtener datos de la base de datos
                 var dt = Ac.GetCierreCajaReport(filtro);
+                Console.WriteLine($"📊 [CIERRE CAJA] Datos base obtenidos: {dt?.Rows.Count} tipos de pago");
                 
                 if (dt == null || dt.Rows.Count == 0)
                 {
@@ -224,10 +246,11 @@ namespace MVSystemApi.Model_Negocio
                     };
                 }
 
-                // Mapear datos a DTO
-                var detalles = new List<CierreCajaDetalleReporte>();
-                decimal totalFacturado = 0, totalEfectivoReal = 0, totalAbonos = 0, totalSaldoPendiente = 0;
+                // Diccionario para acumular los detalles por tipo de pago
+                var detallesPorTipo = new Dictionary<int, CierreCajaDetalleReporte>();
 
+                // Procesar los datos del reporte base
+                Console.WriteLine("\n📋 [CIERRE CAJA] Procesando datos base:");
                 foreach (DataRow row in dt.Rows)
                 {
                     var idTipoPago = Convert.ToInt32(row["ID_Tipo_Pagos"]);
@@ -239,30 +262,238 @@ namespace MVSystemApi.Model_Negocio
                     var saldoPendiente = Convert.ToDecimal(row["SaldoPendiente"]);
                     var rowTotalFacturado = Convert.ToDecimal(row["TotalFacturado"]);
 
+                    Console.WriteLine($"   • {tipoPagoDesc} (ID:{idTipoPago}): Total={rowTotalFacturado}, Efectivo={efectivoReal}, Saldo={saldoPendiente}");
+
                     var detalle = new CierreCajaDetalleReporte
                     {
                         TipoPago = tipoPagoDesc,
                         CantidadFacturas = Convert.ToInt32(row["CantidadFacturas"]),
                         CantidadAbonosRecibidos = Convert.ToInt32(row["CantidadAbonosRecibidos"] ?? 0),
-                        MontoAbonos = efectivoReal, // Abonos recibidos (efectivo real para crédito)
+                        MontoAbonos = efectivoReal,
                         SubTotal = Convert.ToDecimal(row["SubTotal"]),
                         Descuento = Convert.ToDecimal(row["Descuento"]),
                         Itbis = Convert.ToDecimal(row["Itbis"]),
                         TotalFacturado = rowTotalFacturado,
                         EfectivoReal = efectivoReal,
                         SaldoPendiente = saldoPendiente,
-                        PorcentajeDelTotal = 0 // Se calcula después
+                        PorcentajeDelTotal = 0
                     };
 
-                    detalles.Add(detalle);
-
-                    totalFacturado += detalle.TotalFacturado;
-                    totalEfectivoReal += efectivoReal;
-                    totalAbonos += efectivoReal;
-                    totalSaldoPendiente += saldoPendiente;
+                    detallesPorTipo[idTipoPago] = detalle;
                 }
 
-                // Calcular porcentajes
+                // PROCESAMIENTO DE PAGOS MIXTOS
+                // Si hay facturas MIXTO, necesitamos desglosarlas y redistribuir sus montos
+                if (detallesPorTipo.ContainsKey(ID_TIPO_PAGO_MIXTO))
+                {
+                    Console.WriteLine($"\n🔀 [CIERRE CAJA] Detectadas facturas MIXTO - Procesando desgloses...");
+                    
+                    var detalleMixto = detallesPorTipo[ID_TIPO_PAGO_MIXTO];
+                    Console.WriteLine($"   MIXTO ANTES: Total={detalleMixto.TotalFacturado}, Efectivo={detalleMixto.EfectivoReal}");
+                    
+                    // Obtener todas las facturas MIXTO en el período
+                    var facturasMixto = Ac.GetFacturasMixtoEnPeriodo(filtro);
+                    Console.WriteLine($"   Facturas MIXTO encontradas: {facturasMixto?.Rows.Count}");
+                    
+                    if (facturasMixto != null && facturasMixto.Rows.Count > 0)
+                    {
+                        // Para cada factura MIXTO, obtener sus desglose
+                        decimal totalEfectivoExtraido = 0;
+                        decimal totalMixtoAjustado = 0;
+                        var ajustesPorTipo = new Dictionary<int, AjusteTipoPago>();
+
+                        foreach (DataRow facturaRow in facturasMixto.Rows)
+                        {
+                            int numeroFactura = Convert.ToInt32(facturaRow["Numero_Factura"]);
+                            decimal totalFacturaMixto = Convert.ToDecimal(facturaRow["Total"]);
+                            
+                            Console.WriteLine($"\n   📌 Factura MIXTO #{numeroFactura}: Total={totalFacturaMixto}");
+                            
+                            // Obtener el desglose de pagos para esta factura
+                            var desgloses = Ac.GetDetallesPagoFactura(numeroFactura);
+                            Console.WriteLine($"      Desglose obtenido: {desgloses?.Count} items");
+                            
+                            if (desgloses != null && desgloses.Count > 0)
+                            {
+                                foreach (var desglose in desgloses)
+                                {
+                                    int tipoPagoDesglose = desglose.ID_Tipo_Pago;
+                                    decimal montoDesglose = desglose.Monto_Pago;
+                                    string descDesglose = tiposPagos.ContainsKey(tipoPagoDesglose) 
+                                        ? tiposPagos[tipoPagoDesglose].Descripcion_Tipo_Pagos 
+                                        : $"Tipo {tipoPagoDesglose}";
+                                    
+                                    Console.WriteLine($"      └─ {descDesglose} (ID:{tipoPagoDesglose}): {montoDesglose}");
+                                    
+                                    // Si el desglose es CONTADO, extraerlo del MIXTO y sumarlo a CONTADO
+                                    if (tipoPagoDesglose == ID_TIPO_PAGO_CONTADO)
+                                    {
+                                        Console.WriteLine($"         ✓ CONTADO detectado en desglose: +{montoDesglose}");
+                                        totalEfectivoExtraido += montoDesglose;
+                                        
+                                        // Registrar el ajuste
+                                        if (!ajustesPorTipo.ContainsKey(ID_TIPO_PAGO_CONTADO))
+                                        {
+                                            ajustesPorTipo[ID_TIPO_PAGO_CONTADO] = new AjusteTipoPago();
+                                        }
+                                        ajustesPorTipo[ID_TIPO_PAGO_CONTADO].MontoEfectivoAnadido += montoDesglose;
+                                        ajustesPorTipo[ID_TIPO_PAGO_CONTADO].CantidadFacturasAnadidas++;
+                                    }
+                                    else if (tipoPagoDesglose != ID_TIPO_PAGO_MIXTO)
+                                    {
+                                        // Otros tipos de pago (BANRESERVAS, POPULAR, etc.)
+                                        Console.WriteLine($"         ✓ Otro tipo detectado en desglose: +{montoDesglose}");
+                                        
+                                        if (!ajustesPorTipo.ContainsKey(tipoPagoDesglose))
+                                        {
+                                            ajustesPorTipo[tipoPagoDesglose] = new AjusteTipoPago();
+                                        }
+                                        ajustesPorTipo[tipoPagoDesglose].MontoAnadido += montoDesglose;
+                                        ajustesPorTipo[tipoPagoDesglose].CantidadFacturasAnadidas++;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"      ⚠️ ADVERTENCIA: No se obtuvo desglose para factura #{numeroFactura}");
+                            }
+                            
+                            totalMixtoAjustado += totalFacturaMixto;
+                        }
+
+                        Console.WriteLine($"\n💰 [CIERRE CAJA] Resumen de ajustes:");
+                        Console.WriteLine($"   Total efectivo extraído de MIXTO: {totalEfectivoExtraido}");
+                        Console.WriteLine($"   Ajustes por tipo: {ajustesPorTipo.Count} tipos afectados");
+                        foreach (var ajuste in ajustesPorTipo)
+                        {
+                            var desc = tiposPagos.ContainsKey(ajuste.Key) ? tiposPagos[ajuste.Key].Descripcion_Tipo_Pagos : $"Tipo {ajuste.Key}";
+                            Console.WriteLine($"      • {desc}: Monto=+{ajuste.Value.MontoAnadido}, Efectivo=+{ajuste.Value.MontoEfectivoAnadido}, Facturas=+{ajuste.Value.CantidadFacturasAnadidas}");
+                        }
+
+                        // Aplicar los ajustes
+                        // 1. Ajustar el MIXTO: restar el monto extraído del total, y poner EfectivoReal en 0
+                        //    (porque todo el CONTADO fue extraído del desglose, lo que queda son otros tipos de pago)
+                        detalleMixto.EfectivoReal = 0;
+                        detalleMixto.TotalFacturado -= totalEfectivoExtraido;
+                        Console.WriteLine($"   MIXTO DESPUÉS: Total={detalleMixto.TotalFacturado}, Efectivo={detalleMixto.EfectivoReal}");
+
+                        // 2. Sumar el efectivo extraído a CONTADO
+                        if (!detallesPorTipo.ContainsKey(ID_TIPO_PAGO_CONTADO))
+                        {
+                            // Si no existe CONTADO, crearlo
+                            detallesPorTipo[ID_TIPO_PAGO_CONTADO] = new CierreCajaDetalleReporte
+                            {
+                                TipoPago = tiposPagos.ContainsKey(ID_TIPO_PAGO_CONTADO) 
+                                    ? tiposPagos[ID_TIPO_PAGO_CONTADO].Descripcion_Tipo_Pagos 
+                                    : "Contado",
+                                CantidadFacturas = 0,
+                                MontoAbonos = 0,
+                                SubTotal = 0,
+                                Descuento = 0,
+                                Itbis = 0,
+                                TotalFacturado = 0,
+                                EfectivoReal = 0,
+                                SaldoPendiente = 0
+                            };
+                            Console.WriteLine($"   ✓ Línea CONTADO creada (no existía antes)");
+                        }
+
+                        if (ajustesPorTipo.ContainsKey(ID_TIPO_PAGO_CONTADO))
+                        {
+                            var ajuste = ajustesPorTipo[ID_TIPO_PAGO_CONTADO];
+                            var detalleContado = detallesPorTipo[ID_TIPO_PAGO_CONTADO];
+                            var efectivoAntes = detalleContado.EfectivoReal;
+                            detalleContado.EfectivoReal += ajuste.MontoEfectivoAnadido;
+                            detalleContado.TotalFacturado += ajuste.MontoEfectivoAnadido;
+                            detalleContado.CantidadFacturas += ajuste.CantidadFacturasAnadidas;
+                            
+                            // Registrar que vino del desglose MIXTO
+                            detalleContado.MontoDesdeDesgloseMixto = ajuste.MontoEfectivoAnadido;
+                            detalleContado.CantidadFacturasDesdeMixto = ajuste.CantidadFacturasAnadidas;
+                            
+                            Console.WriteLine($"   ✓ CONTADO actualizado: Efectivo {efectivoAntes} → {detalleContado.EfectivoReal} (desde MIXTO: {detalleContado.MontoDesdeDesgloseMixto})");
+                        }
+
+                        // 3. Crear/actualizar entradas para otros tipos de pago del desglose
+                        foreach (var ajuste in ajustesPorTipo)
+                        {
+                            if (ajuste.Key != ID_TIPO_PAGO_CONTADO) // Ya lo procesamos arriba
+                            {
+                                bool esNuevaLinea = !detallesPorTipo.ContainsKey(ajuste.Key);
+                                
+                                if (esNuevaLinea)
+                                {
+                                    detallesPorTipo[ajuste.Key] = new CierreCajaDetalleReporte
+                                    {
+                                        TipoPago = tiposPagos.ContainsKey(ajuste.Key) 
+                                            ? tiposPagos[ajuste.Key].Descripcion_Tipo_Pagos 
+                                            : $"Tipo {ajuste.Key}",
+                                        CantidadFacturas = 0,
+                                        MontoAbonos = 0,
+                                        SubTotal = 0,
+                                        Descuento = 0,
+                                        Itbis = 0,
+                                        TotalFacturado = 0,
+                                        EfectivoReal = 0,  // Los desgloses MIXTO de estos tipos no son efectivo
+                                        SaldoPendiente = 0
+                                    };
+                                    var desc = tiposPagos.ContainsKey(ajuste.Key) ? tiposPagos[ajuste.Key].Descripcion_Tipo_Pagos : $"Tipo {ajuste.Key}";
+                                    Console.WriteLine($"   ✓ Línea {desc} creada (desglose MIXTO, EfectivoReal=0)");
+                                }
+
+                                var detalleOtro = detallesPorTipo[ajuste.Key];
+                                var totAntes = detalleOtro.TotalFacturado;
+                                detalleOtro.TotalFacturado += ajuste.Value.MontoAnadido;
+                                // ⚠️ IMPORTANTE: Para líneas que vienen de desglose MIXTO, EfectivoReal es 0
+                                // porque estos pagos (BANRESERVAS, POPULAR, etc.) no son efectivo en caja
+                                if (esNuevaLinea)
+                                {
+                                    detalleOtro.EfectivoReal = 0;
+                                }
+                                detalleOtro.CantidadFacturas += ajuste.Value.CantidadFacturasAnadidas;
+                                
+                                // Registrar que vino del desglose MIXTO
+                                detalleOtro.MontoDesdeDesgloseMixto = ajuste.Value.MontoAnadido;
+                                detalleOtro.CantidadFacturasDesdeMixto = ajuste.Value.CantidadFacturasAnadidas;
+                                
+                                var descOtro = tiposPagos.ContainsKey(ajuste.Key) ? tiposPagos[ajuste.Key].Descripcion_Tipo_Pagos : $"Tipo {ajuste.Key}";
+                                Console.WriteLine($"   ✓ {descOtro} actualizado: Total {totAntes} → {detalleOtro.TotalFacturado} (desde MIXTO: {detalleOtro.MontoDesdeDesgloseMixto})");
+                            }
+                        }
+                        
+                        // IMPORTANTE: Eliminar MIXTO del reporte final porque fue completamente desglosado
+                        // MIXTO es solo un contenedor temporal; en el reporte se muestra la composición real
+                        if (detallesPorTipo.ContainsKey(ID_TIPO_PAGO_MIXTO))
+                        {
+                            detallesPorTipo.Remove(ID_TIPO_PAGO_MIXTO);
+                            Console.WriteLine($"   ✓ MIXTO removido del reporte (fue completamente desglosado)");
+                        }
+                    }
+                }
+
+                // IMPORTANTE: Asegurar que SOLO CRÉDITO tiene saldo pendiente
+                // Todos los demás tipos de pago deben tener SaldoPendiente = 0
+                foreach (var entrada in detallesPorTipo)
+                {
+                    if (entrada.Key != ID_TIPO_PAGO_CREDITO)
+                    {
+                        entrada.Value.SaldoPendiente = 0;
+                    }
+                }
+
+                // Convertir a lista y calcular porcentajes
+                var detalles = detallesPorTipo.Values.ToList();
+                decimal totalFacturado = detalles.Sum(x => x.TotalFacturado);
+                decimal totalEfectivoReal = detalles.Sum(x => x.EfectivoReal);
+                decimal totalAbonos = detalles.Sum(x => x.MontoAbonos);
+                decimal totalSaldoPendiente = detalles.Sum(x => x.SaldoPendiente);
+
+                Console.WriteLine($"\n📊 [CIERRE CAJA] Totales finales:");
+                Console.WriteLine($"   Total facturado: {totalFacturado}");
+                Console.WriteLine($"   Total efectivo real: {totalEfectivoReal}");
+                Console.WriteLine($"   Total abonos: {totalAbonos}");
+                Console.WriteLine($"   Total saldo pendiente: {totalSaldoPendiente}");
+
                 if (totalFacturado > 0)
                 {
                     foreach (var detalle in detalles)
@@ -271,7 +502,7 @@ namespace MVSystemApi.Model_Negocio
                     }
                 }
 
-                // Crear resumen
+                // Crear resumen final
                 var resumen = new CierreCajaReporteResumen
                 {
                     FechaInicio = DateTime.Parse(filtro.FechaInicio),
@@ -285,10 +516,12 @@ namespace MVSystemApi.Model_Negocio
                     DetallesPorTipoPago = detalles
                 };
 
+                Console.WriteLine($"\n✅ [CIERRE CAJA] Reporte completado\n");
                 return resumen;
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"\n❌ [CIERRE CAJA] Error: {ex.Message}\n");
                 throw new Exception("Error al obtener el cierre de caja: " + ex.Message, ex);
             }
         }

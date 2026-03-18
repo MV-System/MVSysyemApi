@@ -306,7 +306,7 @@ namespace MVSystemApi.Model
                             ELSE ISNULL(F.Abono, 0)
                         END) as EfectivoReal,
                         SUM(CASE
-                            WHEN F.ID_Tipo_Pagos <> 1 THEN F.Total - ISNULL(F.Abono, 0)
+                            WHEN F.ID_Tipo_Pagos = 2 THEN F.Total - ISNULL(F.Abono, 0)
                             ELSE 0
                         END) as SaldoPendiente
                     FROM Facturas F
@@ -316,6 +316,48 @@ namespace MVSystemApi.Model
                         AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
                     GROUP BY F.ID_Tipo_Pagos
                     ORDER BY TotalFacturado DESC";
+                
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", filtro.FechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", filtro.FechaFinal);
+                cmd.Parameters.AddWithValue("@Almacen", filtro.Almacen);
+                cmd.Parameters.AddWithValue("@EstadoFactura", filtro.EstadoFactura ?? "");
+                cmd.Parameters.AddWithValue("@IdVendedor", filtro.IdVendedor);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las facturas MIXTO (ID_Tipo_Pagos = 6) en el período especificado
+        /// </summary>
+        public DataTable GetFacturasMixtoEnPeriodo(FacturaFilter filtro)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        F.Numero_Factura,
+                        F.Total,
+                        F.ID_Sucursal,
+                        F.ID_Vendedor
+                    FROM Facturas F
+                    WHERE CAST(F.Fecha_Registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
+                        AND F.ID_Sucursal = @Almacen
+                        AND F.Estado = @EstadoFactura
+                        AND F.ID_Tipo_Pagos = 6
+                        AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
+                    ORDER BY F.Numero_Factura DESC";
                 
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", filtro.FechaInicio);

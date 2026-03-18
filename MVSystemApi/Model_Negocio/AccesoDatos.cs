@@ -1436,6 +1436,27 @@ namespace MVSystemApi.Model
             return dt;
         }
 
+        public int UpdateAsumeITBIS(string asumeITBIS, string usuario)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Asume_ITBIS_Actualizar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@AsumeITBIS", asumeITBIS);
+                cmd.Parameters.AddWithValue("@registro_Usuario", usuario);
+
+                int result = cmd.ExecuteNonQuery();
+                cn.Close();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al actualizar AsumeITBIS: " + ex.Message);
+            }
+        }
+
         public DataTable PostDetalleFactura(List<DetalleFactura> detalleFactura, int numeroFactura)
         {          
 

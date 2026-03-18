@@ -323,5 +323,25 @@ namespace MVSystemApi.Model
                           }).FirstOrDefault();
             return result;
         }
+
+        internal object UpdateAsumeITBIS(string asumeITBIS, string usuario)
+        {
+            try
+            {
+                int result = Ac.UpdateAsumeITBIS(asumeITBIS, usuario);
+                if (result > 0)
+                {
+                    return new { success = true, message = "Se actualizó correctamente si la tienda asume el ITBIS" };
+                }
+                else
+                {
+                    return new { success = false, message = "No se pudo actualizar el registro" };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, message = ex.Message };
+            }
+        }
     }
 }

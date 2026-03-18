@@ -132,6 +132,7 @@ namespace MVSystemApi.Interfaz
         DataTable Modelo_Insert(Modelos Modelo);
         DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente);
         DataTable AsumeITBIS();
+        int UpdateAsumeITBIS(string asumeITBIS, string usuario);
         string Equipo_Delete(string imei, string Usuario);
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
         string AbonoAfactura(AbonoFacturaParam param);

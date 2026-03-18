@@ -417,7 +417,32 @@ namespace MVSystemApi.Controllers
 
         }
 
+        [HttpPost]
+        [Route("AsumeITBIS/Actualizar")]
+        public IActionResult ActualizarAsumeITBIS([FromBody] ActualizarAsumeITBISRequest request)
+        {
+            try
+            {
+                if (request == null || string.IsNullOrEmpty(request.AsumeITBIS))
+                {
+                    return BadRequest("El valor de AsumeITBIS es requerido");
+                }
+
+                var result = AD.UpdateAsumeITBIS(request.AsumeITBIS, request.Usuario ?? "Sistema");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 
+    public class ActualizarAsumeITBISRequest
+    {
+        public string AsumeITBIS { get; set; }
+        public string Usuario { get; set; }
+    }
 
 }

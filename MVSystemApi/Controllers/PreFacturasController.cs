@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using MVSystemApi.Interfaz;
+using DTO;
 
 namespace MVSystemApi.Controllers
 {
@@ -11,9 +13,12 @@ namespace MVSystemApi.Controllers
     public class PreFacturasController : ControllerBase
     {
         private readonly PreFacturas_Negocio AD;
-        public PreFacturasController(PreFacturas_Negocio _en)
+        private readonly IAccesoDatos _accesoDatos;
+        
+        public PreFacturasController(PreFacturas_Negocio _en, IAccesoDatos accesoDatos)
         {
             AD = _en;
+            _accesoDatos = accesoDatos;
         }
 
         // POST /PreFacturas
@@ -149,6 +154,42 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        // POST /PreFacturas/{id}/detalles-pago (guardar detalles de pago mixto)
+        [HttpPost]
+        [Route("{id}/detalles-pago")]
+        public IActionResult GuardarDetallesPagoPreFactura(int id, [FromBody] List<DetallePagoDTO> detallesPagos)
+        {
+            try
+            {
+                Console.WriteLine($"🔵 BACKEND PREFACTURA: Recibido GuardarDetallesPagoPreFactura para PreFactura #{id}");
+                Console.WriteLine($"   Cantidad de detalles recibidos: {detallesPagos?.Count ?? 0}");
+                
+                if (detallesPagos == null || detallesPagos.Count == 0)
+                {
+                    Console.WriteLine($"❌ BACKEND PREFACTURA: Detalles de pago nulos o vacíos");
+                    return BadRequest(new { error = "Debe proporcionar detalles de pago" });
+                }
+
+                // Log de cada detalle
+                foreach (var pago in detallesPagos)
+                {
+                    Console.WriteLine($"   - TipoPago: {pago.ID_Tipo_Pago}, Monto: {pago.Monto_Pago}, Ref: {pago.Numero_Referencia}");
+                }
+
+                Console.WriteLine($"💾 BACKEND PREFACTURA: Guardando detalles de pago...");
+                _accesoDatos.PostDetallesPagoFactura(id, detallesPagos);
+                
+                Console.WriteLine($"✅ BACKEND PREFACTURA: Detalles de pago guardados correctamente para PreFactura #{id}");
+                return Ok(new { mensaje = "Detalles de pago guardados correctamente" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ERROR BACKEND PREFACTURA: {ex.Message}");
+                Console.WriteLine($"   Stack: {ex.StackTrace}");
+                return BadRequest(new { error = ex.Message });
             }
         }
     }

@@ -104,6 +104,7 @@ namespace MVSystemApi.Interfaz
         // Métodos para Pago Mixto
         public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos);
         public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura);
+        public void ActualizarNumeroFacturaEnDetallesPago(int numeroPreFactura, int nuevoNumeroFactura);
 
         #endregion
 

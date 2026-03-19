@@ -34,7 +34,34 @@ namespace MVSystemApi.Model_Negocio
 
         public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)
         {
-            return _accesoDatos.ProcesarPreFactura(numeroPreFactura, usuarioProcesamiento);
+            var resultado = _accesoDatos.ProcesarPreFactura(numeroPreFactura, usuarioProcesamiento);
+            
+            // Si el procesamiento fue exitoso, actualizar número de factura en detalles de pago
+            if (resultado != null)
+            {
+                // El resultado es un objeto anónimo con Cod_Factura y Mensaje
+                try
+                {
+                    // Usando reflexión para obtener la propiedad Cod_Factura
+                    var codFacturaProperty = resultado.GetType().GetProperty("Cod_Factura");
+                    if (codFacturaProperty != null)
+                    {
+                        int nuevoNumeroFactura = Convert.ToInt32(codFacturaProperty.GetValue(resultado));
+                        if (nuevoNumeroFactura > 0)
+                        {
+                            Console.WriteLine($"🔄 PreFacturas_Negocio: Actualizando detalles de pago para pre-factura {numeroPreFactura} -> factura {nuevoNumeroFactura}");
+                            _accesoDatos.ActualizarNumeroFacturaEnDetallesPago(numeroPreFactura, nuevoNumeroFactura);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️  PreFacturas_Negocio: Error al actualizar detalles de pago: {ex.Message}");
+                    // No lanzar excepción, solo loguear. La pre-factura ya se procesó correctamente.
+                }
+            }
+            
+            return resultado;
         }
 
         public object AnularPreFactura(int numeroPreFactura)

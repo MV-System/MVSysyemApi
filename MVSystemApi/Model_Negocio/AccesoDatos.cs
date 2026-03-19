@@ -2470,6 +2470,30 @@ namespace MVSystemApi.Model
             return result == null || result == DBNull.Value ? default(T) : (T)Convert.ChangeType(result, typeof(T));
         }
 
+        public void ActualizarNumeroFacturaEnDetallesPago(int numeroPreFactura, int nuevoNumeroFactura)
+        {
+            Console.WriteLine($"🔄 AccesoDatos.ActualizarNumeroFacturaEnDetallesPago - PreFactura: {numeroPreFactura}, Nueva Factura: {nuevoNumeroFactura}");
+            
+            using var connection = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("UpdateDetallesPagoFactura", connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            
+            cmd.Parameters.AddWithValue("@Numero_Factura_Anterior", numeroPreFactura);
+            cmd.Parameters.AddWithValue("@Numero_Factura_Nueva", nuevoNumeroFactura);
+            
+            try
+            {
+                connection.Open();
+                int rowsAffected = cmd.ExecuteNonQuery();
+                Console.WriteLine($"✅ ActualizarNumeroFacturaEnDetallesPago completado - Filas actualizadas: {rowsAffected}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error en ActualizarNumeroFacturaEnDetallesPago: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<DataTable> ExecuteDataTableAsync(string query, params SqlParameter[] parameters)
         {
             using var connection = new SqlConnection(_connectionStrings);

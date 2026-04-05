@@ -9,6 +9,7 @@ using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using MVSystemApi.Model_Negocio.Seguridad;
 using MVSystemApi.ModelsEF;
+using MVSystemApi.Services;
 using Rotativa.AspNetCore;
 using System.Text;
 
@@ -28,7 +29,18 @@ builder.Services.AddCors();
 builder.Services.AddDbContext<SEGURIDADContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString(@"MVSystemSeguridad")));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpClient<WhatsAppService>();
-builder.Services.AddScoped<ITracking, Tracking_Negocio>();
+
+// Configurar HttpClientFactory para FacEDGIService con X-Api-Key header
+builder.Services.AddHttpClient("FacEDGI")
+    .ConfigureHttpClient((client) =>
+    {
+        var config = builder.Configuration;
+        client.BaseAddress = new Uri(config["FacEDGI:BaseUrl"] ?? "https://api-dev.easyconexion.com/ecf-rd");
+        client.Timeout = TimeSpan.FromSeconds(int.Parse(config["FacEDGI:Timeout"] ?? "30"));
+        client.DefaultRequestHeaders.Add("X-Api-Key", config["FacEDGI:ApiKey"]);
+    });
+
+builder.Services.AddScoped<IFacEDGIService, FacEDGIService>();
 builder.Services.AddSingleton<WhatsAppService>();
 
 builder.Services.AddSwaggerGen(c =>
@@ -78,11 +90,15 @@ builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PreFacturas_Negocio>();
 builder.Services.AddScoped<Inventario_Negocio>();
 
+// Servicios de Facturaci�n Electr�nica (DGI)
+builder.Services.AddScoped<IFacEDGIService, FacEDGIService>();
+
 // Servicios de Seguridad
 builder.Services.AddScoped<UsuariosService>();
 builder.Services.AddScoped<PermisosService>();
 builder.Services.AddScoped<RolesService>();  // RolesService hereda de PerfilesService
 builder.Services.AddScoped<AsignacionesService>();
+builder.Services.AddScoped<ITracking, Tracking_Negocio>();
 builder.Services.AddScoped<DepartamentosService>();
 builder.Services.AddScoped<ModulosService>();
 builder.Services.AddScoped<SistemasService>();

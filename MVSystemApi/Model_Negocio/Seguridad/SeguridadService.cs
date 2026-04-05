@@ -65,6 +65,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 var empresa = await GetUserEmpresa(usuarioDb.Id_Empresa); // Obtener la empresa de manera asíncrona
                 usuarioDb.Empresa = empresa.NombreEmpresa;
                 usuarioDb.EmpresaMostrar = empresa.NombreEmpresaMostrar;
+                usuarioDb.Rnc = empresa.Rnc;
                 
                 // Obtener el Perfil de la tabla seg.Usuarios de SEGURIDAD (por Login)
                 usuarioDb.Perfil = await GetPerfilUsuarioSeguridad(usuarioDb.Login);
@@ -110,7 +111,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         SELECT TOP (1) 
             E.ID_Empresa, 
             E.Nombre_Empresa, 
-            E.Nombre_Empresa_Mostrar 
+            E.Nombre_Empresa_Mostrar,
+            E.RNC
         FROM Empresas E 
         JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa 
         WHERE U.Id_Empresa = @idEmpresa", conn);
@@ -128,7 +130,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 {
                     IdEmpresa = firstRow.Field<int>("ID_Empresa"),
                     NombreEmpresa = firstRow.Field<string>("Nombre_Empresa"),
-                    NombreEmpresaMostrar = firstRow.Field<string>("Nombre_Empresa_Mostrar")
+                    NombreEmpresaMostrar = firstRow.Field<string>("Nombre_Empresa_Mostrar"),
+                    Rnc = firstRow.Field<string>("RNC")
                 };
             }
 

@@ -17,14 +17,16 @@ namespace MVSystemApi.Model
         public static int Numero_Registro;
         private readonly string _connectionStrings;
         private readonly IMemoryCache _memoryCache;
+        private readonly ILogger<AccesoDatos> _logger;
         public static Int64 codigo;
 
-        // Propiedad p�blica para acceder a la cadena de conexi�n
+        // Propiedad pública para acceder a la cadena de conexión
         public string ConnectionString => _connectionStrings;
 
-        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger)
         {
             _memoryCache = memoryCache;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -200,7 +202,7 @@ namespace MVSystemApi.Model
         /// <returns>
         /// DataTable
         /// </returns>
-        public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal)
+        public DataTable GetDetalleFacturaConsulta(int numeroFactura, int? sucursal)
         {
             cn.Open();
             try
@@ -209,7 +211,7 @@ namespace MVSystemApi.Model
                 cmd.CommandText = "Detalle_Factura_Consulta";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura);
-                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal ?? 1);
 
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
@@ -1466,7 +1468,6 @@ namespace MVSystemApi.Model
                 SqlCommand cmd = new SqlCommand("Detalle_Factura_Insert", cn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cn.Open();
 
                 foreach (var item in detalleFactura)
@@ -1491,8 +1492,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Usuario", item.Usuario);
                     cmd.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
 
-                    //cmd.ExecuteNonQuery();
-                    da.Fill(dt);
+                    cmd.ExecuteNonQuery();
                 }
 
                 cn.Close();
@@ -2457,6 +2457,172 @@ namespace MVSystemApi.Model
 
             return lista;
         }
+
+        #region // Métodos para Facturación Electrónica (LogFacturaElectronica)
+
+        /// <summary>
+        /// Inserta un nuevo registro en LogFacturaElectronica usando Stored Procedure
+        /// </summary>
+        public async Task<bool> InsertLogFacturaElectronica(LogFacturaElectronica log)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionStrings);
+                using var command = new SqlCommand("Proc_LogFacturaElectronica_Insert", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Numero_Factura", log.Numero_Factura);
+                command.Parameters.AddWithValue("@Literal", log.Literal ?? "A");
+                command.Parameters.AddWithValue("@DocumentoId_EasyConexion", log.DocumentoId_EasyConexion ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@VoucherNumber_DGII", log.VoucherNumber_DGII ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Estado", log.Estado ?? "PEND");
+                command.Parameters.AddWithValue("@Respuesta_JSON", log.Respuesta_JSON ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Fecha_Envio", log.Fecha_Envio);
+                command.Parameters.AddWithValue("@Error_Descripcion", log.Error_Descripcion ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Usuario", log.Usuario ?? (object)DBNull.Value);
+
+                await connection.OpenAsync();
+                int rowsAffected = await command.ExecuteNonQueryAsync();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Error en InsertLogFacturaElectronica: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Actualiza un registro en LogFacturaElectronica usando Stored Procedure
+        /// </summary>
+        public async Task<bool> UpdateLogFacturaElectronica(LogFacturaElectronica log)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionStrings);
+                using var command = new SqlCommand("Proc_LogFacturaElectronica_Update", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Numero_Factura", log.Numero_Factura);
+                command.Parameters.AddWithValue("@Literal", log.Literal ?? "A");
+                command.Parameters.AddWithValue("@DocumentoId_EasyConexion", log.DocumentoId_EasyConexion ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@VoucherNumber_DGII", log.VoucherNumber_DGII ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Estado", log.Estado ?? "PEND");
+                command.Parameters.AddWithValue("@Respuesta_JSON", log.Respuesta_JSON ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Fecha_Confirmacion", log.Fecha_Confirmacion ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@Error_Descripcion", log.Error_Descripcion ?? (object)DBNull.Value);
+
+                await connection.OpenAsync();
+                int rowsAffected = await command.ExecuteNonQueryAsync();
+
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Error en UpdateLogFacturaElectronica: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el log de una factura específica usando Stored Procedure
+        /// </summary>
+        public async Task<LogFacturaElectronica> GetLogFacturaElectronica(int numeroFactura, string literal)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionStrings);
+                using var command = new SqlCommand("Proc_LogFacturaElectronica_GetByNumeroFacturaLiteral", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+                command.Parameters.AddWithValue("@Literal", literal ?? "A");
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new LogFacturaElectronica
+                    {
+                        IDLog = reader.GetInt32(reader.GetOrdinal("ID_Log")),
+                        Numero_Factura = reader.GetInt32(reader.GetOrdinal("Numero_Factura")),
+                        Literal = reader.GetString(reader.GetOrdinal("Literal")),
+                        DocumentoId_EasyConexion = reader.IsDBNull(reader.GetOrdinal("DocumentoId_EasyConexion")) ? null : reader.GetInt32(reader.GetOrdinal("DocumentoId_EasyConexion")),
+                        VoucherNumber_DGII = reader.IsDBNull(reader.GetOrdinal("VoucherNumber_DGII")) ? null : reader.GetString(reader.GetOrdinal("VoucherNumber_DGII")),
+                        Estado = reader.GetString(reader.GetOrdinal("Estado")),
+                        Respuesta_JSON = reader.IsDBNull(reader.GetOrdinal("Respuesta_JSON")) ? null : reader.GetString(reader.GetOrdinal("Respuesta_JSON")),
+                        Fecha_Envio = reader.GetDateTime(reader.GetOrdinal("Fecha_Envio")),
+                        Fecha_Confirmacion = reader.IsDBNull(reader.GetOrdinal("Fecha_Confirmacion")) ? null : reader.GetDateTime(reader.GetOrdinal("Fecha_Confirmacion")),
+                        Error_Descripcion = reader.IsDBNull(reader.GetOrdinal("Error_Descripcion")) ? null : reader.GetString(reader.GetOrdinal("Error_Descripcion")),
+                        Usuario = reader.IsDBNull(reader.GetOrdinal("Usuario")) ? null : reader.GetString(reader.GetOrdinal("Usuario")),
+                        Fecha_Registro = reader.GetDateTime(reader.GetOrdinal("Fecha_Registro"))
+                    };
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Error en GetLogFacturaElectronica: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene todas las facturas con estado PEND usando Stored Procedure
+        /// </summary>
+        public async Task<List<LogFacturaElectronica>> GetLogFacturasElectronicasPendientes()
+        {
+            try
+            {
+                var logs = new List<LogFacturaElectronica>();
+
+                using var connection = new SqlConnection(_connectionStrings);
+                using var command = new SqlCommand("Proc_LogFacturaElectronica_GetPendientes", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    logs.Add(new LogFacturaElectronica
+                    {
+                        IDLog = reader.GetInt32(reader.GetOrdinal("ID_Log")),
+                        Numero_Factura = reader.GetInt32(reader.GetOrdinal("Numero_Factura")),
+                        Literal = reader.GetString(reader.GetOrdinal("Literal")),
+                        DocumentoId_EasyConexion = reader.IsDBNull(reader.GetOrdinal("DocumentoId_EasyConexion")) ? null : reader.GetInt32(reader.GetOrdinal("DocumentoId_EasyConexion")),
+                        VoucherNumber_DGII = reader.IsDBNull(reader.GetOrdinal("VoucherNumber_DGII")) ? null : reader.GetString(reader.GetOrdinal("VoucherNumber_DGII")),
+                        Estado = reader.GetString(reader.GetOrdinal("Estado")),
+                        Respuesta_JSON = reader.IsDBNull(reader.GetOrdinal("Respuesta_JSON")) ? null : reader.GetString(reader.GetOrdinal("Respuesta_JSON")),
+                        Fecha_Envio = reader.GetDateTime(reader.GetOrdinal("Fecha_Envio")),
+                        Fecha_Confirmacion = reader.IsDBNull(reader.GetOrdinal("Fecha_Confirmacion")) ? null : reader.GetDateTime(reader.GetOrdinal("Fecha_Confirmacion")),
+                        Error_Descripcion = reader.IsDBNull(reader.GetOrdinal("Error_Descripcion")) ? null : reader.GetString(reader.GetOrdinal("Error_Descripcion")),
+                        Usuario = reader.IsDBNull(reader.GetOrdinal("Usuario")) ? null : reader.GetString(reader.GetOrdinal("Usuario")),
+                        Fecha_Registro = reader.GetDateTime(reader.GetOrdinal("Fecha_Registro"))
+                    });
+                }
+
+                return logs;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"❌ Error en GetLogFacturasElectronicasPendientes: {ex.Message}");
+                throw;
+            }
+        }
+
+        #endregion
 
         #region M�todos As�ncronos para Tracking
 

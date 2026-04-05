@@ -10,6 +10,7 @@
         public int Id_Empresa { get; set; }
         public string Empresa { get; set; }
         public string EmpresaMostrar { get; set; }
+        public string Rnc { get; set; }
         public int Id_Sucursal { get; set; }
         public string Sucursal { get; set; }
         public int Perfil { get; set; }

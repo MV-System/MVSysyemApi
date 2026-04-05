@@ -99,12 +99,18 @@ namespace MVSystemApi.Interfaz
         
         public DataTable GetFacturasMixtoEnPeriodo(FacturaFilter filtro);
 
-        public DataTable GetDetalleFacturaConsulta(int numeroFactura, int sucursal);
+        public DataTable GetDetalleFacturaConsulta(int numeroFactura, int? sucursal);
         
         // Métodos para Pago Mixto
         public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos);
         public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura);
         public void ActualizarNumeroFacturaEnDetallesPago(int numeroPreFactura, int nuevoNumeroFactura);
+
+        // Métodos para Facturación Electrónica (LogFacturaElectronica)
+        public Task<bool> InsertLogFacturaElectronica(LogFacturaElectronica log);
+        public Task<bool> UpdateLogFacturaElectronica(LogFacturaElectronica log);
+        public Task<LogFacturaElectronica> GetLogFacturaElectronica(int numeroFactura, string literal);
+        public Task<List<LogFacturaElectronica>> GetLogFacturasElectronicasPendientes();
 
         #endregion
 

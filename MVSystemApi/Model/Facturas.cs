@@ -99,7 +99,8 @@ namespace MVSystemApi.Model
         public DateTime FechaRegistro { get; set; }
         public int Abono { get; set; }
         public string RNC { get; set; }
-        public int NcfNumero { get; set; }
+        public string RncEmpresa { get; set; }
+        public string NcfNumero { get; set; }
         public List<DetalleFactura> DetalleFacturaList { get; set; }
 
         public Clientes Cliente { get; set; }

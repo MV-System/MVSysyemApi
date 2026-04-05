@@ -43,6 +43,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             claims.Add(new Claim("IdEmpresa", user.Id_Empresa.ToString()));
             claims.Add(new Claim("Empresa", user.Empresa));
             claims.Add(new Claim("NombreEmpresaMostrar", user.EmpresaMostrar));
+            claims.Add(new Claim("Rnc", user.Rnc ?? string.Empty));
 
             var expires = DateTime.UtcNow.Date.AddDays(1);
             var tokenDescriptor = new JwtSecurityToken(_issuer, _issuer, claims, expires: expires, signingCredentials: _credentials);

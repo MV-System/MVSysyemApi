@@ -116,9 +116,7 @@ namespace MVSystemApi.Services
                 // 5. Leer respuesta
                 var responseContent = await response.Content.ReadAsStringAsync();
                 _logger.LogDebug($"Response Status: {response.StatusCode}, Content: {responseContent}");
-                Console.WriteLine($"📊 Status Code: {response.StatusCode}");
-                Console.WriteLine($"📄 Response Content: {(string.IsNullOrEmpty(responseContent) ? "(vacío)" : responseContent)}");
-
+               
                 // 6. Deserializar respuesta
                 EasyConexionResponseDTO responseDto = null;
                 var jsonDeserializeOptions = new JsonSerializerOptions 
@@ -129,8 +127,7 @@ namespace MVSystemApi.Services
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    responseDto = JsonSerializer.Deserialize<EasyConexionResponseDTO>(responseContent, jsonDeserializeOptions);
-                    Console.WriteLine($"📝 Response parseado - Success: {responseDto?.Success}, DocumentId: {responseDto?.DocumentId}");
+                    responseDto = JsonSerializer.Deserialize<EasyConexionResponseDTO>(responseContent, jsonDeserializeOptions);                   
                 }
                 else
                 {
@@ -332,7 +329,7 @@ namespace MVSystemApi.Services
                     UnitPrice = detalle.Precio,
                     Amount = detalle.SubTotal,
                     TaxCategory = 1, // Todos tienen ITBIS
-                    Discount = detalle.Descuento > 0 ? detalle.Descuento : null,  // Descuento si aplica
+                    Discount = 0,  // Enviado a DGI siempre en cero (descuento no reportado a autoridades)
                     Surcharge = null,  // Sin sobrecargo
                     GoodOrServiceIndicator = 1, // Todos son bienes (celulares)
                     UnitMeasure = null,  // No especificar unidad

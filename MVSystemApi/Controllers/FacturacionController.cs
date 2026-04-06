@@ -372,15 +372,9 @@ namespace MVSystemApi.Controllers
             {
                 try
                 {
-                    Console.WriteLine($"🔄 ========== INICIANDO ENVÍO A DGI ==========");
-                    Console.WriteLine($"📋 Factura: {facturaGuardada.NumeroFactura}");
-                    Console.WriteLine($"💰 Total: {facturaGuardada.Total}");
-                    Console.WriteLine($"📦 Detalles: {detalles?.Count ?? 0} artículos");
-                    Console.WriteLine($"💼 RNC Empresa: {facturaGuardada.RncEmpresa}");
-                    Console.WriteLine($"👥 Usuario: {usuarioDelToken}");
+                  
 
-                    // Obtener todos los datos de la factura (cabecera y detalles) usando SP_Reporte_Factura
-                    Console.WriteLine($"📝 Obteniendo datos de factura (cabecera y detalles)...");
+                   
                     // Acceso directo al DataTable para obtener el NCF sin mapeo
                     using var cn = new SqlConnection(connectionString);
                     using var cmd = new SqlCommand("SP_Reporte_Factura", cn);
@@ -391,75 +385,28 @@ namespace MVSystemApi.Controllers
                     var da = new SqlDataAdapter(cmd);
                     var dt = new DataTable();
                     da.Fill(dt);
-                    
-                    Console.WriteLine($"✅ Datos obtenidos: {dt?.Rows.Count ?? 0} registros");
-                    
+
                     // Extraer el NCF de la primera fila
                     if (dt != null && dt.Rows.Count > 0 && dt.Columns.Contains("NCF"))
                     {
-                        facturaGuardada.NcfNumero = dt.Rows[0]["NCF"]?.ToString() ?? "";
-                        Console.WriteLine($"✅ NCF obtenido: {facturaGuardada.NcfNumero}");
+                        facturaGuardada.NcfNumero = dt.Rows[0]["NCF"]?.ToString() ?? "";                        
                     }
                     else
                     {
-                        Console.WriteLine($"❌ NCF no encontrado en datos");
-                        if (dt != null)
-                            Console.WriteLine($"   Columnas: {string.Join(", ", dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName))}");
+                        if (dt != null) ;                           
                     }
 
-                    // Usar los pagos capturados ANTES del Task.Run()
-                    Console.WriteLine($"✅ Pagos disponibles: {pagosCapturados?.Count ?? 0} métodos de pago");
-                    if (pagosCapturados?.Any() == true)
-                    {
-                        foreach (var pago in pagosCapturados)
-                        {
-                            Console.WriteLine($"   - Tipo Pago: {pago.ID_Tipo_Pago}, Monto: {pago.Monto_Pago}, Ref: {pago.Numero_Referencia}");
-                        }
-                    }
-
-                    // Usar usuario capturado del token (ya lo obtuvimos antes del Task.Run)
-                    Console.WriteLine($"👤 Usuario del Token: {usuarioDelToken}");
-                    Console.WriteLine($"💼 RNC del Token: {rncDelToken}");
-                    Console.WriteLine($"🎫 VoucherNumber a enviar: {facturaGuardada.NcfNumero}");
-                    Console.WriteLine($"📝 Tipo Factura (NcfTipoNumero): {facturaGuardada.NcfTipoNumero}");
-                    Console.WriteLine($"👥 RNC Cliente: {facturaGuardada.RNC}");
-
-                    // Enviar a DGI
-                    Console.WriteLine($"🚀 Enviando request a EasyConexión API...");
                     var responseEDGI = await _facEDGIService.EnviarFacturaADGII(facturaGuardada, detalles, pagosCapturados, usuarioDelToken, rncDelToken, empresaDelToken);
-
-                    if (responseEDGI.Success)
-                    {
-                        Console.WriteLine($"========== ✅ ÉXITO ==========");
-                        Console.WriteLine($"✅ Factura {facturaGuardada.NumeroFactura} enviada exitosamente a DGI");
-                        Console.WriteLine($"📄 DocumentId: {responseEDGI.DocumentId}");
-                        Console.WriteLine($"🎫 VoucherNumber Recibido: {responseEDGI.VoucherNumber}");
-                        Console.WriteLine($"🎫 VoucherNumber Enviado: {facturaGuardada.NcfNumero}");
-                        Console.WriteLine($"📝 Mensaje: {responseEDGI.Message}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"========== ⚠️ ERROR EN DGI ==========");
-                        Console.WriteLine($"⚠️ Factura {facturaGuardada.NumeroFactura} guardada pero con error al enviar a DGI");
-                        Console.WriteLine($"🎫 VoucherNumber Enviado: {facturaGuardada.NcfNumero}");
-                        Console.WriteLine($"❌ Mensaje de Error: {responseEDGI.Message}");
-                    }
-                    Console.WriteLine($"========================================");
+                                      
                 }
                 catch (Exception ex)
-                {
-                    Console.WriteLine($"========== ❌ EXCEPCIÓN ==========");
-                    Console.WriteLine($"❌ Error enviando factura {facturaGuardada.NumeroFactura} a DGI");
-                    Console.WriteLine($"📍 Tipo de Excepción: {ex.GetType().Name}");
-                    Console.WriteLine($"💬 Mensaje: {ex.Message}");
-                    Console.WriteLine($"🔍 Stack Trace:");
-                    Console.WriteLine(ex.StackTrace);
+                {                   
                     if (ex.InnerException != null)
                     {
                         Console.WriteLine($"➡️ InnerException: {ex.InnerException.Message}");
                         Console.WriteLine($"   Stack: {ex.InnerException.StackTrace}");
                     }
-                    Console.WriteLine($"========================================");
+                 
                 }
             });
         }

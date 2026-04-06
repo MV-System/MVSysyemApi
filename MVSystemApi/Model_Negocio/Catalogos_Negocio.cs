@@ -308,7 +308,8 @@ namespace MVSystemApi.Model
                           select new Comprobantes
                           {
                               NFCTipoNumero = Convert.ToInt32(dt["NFCTipoNumero"]),
-                              NFCTipoDescripcion = Convert.ToString(dt["NFCTipoDescripcion"])
+                              NFCTipoDescripcion = Convert.ToString(dt["NFCTipoDescripcion"]),
+                              Visible_Venta = Convert.ToBoolean(dt["Visible_Venta"])
                           }).ToList();
             return result;
         }

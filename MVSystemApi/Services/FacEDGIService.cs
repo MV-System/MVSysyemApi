@@ -91,10 +91,13 @@ namespace MVSystemApi.Services
         {
             try
             {
-                _logger.LogInformation($"Iniciando envío de factura {factura.NumeroFactura} a DGI");
+                var tipoComprobanteDesc = factura.NcfTipoNumero == 31 ? "CRÉDITO FISCAL (31)" : "CONSUMIDOR FINAL (32)";
+                _logger.LogInformation($"[ENVÍO DGI] Factura {factura.NumeroFactura} | Tipo: {tipoComprobanteDesc} | Total: RD${factura.Total}");
 
                 // 1. Mapear datos a RequestDTO (pasando RNC y empresa capturados del token)
                 var request = MapearFacturaARequest(factura, detalles, pagos, rncEmisor, nombreEmisor);
+
+                _logger.LogInformation($"[MAPEO OK] Comprador: {request.BuyerName} (RNC: {request.BuyerRnc}) | Líneas: {request.Lines?.Count ?? 0} | Monto: RD${request.TotalAmount}");
 
                 // 2. Serializar a JSON con camelCase (incluir null values)
                 var jsonOptions = new JsonSerializerOptions 
@@ -105,17 +108,16 @@ namespace MVSystemApi.Services
                 var jsonContent = JsonSerializer.Serialize(request, jsonOptions);
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                _logger.LogDebug($"Request JSON: {jsonContent}");
-
                 // 3. Crear cliente HTTP para este envío (evita disposed object en background tasks)
                 var httpClient = _httpClientFactory.CreateClient("FacEDGI");
                 
                 // 4. Enviar POST a EasyConexión API
+                _logger.LogInformation($"[ENVIANDO] POST a {_invoicesEndpoint}");
                 var response = await httpClient.PostAsync(_invoicesEndpoint, content);
 
                 // 5. Leer respuesta
                 var responseContent = await response.Content.ReadAsStringAsync();
-                _logger.LogDebug($"Response Status: {response.StatusCode}, Content: {responseContent}");
+                _logger.LogInformation($"[RESPUESTA] Status: {(int)response.StatusCode} {response.StatusCode}");
                
                 // 6. Deserializar respuesta
                 EasyConexionResponseDTO responseDto = null;
@@ -127,11 +129,12 @@ namespace MVSystemApi.Services
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    responseDto = JsonSerializer.Deserialize<EasyConexionResponseDTO>(responseContent, jsonDeserializeOptions);                   
+                    responseDto = JsonSerializer.Deserialize<EasyConexionResponseDTO>(responseContent, jsonDeserializeOptions);
+                    _logger.LogInformation($"[ÉXITO] Factura {factura.NumeroFactura} enviada exitosamente | DocId: {responseDto?.DocumentId} | Voucher: {responseDto?.VoucherNumber}");
                 }
                 else
                 {
-                    _logger.LogError($"Error en respuesta de EasyConexión: {response.StatusCode}");
+                    _logger.LogError($"[ERROR HTTP] Status {(int)response.StatusCode} al enviar factura {factura.NumeroFactura}");
                     var errorMsg = $"HTTP {response.StatusCode}";
                     if (!string.IsNullOrEmpty(responseContent))
                         errorMsg += $": {responseContent}";
@@ -160,16 +163,15 @@ namespace MVSystemApi.Services
                 var logInsertado = await InsertLogFacturaElectronica(logFactura);
                 if (!logInsertado)
                 {
-                    _logger.LogWarning($"No se pudo guardar el log de la factura {factura.NumeroFactura}");
+                    _logger.LogWarning($"No se pudo guardar el log de la factura {factura.NumeroFactura} en BD");
                 }
-
-                _logger.LogInformation($"Envío de factura {factura.NumeroFactura} completado. Success: {responseDto?.Success}");
 
                 return responseDto;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error al enviar factura {factura.NumeroFactura} a DGI: {ex.Message}", ex);
+                _logger.LogError($"[EXCEPCIÓN] Error al enviar factura {factura.NumeroFactura}: {ex.Message}");
+                _logger.LogError($"[STACK TRACE] {ex.StackTrace}");
                 
                 // Guardar error en log
                 var logError = new LogFacturaElectronica
@@ -203,11 +205,11 @@ namespace MVSystemApi.Services
             string rncEmisor,
             string nombreEmisor)
         {
-            _logger.LogInformation($"📝 Mapeo - NcfTipoNumero: {factura.NcfTipoNumero}, NcfNumero: {factura.NcfNumero}");
-            _logger.LogInformation($"📝 Mapeo - RNC Emisor: {rncEmisor}, Nombre Emisor: {nombreEmisor}");
-            _logger.LogInformation($"📝 Mapeo - Cliente: {(factura.Cliente != null ? factura.Cliente.Nombres : "NULL")}, RNC Cliente: {factura.RNC}");
-            Console.WriteLine($"📝 Cliente objeto: {(factura.Cliente != null ? "PRESENTE" : "NULL")}");
-            Console.WriteLine($"📝 Cliente.Nombres: {factura.Cliente?.Nombres ?? "(vacío)"}");
+            // Log de inicio del mapeo
+            var tipoComprobanteDesc = factura.NcfTipoNumero == 31 ? "CRÉDITO FISCAL" : 
+                                      factura.NcfTipoNumero == 32 ? "CONSUMIDOR FINAL" : "OTRO";
+            _logger.LogInformation($"[MAPEO] Tipo Comprobante: {factura.NcfTipoNumero} ({tipoComprobanteDesc}), Número: {factura.NcfNumero}");
+            _logger.LogInformation($"[MAPEO] Emisor: {nombreEmisor} (RNC: {rncEmisor})");
             
             // Si es consumidor final (32), usar "Consumidor Final", sino obtener nombre del cliente (31 = crédito fiscal)
             string buyerName = "Consumidor Final";
@@ -230,17 +232,17 @@ namespace MVSystemApi.Services
                             buyerName = !string.IsNullOrEmpty(nombres) ? nombres : "Cliente";
                             if (!string.IsNullOrEmpty(apellidos))
                                 buyerName += " " + apellidos;
-                            Console.WriteLine($"📝 Cliente obtenido de BD: {buyerName}");
+                            _logger.LogInformation($"[MAPEO-CF] Cliente obtenido de BD: {buyerName}");
                         }
                         else
                         {
                             buyerName = "Cliente";
-                            Console.WriteLine($"📝 Cliente no encontrado en BD, usando 'Cliente'");
+                            _logger.LogWarning($"[MAPEO-CF] Cliente no encontrado en BD, usando nombre genérico");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"❌ Error obteniendo cliente de BD: {ex.Message}");
+                        _logger.LogError($"[MAPEO-CF] Error obteniendo cliente de BD: {ex.Message}");
                         buyerName = "Cliente";
                     }
                 }
@@ -305,11 +307,19 @@ namespace MVSystemApi.Services
             // Mapear métodos de pago
             request.Payments = MapearPagos(pagos, factura.Total);
 
+            // Log del total a enviar a DGI
+            _logger.LogInformation($"[REQUEST DGI] Comprobante: {request.VoucherNumber}");
+            _logger.LogInformation($"[REQUEST DGI] Tipo: {request.VoucherType} - Comprador: {request.BuyerName}");
+            _logger.LogInformation($"[REQUEST DGI] Total a enviar: RD${request.TotalAmount:F2}");
+            _logger.LogInformation($"[REQUEST DGI] Líneas: {request.Lines.Count}, Métodos de pago: {request.Payments.Count}");
+
             return request;
         }
 
         /// <summary>
         /// Mapea DetalleFactura[] a EasyConexionLineDTO[]
+        /// Envía SubTotal (que ya tiene el descuento restado)
+        /// Descuento se envía en cero para compatibilidad con DGI
         /// </summary>
         private List<EasyConexionLineDTO> MapearDetalles(List<DetalleFactura> detalles)
         {
@@ -318,18 +328,25 @@ namespace MVSystemApi.Services
             if (detalles == null || detalles.Count == 0)
                 return lines;
 
+            _logger.LogInformation($"[LÍNEAS] Mapeando {detalles.Count} línea(s)...");
+
             int lineNumber = 1;
             foreach (var detalle in detalles)
             {
+                _logger.LogInformation($"[LÍNEA {lineNumber}] '{detalle.Descripcion}'");
+                _logger.LogInformation($"   Precio unitario: RD${detalle.Precio:F2} × Qty: {detalle.Cantidad}");
+                _logger.LogInformation($"   Descuento aplicado: RD${detalle.Descuento:F2}");
+                _logger.LogInformation($"   Amount a enviar (SubTotal): RD${detalle.SubTotal:F2}");
+                
                 lines.Add(new EasyConexionLineDTO
                 {
                     LineNumber = lineNumber++,
                     Description = detalle.Descripcion,
                     Quantity = detalle.Cantidad,
                     UnitPrice = detalle.Precio,
-                    Amount = detalle.SubTotal,
+                    Amount = detalle.SubTotal,  // Ya tiene descuento restado
                     TaxCategory = 1, // Todos tienen ITBIS
-                    Discount = 0,  // Enviado a DGI siempre en cero (descuento no reportado a autoridades)
+                    Discount = 0,  // Descuento siempre en cero para DGI
                     Surcharge = null,  // Sin sobrecargo
                     GoodOrServiceIndicator = 1, // Todos son bienes (celulares)
                     UnitMeasure = null,  // No especificar unidad
@@ -339,6 +356,7 @@ namespace MVSystemApi.Services
                 });
             }
 
+            _logger.LogInformation($"[LÍNEAS] Total mapeado: {lines.Count} línea(s)");
             return lines;
         }
 

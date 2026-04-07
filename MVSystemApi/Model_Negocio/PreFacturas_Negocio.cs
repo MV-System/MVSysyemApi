@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using MVSystemApi.Model;
 
 namespace MVSystemApi.Model_Negocio
@@ -25,6 +26,14 @@ namespace MVSystemApi.Model_Negocio
             return AccesoDatos.BindList<PreDetalleFactura>(dt);
         }
 
+        public PreFactura ObtenerPreFacturaPorId(int numeroPreFactura)
+        {
+            var filtro = new PreFacturaFiltro { Estado = "P" };
+            var dt = _accesoDatos.GetPreFacturasConsulta(filtro);
+            var lista = AccesoDatos.BindList<PreFactura>(dt);
+            return lista.FirstOrDefault(p => p.Numero_PreFactura == numeroPreFactura);
+        }
+
         public PreDetalleFactura AgregarDetallePreFactura(PreDetalleFactura detalle)
         {
             var dt = _accesoDatos.InsertarPreDetalleFactura(detalle);
@@ -39,25 +48,21 @@ namespace MVSystemApi.Model_Negocio
             // Si el procesamiento fue exitoso, actualizar número de factura en detalles de pago
             if (resultado != null)
             {
-                // El resultado es un objeto anónimo con Cod_Factura y Mensaje
                 try
                 {
-                    // Usando reflexión para obtener la propiedad Cod_Factura
                     var codFacturaProperty = resultado.GetType().GetProperty("Cod_Factura");
                     if (codFacturaProperty != null)
                     {
                         int nuevoNumeroFactura = Convert.ToInt32(codFacturaProperty.GetValue(resultado));
                         if (nuevoNumeroFactura > 0)
                         {
-                            Console.WriteLine($"🔄 PreFacturas_Negocio: Actualizando detalles de pago para pre-factura {numeroPreFactura} -> factura {nuevoNumeroFactura}");
                             _accesoDatos.ActualizarNumeroFacturaEnDetallesPago(numeroPreFactura, nuevoNumeroFactura);
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Console.WriteLine($"⚠️  PreFacturas_Negocio: Error al actualizar detalles de pago: {ex.Message}");
-                    // No lanzar excepción, solo loguear. La pre-factura ya se procesó correctamente.
+                    // No lanzar excepción. La pre-factura ya se procesó correctamente.
                 }
             }
             

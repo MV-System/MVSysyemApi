@@ -2396,19 +2396,14 @@ namespace MVSystemApi.Model
 
         public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos)
         {
-            Console.WriteLine($"🗄️ AccesoDatos.PostDetallesPagoFactura - Factura: {numeroFactura}, Detalles: {detallesPagos?.Count ?? 0}");
-            
             using var connection = new SqlConnection(_connectionStrings);
             using var cmd = new SqlCommand("InsertDetallesPagoFactura", connection);
             cmd.CommandType = CommandType.StoredProcedure;
 
             connection.Open();
-            Console.WriteLine($"📡 Conexión abierta a la BD");
 
             foreach (var item in detallesPagos)
             {
-                Console.WriteLine($"   Insertando: TipoPago={item.ID_Tipo_Pago}, Monto={item.Monto_Pago}, Ref={item.Numero_Referencia}");
-                
                 cmd.Parameters.Clear();
 
                 cmd.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
@@ -2420,15 +2415,12 @@ namespace MVSystemApi.Model
                 try
                 {
                     cmd.ExecuteNonQuery();
-                    Console.WriteLine($"   ✅ Detalle insertado");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"   ❌ Error: {ex.Message}");
                     throw;
                 }
             }
-            Console.WriteLine($"✅ PostDetallesPagoFactura completado");
         }
 
         public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura)
@@ -2638,8 +2630,6 @@ namespace MVSystemApi.Model
 
         public void ActualizarNumeroFacturaEnDetallesPago(int numeroPreFactura, int nuevoNumeroFactura)
         {
-            Console.WriteLine($"🔄 AccesoDatos.ActualizarNumeroFacturaEnDetallesPago - PreFactura: {numeroPreFactura}, Nueva Factura: {nuevoNumeroFactura}");
-            
             using var connection = new SqlConnection(_connectionStrings);
             using var cmd = new SqlCommand("UpdateDetallesPagoFactura", connection);
             cmd.CommandType = CommandType.StoredProcedure;
@@ -2647,17 +2637,8 @@ namespace MVSystemApi.Model
             cmd.Parameters.AddWithValue("@Numero_Factura_Anterior", numeroPreFactura);
             cmd.Parameters.AddWithValue("@Numero_Factura_Nueva", nuevoNumeroFactura);
             
-            try
-            {
-                connection.Open();
-                int rowsAffected = cmd.ExecuteNonQuery();
-                Console.WriteLine($"✅ ActualizarNumeroFacturaEnDetallesPago completado - Filas actualizadas: {rowsAffected}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Error en ActualizarNumeroFacturaEnDetallesPago: {ex.Message}");
-                throw;
-            }
+            connection.Open();
+            cmd.ExecuteNonQuery();
         }
 
         public async Task<DataTable> ExecuteDataTableAsync(string query, params SqlParameter[] parameters)

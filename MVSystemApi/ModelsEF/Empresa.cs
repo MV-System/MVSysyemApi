@@ -11,5 +11,6 @@ namespace MVSystemApi.ModelsEF
         public string Estado { get; set; }
         public string RegistroUsuario { get; set; }
         public DateTime Registrofecha { get; set; }
+        public bool Certificado { get; set; }
     }
 }

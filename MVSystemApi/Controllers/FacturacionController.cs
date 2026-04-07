@@ -349,6 +349,21 @@ namespace MVSystemApi.Controllers
         /// </summary>
         private void EnviarFacturaADGIEnBackground(Facturas facturaGuardada, List<DetalleFactura> detalles)
         {
+            // Verificar si la empresa está certificada para enviar a DGII
+            var certificadoClaim = User?.FindFirst("Certificado")?.Value;
+            if (!string.Equals(certificadoClaim, "True", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("⚠️ Empresa no certificada. La factura no será enviada a DGII.");
+                return;
+            }
+
+            // No enviar a DGII si el comprobante es "NO REQUERIDO" (NcfTipoNumero == 0)
+            if (facturaGuardada.NcfTipoNumero == 0)
+            {
+                Console.WriteLine("ℹ️ Comprobante NO REQUERIDO. La factura no será enviada a DGII.");
+                return;
+            }
+
             // IMPORTANTE: Capturar TODOS los datos del contexto ANTES de crear el Task.Run()
             // porque User y cualquier dependency injection pertenece al HttpContext que se descarta después de la request
             var usuarioDelToken = User?.Identity?.Name ?? "Sistema";

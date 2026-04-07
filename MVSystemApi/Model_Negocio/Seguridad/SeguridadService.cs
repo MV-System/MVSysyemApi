@@ -66,6 +66,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 usuarioDb.Empresa = empresa.NombreEmpresa;
                 usuarioDb.EmpresaMostrar = empresa.NombreEmpresaMostrar;
                 usuarioDb.Rnc = empresa.Rnc;
+                usuarioDb.Certificado = empresa.Certificado;
                 
                 // Obtener el Perfil de la tabla seg.Usuarios de SEGURIDAD (por Login)
                 usuarioDb.Perfil = await GetPerfilUsuarioSeguridad(usuarioDb.Login);
@@ -112,7 +113,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             E.ID_Empresa, 
             E.Nombre_Empresa, 
             E.Nombre_Empresa_Mostrar,
-            E.RNC
+            E.RNC,
+            ISNULL(E.Certificado, 0) AS Certificado
         FROM Empresas E 
         JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa 
         WHERE U.Id_Empresa = @idEmpresa", conn);
@@ -131,7 +133,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                     IdEmpresa = firstRow.Field<int>("ID_Empresa"),
                     NombreEmpresa = firstRow.Field<string>("Nombre_Empresa"),
                     NombreEmpresaMostrar = firstRow.Field<string>("Nombre_Empresa_Mostrar"),
-                    Rnc = firstRow.Field<string>("RNC")
+                    Rnc = firstRow.Field<string>("RNC"),
+                    Certificado = firstRow.Field<bool>("Certificado")
                 };
             }
 

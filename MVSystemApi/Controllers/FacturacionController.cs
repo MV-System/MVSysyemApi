@@ -67,11 +67,9 @@ namespace MVSystemApi.Controllers
                         }
                     };
                     _accesoDatos.PostDetallesPagoFactura(result.NumeroFactura, detallesPago);
-                    Console.WriteLine($"✅ Registro de pago guardado automáticamente - Tipo: {result.IdTipoPago}, Monto: {result.Total}");
                 }
                 catch (Exception exPago)
                 {
-                    Console.WriteLine($"⚠️ Advertencia al guardar pago automático: {exPago.Message}");
                     // No bloqueamos si falla el pago, la factura se guardó correctamente
                 }
 
@@ -93,16 +91,6 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-                Console.WriteLine($"🔵 BACKEND: Recibido PostFacturaPagoMixto - IdTipoPago: {request.IdTipoPago}");
-                Console.WriteLine($"🔵 BACKEND: DetallesPagos count: {request.DetallesPagos?.Count ?? 0}");
-                if (request.DetallesPagos?.Any() == true)
-                {
-                    foreach (var pago in request.DetallesPagos)
-                    {
-                        Console.WriteLine($"   - Tipo: {pago.ID_Tipo_Pago}, Monto: {pago.Monto_Pago}, Ref: {pago.Numero_Referencia}");
-                    }
-                }
-
                 // Validar que si es pago mixto (idTipoPago == 6), tenga detalles
                 if (request.IdTipoPago == 6) // 6 = Mixto
                 {
@@ -122,7 +110,6 @@ namespace MVSystemApi.Controllers
                 }
 
                 // Convertir DTO a modelo Facturas
-                Console.WriteLine($"🔴 Convirtiendo DTO a modelo Facturas...");
                 var factura = new Facturas
                 {
                     NumeroFactura = request.NumeroFactura,
@@ -166,14 +153,11 @@ namespace MVSystemApi.Controllers
                         Descripcion = dto.Descripcion
                     }).ToList() ?? new List<DetalleFactura>()
                 };
-                Console.WriteLine($"✅ DTO convertido correctamente - Detalles: {factura.DetalleFacturaList?.Count ?? 0}");
 
                 // Guardar factura
-                Console.WriteLine($"💾 Guardando factura...");
                 var resultFactura = _accesoDatos.PostFactura(factura);
                 if (resultFactura == null)
                     return NotFound(new { error = "No se pudo guardar la factura" });
-                Console.WriteLine($"✅ Factura guardada: {resultFactura.NumeroFactura}");
 
                 // Asignar RNC de la empresa desde el token JWT
                 var rncClaim = User?.FindFirst("Rnc")?.Value;
@@ -187,16 +171,10 @@ namespace MVSystemApi.Controllers
                 {
                     try
                     {
-                        Console.WriteLine($"📝 Intentando guardar {request.DetallesPagos.Count} detalles de pago...");
                         _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, request.DetallesPagos);
-                        Console.WriteLine($"✅ Detalles de pago guardados correctamente");
                     }
                     catch (Exception ex)
                     {
-                        // Si falla al guardar detalles, aún retornamos éxito en la factura
-                        // pero informamos del error
-                        Console.WriteLine($"❌ Error al guardar detalles de pago: {ex.Message}");
-                        Console.WriteLine($"   Stack: {ex.StackTrace}");
                         return Ok(new 
                         { 
                             factura = resultFactura,
@@ -212,9 +190,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ ERROR GENERAL en PostFacturaPagoMixto: {ex.Message}");
-                Console.WriteLine($"   Stack: {ex.StackTrace}");
-                return BadRequest(new { error = ex.Message, stackTrace = ex.StackTrace });
+                return BadRequest(new { error = ex.Message });
             }
         }
 
@@ -352,17 +328,11 @@ namespace MVSystemApi.Controllers
             // Verificar si la empresa está certificada para enviar a DGII
             var certificadoClaim = User?.FindFirst("Certificado")?.Value;
             if (!string.Equals(certificadoClaim, "True", StringComparison.OrdinalIgnoreCase))
-            {
-                Console.WriteLine("⚠️ Empresa no certificada. La factura no será enviada a DGII.");
                 return;
-            }
 
             // No enviar a DGII si el comprobante es "NO REQUERIDO" (NcfTipoNumero == 0)
             if (facturaGuardada.NcfTipoNumero == 0)
-            {
-                Console.WriteLine("ℹ️ Comprobante NO REQUERIDO. La factura no será enviada a DGII.");
                 return;
-            }
 
             // IMPORTANTE: Capturar TODOS los datos del contexto ANTES de crear el Task.Run()
             // porque User y cualquier dependency injection pertenece al HttpContext que se descarta después de la request
@@ -371,8 +341,7 @@ namespace MVSystemApi.Controllers
             var empresaDelToken = User?.FindFirst("Empresa")?.Value ?? "";
             var connectionString = _accesoDatos.ConnectionString; // Capturar connection string antes del Task
             
-            // IMPORTANTE: Obtener los pagos ANTES del Task.Run() para no depender de AccesoDatos dentro
-            Console.WriteLine($"📝 Obteniendo detalles de pago (ANTES del Task.Run)...");
+            // Obtener los pagos ANTES del Task.Run() para no depender de AccesoDatos dentro
             var pagosDTO = _accesoDatos.GetDetallesPagoFactura(facturaGuardada.NumeroFactura);
             var pagosCapturados = pagosDTO?.Select(p => new DetallesPagos_Factura
             {
@@ -381,7 +350,6 @@ namespace MVSystemApi.Controllers
                 Monto_Pago = p.Monto_Pago,
                 Numero_Referencia = p.Numero_Referencia
             }).ToList() ?? new List<DetallesPagos_Factura>();
-            Console.WriteLine($"✅ Pagos capturados: {pagosCapturados?.Count ?? 0} métodos de pago");
 
             _ = Task.Run(async () =>
             {
@@ -414,14 +382,8 @@ namespace MVSystemApi.Controllers
                     var responseEDGI = await _facEDGIService.EnviarFacturaADGII(facturaGuardada, detalles, pagosCapturados, usuarioDelToken, rncDelToken, empresaDelToken);
                                       
                 }
-                catch (Exception ex)
-                {                   
-                    if (ex.InnerException != null)
-                    {
-                        Console.WriteLine($"➡️ InnerException: {ex.InnerException.Message}");
-                        Console.WriteLine($"   Stack: {ex.InnerException.StackTrace}");
-                    }
-                 
+                catch (Exception)
+                {
                 }
             });
         }

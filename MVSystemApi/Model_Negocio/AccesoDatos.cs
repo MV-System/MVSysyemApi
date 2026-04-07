@@ -1486,7 +1486,7 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@precio", item.Precio);
                     cmd.Parameters.AddWithValue("@Descuento", item.Descuento);
                     cmd.Parameters.AddWithValue("@Itbis", item.Itbis);
-                    cmd.Parameters.AddWithValue("@Total", item.Total + item.Itbis);
+                    cmd.Parameters.AddWithValue("@Total", item.Total);
                     cmd.Parameters.AddWithValue("@Estado", "A");
                     //cmd.Parameters.AddWithValue("@Usuario", StaticClass.UsuarioLogin);
                     cmd.Parameters.AddWithValue("@Usuario", item.Usuario);

@@ -275,8 +275,11 @@ namespace MVSystemApi.Model_Negocio
                     detallesPorTipo[idTipoPago] = detalle;
                 }
 
+                // Guardar el conteo real de facturas ANTES del desglose mixto
+                // (cada factura se cuenta una sola vez en su tipo de pago original)
+                int cantidadRealFacturas = detallesPorTipo.Values.Sum(x => x.CantidadFacturas);
+
                 // PROCESAMIENTO DE PAGOS MIXTOS
-                // Si hay facturas MIXTO, necesitamos desglosarlas y redistribuir sus montos
                 if (detallesPorTipo.ContainsKey(ID_TIPO_PAGO_MIXTO))
                 {
                     var detalleMixto = detallesPorTipo[ID_TIPO_PAGO_MIXTO];
@@ -456,13 +459,13 @@ namespace MVSystemApi.Model_Negocio
                     }
                 }
 
-                // Crear resumen final
+                // Crear resumen final (cantidadRealFacturas se calculó antes del desglose mixto)
                 var resumen = new CierreCajaReporteResumen
                 {
                     FechaInicio = DateTime.Parse(filtro.FechaInicio),
                     FechaFinal = DateTime.Parse(filtro.FechaFinal),
                     Almacen = filtro.Almacen.ToString(),
-                    CantidadTotalFacturas = detalles.Sum(x => x.CantidadFacturas),
+                    CantidadTotalFacturas = cantidadRealFacturas,
                     TotalFacturado = totalFacturado,
                     TotalEfectivoReal = totalEfectivoReal,
                     TotalAbonos = totalAbonos,

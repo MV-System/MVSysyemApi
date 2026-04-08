@@ -37,76 +37,24 @@ namespace MVSystemApi.Controllers
         [HttpPost]
         [Route("PostFactura")]
         //[Authorize(Roles = "MNU_MANT_FACTURACION")]
-        public ActionResult<Facturas> PostFactura(Facturas factura)
+        public ActionResult PostFactura([FromBody] FacturaRegistroDTO request)
         {
             try
             {
-                var result = _accesoDatos.PostFactura(factura);
-                if (result == null)
+                // Validar pago mixto si aplica
+                if (request.IdTipoPago == 6)
                 {
-                    return NotFound();
-                }
-
-                // Asignar RNC de la empresa desde el token JWT
-                var rncClaim = User?.FindFirst("Rnc")?.Value;
-                if (!string.IsNullOrEmpty(rncClaim))
-                {
-                    result.RncEmpresa = rncClaim;
-                }
-
-                // Guardar automáticamente el registro de pago con el método de pago de la factura
-                try
-                {
-                    var detallesPago = new List<DetallePagoDTO>
-                    {
-                        new DetallePagoDTO
-                        {
-                            ID_Tipo_Pago = result.IdTipoPago,
-                            Monto_Pago = result.Total,
-                            Numero_Referencia = ""
-                        }
-                    };
-                    _accesoDatos.PostDetallesPagoFactura(result.NumeroFactura, detallesPago);
-                }
-                catch (Exception exPago)
-                {
-                    // No bloqueamos si falla el pago, la factura se guardó correctamente
-                }
-
-                // Enviar factura a DGI de manera paralela
-                EnviarFacturaADGIEnBackground(result, factura.DetalleFacturaList ?? new List<DetalleFactura>());
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpPost]
-        [Route("PostFacturaPagoMixto")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
-        public ActionResult PostFacturaPagoMixto([FromBody] FacturaRegistroDTO request)
-        {
-            try
-            {
-                // Validar que si es pago mixto (idTipoPago == 6), tenga detalles
-                if (request.IdTipoPago == 6) // 6 = Mixto
-                {
-                    if (request.DetallesPagos == null || request.DetallesPagos.Count == 0)
+                    if (request.DetallesPagos == null || request.DetallesPagos.Count < 2)
                         return BadRequest(new { error = "Pago Mixto requiere al menos 2 métodos de pago" });
 
-                    if (request.DetallesPagos.Count < 2)
-                        return BadRequest(new { error = "Pago Mixto debe tener mínimo 2 métodos de pago" });
-
-                    // Validar que la suma de pagos = total factura
                     if (!_pagoMixtoNegocio.ValidarPagoMixto(request.Total, request.DetallesPagos))
                         return BadRequest(new { error = "La suma de pagos no coincide con el total de la factura" });
 
-                    // Validar que los montos sean positivos
                     if (!_pagoMixtoNegocio.ValidarMontosPositivos(request.DetallesPagos))
                         return BadRequest(new { error = "Todos los montos de pago deben ser positivos" });
+
+                    if (!_pagoMixtoNegocio.ValidarSinTiposDuplicados(request.DetallesPagos))
+                        return BadRequest(new { error = "No se puede seleccionar el mismo tipo de pago más de una vez" });
                 }
 
                 // Convertir DTO a modelo Facturas
@@ -133,7 +81,6 @@ namespace MVSystemApi.Controllers
                     IdEmpresa = request.IdEmpresa ?? "0",
                     IdSucursal = request.IdSucursal ?? "0",
                     CantidadArticulos = request.CantidadArticulos,
-                    // Mapear detalles de artículos del DTO al modelo
                     DetalleFacturaList = request.DetalleFacturaList?.Select(dto => new DetalleFactura
                     {
                         NumeroFactura = dto.NumeroFactura,
@@ -162,25 +109,38 @@ namespace MVSystemApi.Controllers
                 // Asignar RNC de la empresa desde el token JWT
                 var rncClaim = User?.FindFirst("Rnc")?.Value;
                 if (!string.IsNullOrEmpty(rncClaim))
-                {
                     resultFactura.RncEmpresa = rncClaim;
-                }
 
-                // Si es pago MIXTO, guardar detalles
-                if (request.IdTipoPago == 6 && request.DetallesPagos?.Any() == true)
+                // Guardar detalles de pago
+                try
                 {
-                    try
+                    if (request.IdTipoPago == 6 && request.DetallesPagos?.Any() == true)
                     {
+                        // Pago mixto: guardar los detalles proporcionados
                         _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, request.DetallesPagos);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        return Ok(new 
-                        { 
-                            factura = resultFactura,
-                            advertencia = "Factura guardada pero hubo error al guardar detalles de pago: " + ex.Message 
-                        });
+                        // Pago normal: crear registro único con el método de pago seleccionado
+                        var detallesPago = new List<DetallePagoDTO>
+                        {
+                            new DetallePagoDTO
+                            {
+                                ID_Tipo_Pago = resultFactura.IdTipoPago,
+                                Monto_Pago = resultFactura.Total,
+                                Numero_Referencia = ""
+                            }
+                        };
+                        _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, detallesPago);
                     }
+                }
+                catch (Exception exPago)
+                {
+                    return Ok(new 
+                    { 
+                        factura = resultFactura,
+                        advertencia = "Factura guardada pero hubo error al guardar detalles de pago: " + exPago.Message 
+                    });
                 }
 
                 // Enviar factura a DGI de manera paralela
@@ -321,7 +281,6 @@ namespace MVSystemApi.Controllers
 
         /// <summary>
         /// Método privado para enviar factura a DGI de forma asíncrona en background
-        /// Evita duplicación de código entre PostFactura y PostFacturaPagoMixto
         /// </summary>
         private void EnviarFacturaADGIEnBackground(Facturas facturaGuardada, List<DetalleFactura> detalles)
         {

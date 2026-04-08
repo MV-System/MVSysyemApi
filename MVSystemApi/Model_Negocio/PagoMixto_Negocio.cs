@@ -40,6 +40,17 @@ namespace MVSystemApi.Model_Negocio
         }
 
         /// <summary>
+        /// Valida que no se repita el mismo tipo de pago
+        /// </summary>
+        public bool ValidarSinTiposDuplicados(List<DTO.DetallePagoDTO> pagos)
+        {
+            if (pagos == null || pagos.Count == 0)
+                return false;
+
+            return pagos.Select(p => p.ID_Tipo_Pago).Distinct().Count() == pagos.Count;
+        }
+
+        /// <summary>
         /// Valida que todos los tipos de pago existan (excluyendo MIXTO)
         /// </summary>
         public bool ValidarTiposPago(List<DTO.DetallePagoDTO> pagos, List<Tipos_Pagos> tiposDisponibles)

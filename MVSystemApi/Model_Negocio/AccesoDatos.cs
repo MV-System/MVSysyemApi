@@ -1587,6 +1587,103 @@ namespace MVSystemApi.Model
                 throw;
             }
         }
+        public Facturas PostFacturaConPagos(Facturas factura, List<DetallePagoDTO> detallesPagos)
+        {
+            using var connection = new SqlConnection(_connectionStrings);
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                // 1. Insertar factura
+                using (var cmd = new SqlCommand("facturas_Insert", connection, transaction))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@ID_Cliente", factura.IdCliente);
+                    cmd.Parameters.AddWithValue("@ID_Vendedor", factura.IdVendedor);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Factura", factura.IdTipoFactura);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", factura.IdTipoPago);
+                    cmd.Parameters.AddWithValue("@ID_Almacen", factura.IdAlmacen);
+                    cmd.Parameters.AddWithValue("@Cantidad_Articulos", factura.CantidadArticulos);
+                    cmd.Parameters.AddWithValue("@Itbis", factura.Itbis);
+                    cmd.Parameters.AddWithValue("@NFCTipoNumero", factura.NcfTipoNumero);
+                    cmd.Parameters.AddWithValue("@RNC", factura.RNC);
+                    cmd.Parameters.AddWithValue("@SubTotal", factura.SubTotal);
+                    cmd.Parameters.AddWithValue("@Abono", factura.Abono);
+                    cmd.Parameters.AddWithValue("@Tiempo_Credito", factura.fechaLimitePago);
+                    cmd.Parameters.AddWithValue("@Total", factura.Total);
+                    cmd.Parameters.AddWithValue("@Descuento", factura.Descuento);
+                    cmd.Parameters.AddWithValue("@Nota", factura.Nota);
+                    cmd.Parameters.AddWithValue("@Estado", "A");
+                    cmd.Parameters.AddWithValue("@Usuario", factura.Usuario);
+                    cmd.Parameters.AddWithValue("@fecha_registro", factura.FechaRegistro);
+
+                    var numeroFacturaParam = new SqlParameter("@Numero_factura", 0)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(numeroFacturaParam);
+                    cmd.ExecuteNonQuery();
+                    factura.NumeroFactura = Convert.ToInt32(numeroFacturaParam.Value.ToString());
+                }
+
+                // 2. Insertar detalle factura (artículos)
+                if (factura.DetalleFacturaList != null && factura.DetalleFacturaList.Count > 0)
+                {
+                    using var cmdDetalle = new SqlCommand("Detalle_Factura_Insert", connection, transaction);
+                    cmdDetalle.CommandType = CommandType.StoredProcedure;
+
+                    foreach (var item in factura.DetalleFacturaList)
+                    {
+                        cmdDetalle.Parameters.Clear();
+                        cmdDetalle.Parameters.AddWithValue("@Numero_Factura", factura.NumeroFactura);
+                        cmdDetalle.Parameters.AddWithValue("@ID_Equipo", item.IdEquipo);
+                        cmdDetalle.Parameters.AddWithValue("@Descripcion", item.Descripcion);
+                        cmdDetalle.Parameters.AddWithValue("@ID_Tipo", item.IdTipo);
+                        cmdDetalle.Parameters.AddWithValue("@ID_Garantia", item.IdGarantia);
+                        cmdDetalle.Parameters.AddWithValue("@ID_Tipo_Factura", item.IdTipoFactura);
+                        cmdDetalle.Parameters.AddWithValue("@ID_Vendedor", item.IdVendedor);
+                        cmdDetalle.Parameters.AddWithValue("@SubTotal", item.SubTotal);
+                        cmdDetalle.Parameters.AddWithValue("@cantidad", item.Cantidad);
+                        cmdDetalle.Parameters.AddWithValue("@precio", item.Precio);
+                        cmdDetalle.Parameters.AddWithValue("@Descuento", item.Descuento);
+                        cmdDetalle.Parameters.AddWithValue("@Itbis", item.Itbis);
+                        cmdDetalle.Parameters.AddWithValue("@Total", item.Total);
+                        cmdDetalle.Parameters.AddWithValue("@Estado", "A");
+                        cmdDetalle.Parameters.AddWithValue("@Usuario", item.Usuario);
+                        cmdDetalle.Parameters.AddWithValue("@fecha_registro", item.FechaRegistro);
+                        cmdDetalle.ExecuteNonQuery();
+                    }
+                }
+
+                // 3. Insertar detalles de pago
+                if (detallesPagos != null && detallesPagos.Count > 0)
+                {
+                    using var cmdPago = new SqlCommand("InsertDetallesPagoFactura", connection, transaction);
+                    cmdPago.CommandType = CommandType.StoredProcedure;
+
+                    foreach (var item in detallesPagos)
+                    {
+                        cmdPago.Parameters.Clear();
+                        cmdPago.Parameters.AddWithValue("@Numero_Factura", factura.NumeroFactura);
+                        cmdPago.Parameters.AddWithValue("@ID_Tipo_Pago", item.ID_Tipo_Pago);
+                        cmdPago.Parameters.AddWithValue("@Monto_Pago", item.Monto_Pago);
+                        cmdPago.Parameters.AddWithValue("@Numero_Referencia", item.Numero_Referencia ?? "");
+                        cmdPago.Parameters.AddWithValue("@Observacion", item.Observacion ?? "");
+                        cmdPago.ExecuteNonQuery();
+                    }
+                }
+
+                transaction.Commit();
+                return factura;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
         public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura)
         {
             try

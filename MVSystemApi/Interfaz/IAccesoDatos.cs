@@ -89,6 +89,7 @@ namespace MVSystemApi.Interfaz
         string RebajaEquipo(RebajaEquipoModel RebajaEquipo);
 
         public Facturas PostFactura(Facturas Factura);
+        public Facturas PostFacturaConPagos(Facturas factura, List<DetallePagoDTO> detallesPagos);
         public FilterAnulaFactura PostAnulaFactura(FilterAnulaFactura Factura);
         //public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura);
         public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal);

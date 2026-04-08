@@ -101,8 +101,27 @@ namespace MVSystemApi.Controllers
                     }).ToList() ?? new List<DetalleFactura>()
                 };
 
-                // Guardar factura
-                var resultFactura = _accesoDatos.PostFactura(factura);
+                // Preparar detalles de pago
+                List<DetallePagoDTO> detallesPago;
+                if (request.IdTipoPago == 6 && request.DetallesPagos?.Any() == true)
+                {
+                    detallesPago = request.DetallesPagos;
+                }
+                else
+                {
+                    detallesPago = new List<DetallePagoDTO>
+                    {
+                        new DetallePagoDTO
+                        {
+                            ID_Tipo_Pago = request.IdTipoPago,
+                            Monto_Pago = request.Total,
+                            Numero_Referencia = ""
+                        }
+                    };
+                }
+
+                // Guardar factura + artículos + pagos en una sola transacción
+                var resultFactura = _accesoDatos.PostFacturaConPagos(factura, detallesPago);
                 if (resultFactura == null)
                     return NotFound(new { error = "No se pudo guardar la factura" });
 
@@ -110,38 +129,6 @@ namespace MVSystemApi.Controllers
                 var rncClaim = User?.FindFirst("Rnc")?.Value;
                 if (!string.IsNullOrEmpty(rncClaim))
                     resultFactura.RncEmpresa = rncClaim;
-
-                // Guardar detalles de pago
-                try
-                {
-                    if (request.IdTipoPago == 6 && request.DetallesPagos?.Any() == true)
-                    {
-                        // Pago mixto: guardar los detalles proporcionados
-                        _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, request.DetallesPagos);
-                    }
-                    else
-                    {
-                        // Pago normal: crear registro único con el método de pago seleccionado
-                        var detallesPago = new List<DetallePagoDTO>
-                        {
-                            new DetallePagoDTO
-                            {
-                                ID_Tipo_Pago = resultFactura.IdTipoPago,
-                                Monto_Pago = resultFactura.Total,
-                                Numero_Referencia = ""
-                            }
-                        };
-                        _accesoDatos.PostDetallesPagoFactura(resultFactura.NumeroFactura, detallesPago);
-                    }
-                }
-                catch (Exception exPago)
-                {
-                    return Ok(new 
-                    { 
-                        factura = resultFactura,
-                        advertencia = "Factura guardada pero hubo error al guardar detalles de pago: " + exPago.Message 
-                    });
-                }
 
                 // Enviar factura a DGI de manera paralela
                 EnviarFacturaADGIEnBackground(resultFactura, factura.DetalleFacturaList);

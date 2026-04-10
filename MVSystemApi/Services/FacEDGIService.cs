@@ -318,8 +318,8 @@ namespace MVSystemApi.Services
 
         /// <summary>
         /// Mapea DetalleFactura[] a EasyConexionLineDTO[]
-        /// Envía SubTotal (que ya tiene el descuento restado)
-        /// Descuento se envía en cero para compatibilidad con DGI
+        /// Envía Amount como SubTotal bruto (sin descuento) para que DGI aplique el descuento de su lado.
+        /// Nuestro cálculo interno no cambia.
         /// </summary>
         private List<EasyConexionLineDTO> MapearDetalles(List<DetalleFactura> detalles)
         {
@@ -333,10 +333,13 @@ namespace MVSystemApi.Services
             int lineNumber = 1;
             foreach (var detalle in detalles)
             {
+                // SubTotal bruto = SubTotal neto + Descuento (para que DGI lo reste)
+                var subtotalBruto = detalle.SubTotal + detalle.Descuento;
+
                 _logger.LogInformation($"[LÍNEA {lineNumber}] '{detalle.Descripcion}'");
                 _logger.LogInformation($"   Precio unitario: RD${detalle.Precio:F2} × Qty: {detalle.Cantidad}");
-                _logger.LogInformation($"   Descuento aplicado: RD${detalle.Descuento:F2}");
-                _logger.LogInformation($"   Amount a enviar (SubTotal): RD${detalle.SubTotal:F2}");
+                _logger.LogInformation($"   Descuento: RD${detalle.Descuento:F2}");
+                _logger.LogInformation($"   Amount a enviar (bruto): RD${subtotalBruto:F2}");
                 
                 lines.Add(new EasyConexionLineDTO
                 {
@@ -344,15 +347,15 @@ namespace MVSystemApi.Services
                     Description = detalle.Descripcion,
                     Quantity = detalle.Cantidad,
                     UnitPrice = detalle.Precio,
-                    Amount = detalle.SubTotal,  // Ya tiene descuento restado
-                    TaxCategory = 1, // Todos tienen ITBIS
-                    Discount = 0,  // Descuento siempre en cero para DGI
-                    Surcharge = null,  // Sin sobrecargo
-                    GoodOrServiceIndicator = 1, // Todos son bienes (celulares)
-                    UnitMeasure = null,  // No especificar unidad
-                    ItbisRetAmount = null,  // Sin retención de ITBIS
-                    IsrRetAmount = null,  // Sin retención de ISR
-                    RetentionAgentInd = null  // No es agente de retención
+                    Amount = subtotalBruto,  // Bruto: DGI aplica el descuento
+                    TaxCategory = 1,
+                    Discount = detalle.Descuento != 0 ? detalle.Descuento : (decimal?)null,
+                    Surcharge = null,
+                    GoodOrServiceIndicator = 1,
+                    UnitMeasure = null,
+                    ItbisRetAmount = null,
+                    IsrRetAmount = null,
+                    RetentionAgentInd = null
                 });
             }
 

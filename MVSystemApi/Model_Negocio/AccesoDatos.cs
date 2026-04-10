@@ -18,15 +18,17 @@ namespace MVSystemApi.Model
         private readonly string _connectionStrings;
         private readonly IMemoryCache _memoryCache;
         private readonly ILogger<AccesoDatos> _logger;
+        private readonly ISyncService _sync;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
         public string ConnectionString => _connectionStrings;
 
-        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync)
         {
             _memoryCache = memoryCache;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _sync = sync;
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -443,6 +445,7 @@ namespace MVSystemApi.Model
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();
+                _sync.Ejecutar("Accesorios_Modifica", cmd.Parameters);
 
                 return dt;
             }
@@ -536,6 +539,7 @@ namespace MVSystemApi.Model
                 da.SelectCommand = cmd;
                 da.Fill(dt);
                 cn.Close();
+                _sync.Ejecutar("Accesorio_Insert", cmd.Parameters);
 
                 return dt;
             }
@@ -1124,6 +1128,7 @@ namespace MVSystemApi.Model
                 da.Fill(dt);
 
                 cn.Close();
+                _sync.Ejecutar("Proc_Equipos_Insert", cmd.Parameters);
                 return dt;
             }
             catch (Exception)
@@ -1675,6 +1680,18 @@ namespace MVSystemApi.Model
                 }
 
                 transaction.Commit();
+
+                // Sync: marcar equipos como no disponibles en BD espejo
+                if (factura.DetalleFacturaList != null)
+                {
+                    foreach (var item in factura.DetalleFacturaList)
+                    {
+                        _sync.EjecutarQuery(
+                            "UPDATE Equipos SET Disponible = 'N', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
+                            new SqlParameter("@IMEI", item.IdEquipo));
+                    }
+                }
+
                 return factura;
             }
             catch
@@ -1698,8 +1715,27 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
                     cn.Open();
                     cmd.ExecuteNonQuery();
-                    cn.Close();
 
+                    // Sync: leer equipos de la factura y marcarlos disponibles en BD espejo
+                    using (var cmdRead = new SqlCommand(
+                        "SELECT ID_Equipo FROM Detalle_Facturas WHERE Numero_Factura = @nf", cn))
+                    {
+                        cmdRead.Parameters.AddWithValue("@nf", Factura.NumeroFactura);
+                        using var reader = cmdRead.ExecuteReader();
+                        var imeis = new List<string>();
+                        while (reader.Read())
+                            imeis.Add(reader["ID_Equipo"].ToString());
+                        reader.Close();
+
+                        foreach (var imei in imeis)
+                        {
+                            _sync.EjecutarQuery(
+                                "UPDATE Equipos SET Disponible = 'S', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
+                                new SqlParameter("@IMEI", imei));
+                        }
+                    }
+
+                    cn.Close();
                     return Factura;
                 }
             }
@@ -1732,18 +1768,17 @@ namespace MVSystemApi.Model
 
                     // Abrir la conexi�n
                     cn.Open();
-                    cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
+                    cmd.ExecuteNonQuery();
                     cn.Close();
+                    _sync.Ejecutar("Detalle_Factura_Cambia_IMEI", cmd.Parameters);
 
-                    // Obtener el valor del mensaje de salida
                     string mensaje = mensajeParam.Value.ToString();
 
-                    return mensaje;  // Retornar el mensaje que devuelve el procedimiento
+                    return mensaje;
                 }
             }
             catch (Exception ex)
             {
-                // Manejo de excepciones
                 throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
@@ -1764,14 +1799,18 @@ namespace MVSystemApi.Model
 
                     using (var reader = cmd.ExecuteReader())
                     {
+                        string mensaje;
                         if (reader.Read())
-                        {
-                            return reader["mensaje"].ToString();
-                        }
+                            mensaje = reader["mensaje"].ToString();
                         else
-                        {
-                            return "Equipo rebajado correctamente.";
-                        }
+                            mensaje = "Equipo rebajado correctamente.";
+
+                        reader.Close();
+                        // Sync: marcar equipo como disponible en BD espejo
+                        _sync.EjecutarQuery(
+                            "UPDATE Equipos SET Disponible = 'S', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
+                            new SqlParameter("@IMEI", model.imei));
+                        return mensaje;
                     }
                 }
             }
@@ -2053,6 +2092,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Usuario",dataActualizar.Usuario) ;
                 cmd.ExecuteNonQuery();
                 cn.Close();
+                _sync.Ejecutar("Equipos_Actualiza_Disponible", cmd.Parameters);
             }
             catch (Exception)
             {
@@ -2181,10 +2221,10 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Modelo", tranferencia.Modelo);
                 cmd.Parameters.AddWithValue("@Cantidad_Equipos", tranferencia.CantidadEquipos);
                 cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
-                //cmd.Parameters.AddWithValue("@Usuario", tranferencia.Usuario);
 
                 da.Fill(dt);
                 cn.Close();
+                _sync.Ejecutar("Proc_Equipo_Transferencia_Trans_Guarda", cmd.Parameters);
                 return dt;
             }
             catch (Exception)
@@ -2386,7 +2426,53 @@ namespace MVSystemApi.Model
                     Direction = ParameterDirection.Output
                 };
                 cmd.Parameters.Add(mensajeParam);
+
+                // Sync: leer IMEIs con conexión separada ANTES de ejecutar el SP
+                var imeisSync = new List<string>();
+                try
+                {
+                    using (var cnSync = new SqlConnection(_connectionStrings))
+                    {
+                        cnSync.Open();
+                        using (var cmdImeis = new SqlCommand(
+                            "SELECT ID_Equipo FROM PreDetalle_Facturas WHERE Numero_PreFactura = @nPre AND ID_Tipo = 1 AND Estado = 'P'", cnSync))
+                        {
+                            cmdImeis.Parameters.AddWithValue("@nPre", numeroPreFactura);
+                            using (var reader = cmdImeis.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                    imeisSync.Add(reader["ID_Equipo"].ToString());
+                            }
+                        }
+                    }
+                    Console.WriteLine($"[Sync] ProcesarPreFactura: encontrados {imeisSync.Count} equipos para sync");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Sync] Error leyendo IMEIs para sync: {ex.Message}");
+                }
+
                 cmd.ExecuteNonQuery();
+
+                // Sync: marcar equipos como no disponibles en BD espejo
+                int nuevoNumero = nuevoNumeroFacturaParam.Value != DBNull.Value ? (int)nuevoNumeroFacturaParam.Value : 0;
+                if (nuevoNumero > 0 && imeisSync.Count > 0)
+                {
+                    try
+                    {
+                        foreach (var imei in imeisSync)
+                        {
+                            _sync.EjecutarQuery(
+                                "UPDATE Equipos SET Disponible = 'N', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
+                                new SqlParameter("@IMEI", imei));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Sync] Error en ProcesarPreFactura sync: {ex.Message}");
+                    }
+                }
+
                 cn.Close();
                 return new {
                     Cod_Factura = nuevoNumeroFacturaParam.Value,

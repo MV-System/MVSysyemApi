@@ -239,6 +239,18 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return dataEnum.First()["StringCon"].ToString();
         }
 
+        public string GetConnStringByEmpresa(int idEmpresa)
+        {
+            using var conn = new SqlConnection(ConnectionStrings);
+            conn.Open();
+
+            using var cmd = new SqlCommand("SELECT TOP (1) StringCon FROM Empresas WHERE ID_Empresa = @idEmpresa", conn);
+            cmd.Parameters.AddWithValue("@idEmpresa", idEmpresa);
+
+            var result = cmd.ExecuteScalar();
+            return result?.ToString();
+        }
+
         public async Task<List<RolSucursal>> GetRoles(string userName, string Conn)
         {
             using var dataTable = new DataTable();

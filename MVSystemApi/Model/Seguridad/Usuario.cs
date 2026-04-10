@@ -16,6 +16,7 @@
         public string Sucursal { get; set; }
         public int Perfil { get; set; }
         public int Estado { get; set; }
+        public int IdEmpresaE { get; set; }
         public DateTime FechaRegistro { get; set; }
         public DateTime FechaModificado { get; set; }
     }

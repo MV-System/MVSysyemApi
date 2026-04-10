@@ -75,6 +75,7 @@ builder.Services.Configure<FacturacionSettings>(builder.Configuration.GetSection
 //(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
 builder.Services.AddTransient<IAccesoDatos, AccesoDatos>();
 builder.Services.AddTransient<AccesoDatos>();
+builder.Services.AddTransient<ISyncService, SyncService>();
 builder.Services.AddScoped<Catalogos_Negocio>();
 builder.Services.AddScoped<Clientes_Negocio>();
 builder.Services.AddScoped<Vendedores_Negocio>();

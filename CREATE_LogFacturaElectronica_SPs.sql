@@ -1,11 +1,112 @@
 -- =====================================================
 -- FACTURACIÓN ELECTRÓNICA (DIGI) - SCRIPT DE INSTALACIÓN
 -- =====================================================
--- Fecha: April 5, 2026
--- Descripción: Tabla LogFacturaElectronica y Stored Procedures para auditar envíos a DGI
+-- Fecha: April 9, 2026
+-- Descripción: 
+--   1) Actualizar tabla TIPO_NFC (códigos de comprobante para facturación electrónica)
+--   2) Crear tabla LogFacturaElectronica y Stored Procedures para auditar envíos a DGI
+-- =====================================================
+-- IMPORTANTE: Ejecutar en producción con precaución.
+--   - La sección TIPO_NFC usa transacción (ROLLBACK automático si falla)
+--   - Verificar el USE [BD] antes de ejecutar
 -- =====================================================
 
 USE [MVSystem]; -- Cambiar por el nombre de tu BD de producción si es diferente
+GO
+
+-- =====================================================
+-- 0. ACTUALIZAR TABLA TIPO_NFC (códigos de comprobante)
+-- =====================================================
+-- Cambia NFCTipoNumero a los códigos nuevos (31, 32, 33, 34, 45)
+-- NO modifica: NFCTipoEstructura, NFCTipoCantidad, NFCTipoSecuencia
+-- Visible_Venta = 1 solo para NO REQUERIDO (aparece primero en dropdown)
+-- Registros 11 y 14 se dejan intactos (no se usan actualmente)
+
+PRINT '';
+PRINT '==================================================';
+PRINT 'PASO 0: Actualizar TIPO_NFC';
+PRINT '==================================================';
+
+-- Agregar columna Visible_Venta si no existe
+IF NOT EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'TIPO_NFC' AND COLUMN_NAME = 'Visible_Venta'
+)
+BEGIN
+    ALTER TABLE [dbo].[TIPO_NFC] ADD Visible_Venta BIT NOT NULL DEFAULT 0;
+    PRINT '  ✓ Columna Visible_Venta agregada a TIPO_NFC (default = 0)';
+END
+ELSE
+BEGIN
+    PRINT '  → Columna Visible_Venta ya existe en TIPO_NFC';
+END
+
+BEGIN TRANSACTION;
+BEGIN TRY
+
+    -- Verificar que los registros originales existen antes de actualizar
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[TIPO_NFC] WHERE NFCTipoNumero = 0)
+    BEGIN
+        RAISERROR('No se encontró registro con NFCTipoNumero = 0 (NO REQUERIDO). Abortando.', 16, 1);
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[TIPO_NFC] WHERE NFCTipoNumero = 1)
+    BEGIN
+        RAISERROR('No se encontró registro con NFCTipoNumero = 1 (CREDITO FISCAL). Abortando.', 16, 1);
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM [dbo].[TIPO_NFC] WHERE NFCTipoNumero = 2)
+    BEGIN
+        RAISERROR('No se encontró registro con NFCTipoNumero = 2 (CONSUMIDOR FINAL). Abortando.', 16, 1);
+    END
+
+    -- NO REQUERIDO: mantener en 0, visible de primero
+    UPDATE [dbo].[TIPO_NFC]
+    SET NFCTipoNumero = 0, NFCTipoEstado = 1, Visible_Venta = 1
+    WHERE NFCTipoNumero = 0;
+    PRINT '  ✓ NO REQUERIDO (0) - Visible_Venta = 1';
+
+    -- CREDITO FISCAL: 1 → 31
+    UPDATE [dbo].[TIPO_NFC]
+    SET NFCTipoNumero = 31, NFCTipoEstado = 1, Visible_Venta = 0
+    WHERE NFCTipoNumero = 1;
+    PRINT '  ✓ CREDITO FISCAL: 1 → 31';
+
+    -- CONSUMIDOR FINAL: 2 → 32
+    UPDATE [dbo].[TIPO_NFC]
+    SET NFCTipoNumero = 32, NFCTipoEstado = 1, Visible_Venta = 0
+    WHERE NFCTipoNumero = 2;
+    PRINT '  ✓ CONSUMIDOR FINAL: 2 → 32';
+
+    -- NOTA DE DEBITO: 3 → 33
+    UPDATE [dbo].[TIPO_NFC]
+    SET NFCTipoNumero = 33, NFCTipoEstado = 0, Visible_Venta = 0
+    WHERE NFCTipoNumero = 3;
+    PRINT '  ✓ NOTA DE DEBITO: 3 → 33';
+
+    -- NOTA DE CREDITO: 4 → 34
+    UPDATE [dbo].[TIPO_NFC]
+    SET NFCTipoNumero = 34, NFCTipoEstado = 0, Visible_Venta = 0
+    WHERE NFCTipoNumero = 4;
+    PRINT '  ✓ NOTA DE CREDITO: 4 → 34';
+
+    -- COMPROBANTES GUBERNAMENTALES: 15 → 45
+    UPDATE [dbo].[TIPO_NFC]
+    SET NFCTipoNumero = 45, NFCTipoEstado = 0, Visible_Venta = 0
+    WHERE NFCTipoNumero = 15;
+    PRINT '  ✓ COMPROBANTES GUBERNAMENTALES: 15 → 45';
+
+    COMMIT TRANSACTION;
+    PRINT '✓ TIPO_NFC actualizada exitosamente (COMMIT)';
+
+END TRY
+BEGIN CATCH
+    ROLLBACK TRANSACTION;
+    PRINT '✗ ERROR en TIPO_NFC - ROLLBACK ejecutado. Ningún cambio aplicado.';
+    PRINT '  Detalle: ' + ERROR_MESSAGE();
+    -- No continuar con el resto del script
+    RETURN;
+END CATCH
 GO
 
 -- =====================================================
@@ -247,15 +348,27 @@ PRINT '==================================================';
 PRINT 'INSTALACIÓN COMPLETADA';
 PRINT '==================================================';
 PRINT '';
-PRINT 'Tabla creada: dbo.LogFacturaElectronica';
-PRINT 'Procedimientos creados:';
-PRINT '  - Proc_LogFacturaElectronica_Insert';
-PRINT '  - Proc_LogFacturaElectronica_Update';
-PRINT '  - Proc_LogFacturaElectronica_GetByNumeroFacturaLiteral';
-PRINT '  - Proc_LogFacturaElectronica_GetPendientes';
+PRINT 'Cambios aplicados:';
+PRINT '  [TIPO_NFC] NFCTipoNumero actualizado: 1→31, 2→32, 3→33, 4→34, 15→45';
+PRINT '  [TABLA]    dbo.LogFacturaElectronica creada';
+PRINT '  [SP]       Proc_LogFacturaElectronica_Insert';
+PRINT '  [SP]       Proc_LogFacturaElectronica_Update';
+PRINT '  [SP]       Proc_LogFacturaElectronica_GetByNumeroFacturaLiteral';
+PRINT '  [SP]       Proc_LogFacturaElectronica_GetPendientes';
 PRINT '';
 
--- Verificar que todo se creó correctamente
+-- Verificar TIPO_NFC
+IF EXISTS (SELECT 1 FROM [dbo].[TIPO_NFC] WHERE NFCTipoNumero = 31)
+    PRINT '✓ TIPO_NFC: CREDITO FISCAL = 31';
+ELSE
+    PRINT '✗ ERROR: CREDITO FISCAL no tiene NFCTipoNumero = 31';
+
+IF EXISTS (SELECT 1 FROM [dbo].[TIPO_NFC] WHERE NFCTipoNumero = 32)
+    PRINT '✓ TIPO_NFC: CONSUMIDOR FINAL = 32';
+ELSE
+    PRINT '✗ ERROR: CONSUMIDOR FINAL no tiene NFCTipoNumero = 32';
+
+-- Verificar LogFacturaElectronica
 IF OBJECT_ID('dbo.LogFacturaElectronica', 'U') IS NOT NULL
     PRINT '✓ Tabla LogFacturaElectronica existe';
 ELSE

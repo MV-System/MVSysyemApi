@@ -2123,6 +2123,7 @@ namespace MVSystemApi.Model
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
+                _sync.Ejecutar("Marcas_Insert", cmd.Parameters);
                 return dt;
             }
             catch (Exception)
@@ -2135,21 +2136,32 @@ namespace MVSystemApi.Model
             cn.Open();
             try
             {
+                _logger.LogInformation("[Modelo_Insert] Insertando modelo: Marca={Marca}, Desc={Desc}, Estado={Estado}, Usuario={Usuario}",
+                    Modelo.ID_Marca, Modelo.Descripcion, Modelo.Estado, Modelo.Usuario);
+
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = "Modelos_Insert";
                 cmd.CommandType = System.Data.CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@ID_Marca", Modelo.ID_Marca);
                 cmd.Parameters.AddWithValue("@Descripcion", Modelo.Descripcion);
-                cmd.Parameters.AddWithValue("@Estado", Modelo.Estado);
+                cmd.Parameters.AddWithValue("@Estado", Modelo.Estado ?? "A");
                 cmd.Parameters.AddWithValue("@Usuario", Modelo.Usuario);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
+
+                _logger.LogInformation("[Modelo_Insert] Modelo insertado en A exitosamente. Filas retornadas: {Rows}", dt.Rows.Count);
+                _logger.LogInformation("[Modelo_Insert] Iniciando sync a BD espejo...");
+
+                _sync.Ejecutar("Modelos_Insert", cmd.Parameters);
+
+                _logger.LogInformation("[Modelo_Insert] Sync completado.");
                 return dt;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "[Modelo_Insert] Error al insertar modelo");
                 throw;
             }
         }

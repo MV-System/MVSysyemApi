@@ -1770,7 +1770,16 @@ namespace MVSystemApi.Model
                     cn.Open();
                     cmd.ExecuteNonQuery();
                     cn.Close();
-                    _sync.Ejecutar("Detalle_Factura_Cambia_IMEI", cmd.Parameters);
+
+                    // Sync: IMEI que regresa → disponible
+                    _sync.EjecutarQuery(
+                        "UPDATE Equipos SET Disponible = 'S', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
+                        new SqlParameter("@IMEI", EditaDetalleFactura.EquipoActual));
+
+                    // Sync: IMEI nuevo que sale → no disponible
+                    _sync.EjecutarQuery(
+                        "UPDATE Equipos SET Disponible = 'N', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
+                        new SqlParameter("@IMEI", EditaDetalleFactura.EquipoNuevo));
 
                     string mensaje = mensajeParam.Value.ToString();
 

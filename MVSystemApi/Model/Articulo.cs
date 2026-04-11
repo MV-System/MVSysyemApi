@@ -4,18 +4,18 @@
     {
         public int Cantidad { get; set; }
         public string Descripcion { get; set; }
-        public int Descuento { get; set; }
+        public decimal Descuento { get; set; }
         public string FechaRegistro { get; set; }
         public int IdEquipo { get; set; }
         public int IdGarantia { get; set; }
         public int IdTipo { get; set; }
         public int NumeroFactura { get; set; }
-        public int Precio { get; set; }
-        public int SubTotal { get; set; }
-        public int Total { get; set; }
-        public int Itbis { get; set; }
-        public int PrecioDetalle { get; set; }
-        public int PrecioMayor { get; set; }
+        public decimal Precio { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Total { get; set; }
+        public decimal Itbis { get; set; }
+        public decimal PrecioDetalle { get; set; }
+        public decimal PrecioMayor { get; set; }
     }
 
     public class CotizacionReporteModel

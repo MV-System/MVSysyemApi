@@ -28,21 +28,28 @@
     {
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
+        public int NumeroFactura { get; set; }
         public int IdCliente { get; set; }
         public string Nombre { get; set; }
         public string Apellido { get; set; }
         public long Telefono { get; set; }
         public string Vendedor { get; set; }
-        public object Almacen { get; set; }
-        public int TipoFactura { get; set; }
-        public int TipoPago { get; set; }
+        public int IdVendedor { get; set; }
+        public int IdAlmacen { get; set; }
+        public int IdTipoFactura { get; set; }
+        public int IdTipoPago { get; set; }
         public string FechaFacturacion { get; set; }
-        public string Comprobante { get; set; }
+        public string FechaRegistro { get; set; }
+        public string FechaLimitePago { get; set; }
+        public string NcfTipoNumero { get; set; }
+        public string Rnc { get; set; }
         public int Garantia { get; set; }
         public string Nota { get; set; }
         public string Empresa { get; set; }
+        public string Usuario { get; set; }
+        public int CantidadArticulos { get; set; }
+        public decimal Abono { get; set; }
         public object Codigo { get; set; }
-        public string Rnc { get; set; }
         public object Cantidad { get; set; }
         public object Articulo { get; set; }
         public List<Articulo> Articulos { get; set; }

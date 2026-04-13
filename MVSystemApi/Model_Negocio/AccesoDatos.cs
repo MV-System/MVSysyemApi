@@ -168,6 +168,93 @@ namespace MVSystemApi.Model
                 throw;
             }
         }
+
+        public int GuardarCotizacion(CotizacionModel model)
+        {
+            cn.Open();
+            SqlTransaction tran = cn.BeginTransaction();
+            try
+            {
+                // Insertar cabecera de cotización
+                using (SqlCommand cmd = new SqlCommand("Cotizacion_Insert", cn, tran))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@Numero_factura", 0);
+                    cmd.Parameters.AddWithValue("@ID_Cliente", model.IdCliente);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Factura", model.IdTipoFactura);
+                    cmd.Parameters.AddWithValue("@ID_Vendedor", model.IdVendedor);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", model.IdTipoPago);
+                    cmd.Parameters.AddWithValue("@ID_Almacen", model.IdAlmacen);
+                    cmd.Parameters.AddWithValue("@SubTotal", model.SubTotal);
+                    cmd.Parameters.AddWithValue("@Descuento", model.Descuento);
+                    cmd.Parameters.AddWithValue("@Itbis", model.Itbis);
+                    cmd.Parameters.AddWithValue("@NFCTipoNumero", model.NcfTipoNumero ?? "");
+                    cmd.Parameters.AddWithValue("@RNC", model.Rnc ?? "");
+                    cmd.Parameters.AddWithValue("@Abono", model.Abono);
+                    cmd.Parameters.AddWithValue("@Tiempo_Credito", string.IsNullOrEmpty(model.FechaLimitePago) ? (object)DBNull.Value : DateTime.Parse(model.FechaLimitePago));
+                    cmd.Parameters.AddWithValue("@Total", model.Total);
+                    cmd.Parameters.AddWithValue("@Cantidad_Articulos", model.CantidadArticulos);
+                    cmd.Parameters.AddWithValue("@Nota", model.Nota ?? "");
+                    cmd.Parameters.AddWithValue("@Estado", "A");
+                    cmd.Parameters.AddWithValue("@Usuario", model.Usuario ?? "");
+                    cmd.Parameters.AddWithValue("@fecha_registro", DateTime.Now);
+
+                    var da = new SqlDataAdapter(cmd);
+                    var dt = new DataTable();
+                    da.Fill(dt);
+
+                    int numeroCotizacion = 0;
+                    if (dt.Rows.Count > 0)
+                        numeroCotizacion = Convert.ToInt32(dt.Rows[0][0]);
+
+                    if (numeroCotizacion == 0)
+                    {
+                        tran.Rollback();
+                        return 0;
+                    }
+
+                    foreach (var art in model.Articulos)
+                    {
+                        using (SqlCommand cmdDet = new SqlCommand("Detalle_Cotizacion_Insert", cn, tran))
+                        {
+                            cmdDet.CommandType = CommandType.StoredProcedure;
+                            cmdDet.Parameters.AddWithValue("@Numero_Factura", numeroCotizacion);
+                            cmdDet.Parameters.AddWithValue("@ID_Equipo", art.IdEquipo.ToString());
+                            cmdDet.Parameters.AddWithValue("@Descripcion", art.Descripcion ?? "");
+                            cmdDet.Parameters.AddWithValue("@ID_Tipo", art.IdTipo);
+                            cmdDet.Parameters.AddWithValue("@ID_Garantia", art.IdGarantia);
+                            cmdDet.Parameters.AddWithValue("@ID_Tipo_Factura", model.IdTipoFactura);
+                            cmdDet.Parameters.AddWithValue("@ID_Vendedor", model.IdVendedor);
+                            cmdDet.Parameters.AddWithValue("@SubTotal", art.SubTotal);
+                            cmdDet.Parameters.AddWithValue("@cantidad", art.Cantidad);
+                            cmdDet.Parameters.AddWithValue("@precio", art.Precio);
+                            cmdDet.Parameters.AddWithValue("@Descuento", art.Descuento);
+                            cmdDet.Parameters.AddWithValue("@Itbis", art.Itbis);
+                            cmdDet.Parameters.AddWithValue("@Total", art.Total);
+                            cmdDet.Parameters.AddWithValue("@Estado", "A");
+                            cmdDet.Parameters.AddWithValue("@Usuario", model.Usuario ?? "");
+                            cmdDet.Parameters.AddWithValue("@fecha_registro", DateTime.Now);
+                            cmdDet.ExecuteNonQuery();
+                        }
+                    }
+
+                    tran.Commit();
+                    _logger.LogInformation("[GuardarCotizacion] Cotización #{Num} guardada con {Art} artículos", numeroCotizacion, model.Articulos.Count);
+                    return numeroCotizacion;
+                }
+            }
+            catch (Exception ex)
+            {
+                tran.Rollback();
+                _logger.LogError(ex, "[GuardarCotizacion] Error al guardar cotización");
+                throw;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
+
         /// <summary>
         /// Author: Xavier Mejia
         /// Date: 26.ENE.2023
@@ -1908,6 +1995,8 @@ namespace MVSystemApi.Model
 
                     // Obtener el valor del mensaje de salida
                     string mensaje = mensajeParam.Value.ToString();
+
+                    _sync.Ejecutar("Equipo_Delete", cmd.Parameters);
 
                     return mensaje;  // Retornar el mensaje que devuelve el procedimiento
                 }

@@ -171,6 +171,18 @@ namespace MVSystemApi.Controllers
         [HttpPost("FacturacionReporte/ReportCotizacion")]
         public IActionResult ReportCotizacion(CotizacionModel model)
         {
+            // Guardar cotización en BD
+            try
+            {
+                int numeroCotizacion = _accesoDatos.GuardarCotizacion(model);
+                model.NumeroFactura = numeroCotizacion;
+                _logger.LogInformation("[Cotizacion] Guardada #{Num}", numeroCotizacion);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Cotizacion] Error al guardar cotización en BD");
+            }
+
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
             
             // Obtener datos de empresa desde la BD

@@ -35,7 +35,7 @@ builder.Services.AddHttpClient("FacEDGI")
     .ConfigureHttpClient((client) =>
     {
         var config = builder.Configuration;
-        client.BaseAddress = new Uri(config["FacEDGI:BaseUrl"] ?? "https://api-dev.easyconexion.com/ecf-rd");
+        client.BaseAddress = new Uri(config["FacEDGI:BaseUrl"] ?? "https://api.easyconexion.com/ecf-rd");
         client.Timeout = TimeSpan.FromSeconds(int.Parse(config["FacEDGI:Timeout"] ?? "30"));
         client.DefaultRequestHeaders.Add("X-Api-Key", config["FacEDGI:ApiKey"]);
     });

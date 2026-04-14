@@ -358,8 +358,6 @@ namespace MVSystemApi.Model_Negocio
                                     totalFaltantes = Convert.ToInt32(reader["Total_Faltantes"]);
                                 }
                                 
-                                Console.WriteLine($"[INVENTARIO] Finalizar - Resultado: {resultado}, Mensaje: {mensaje}, Faltantes: {totalFaltantes}");
-                                
                                 return new FinalizarInventarioResponse
                                 {
                                     Resultado = resultado,

@@ -174,7 +174,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             var resultado = await cmd.ExecuteScalarAsync();
             var codigoPermiso = Convert.ToInt32(resultado);
             
-            Console.WriteLine($"✅ Permiso {codigoPermiso} creado en SEGURIDAD");
             return codigoPermiso;
         }
 
@@ -183,8 +182,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> ActualizarPermiso(ActualizarPermisoDTO permisoDTO)
         {
-            Console.WriteLine($"🔍 ActualizarPermiso - Datos recibidos: Código={permisoDTO.Codigo}, Nombre={permisoDTO.Nombre}, Basico={permisoDTO.Basico}, Estado={permisoDTO.Estado}");
-
             using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
@@ -218,7 +215,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             }
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Filas afectadas por UPDATE: {filasAfectadas}");
             return filasAfectadas > 0;
         }
 
@@ -243,7 +239,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Codigo", codigoPermiso);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Permiso {codigoPermiso} eliminado de SEGURIDAD");
             return filasAfectadas > 0;
         }
 

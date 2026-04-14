@@ -111,7 +111,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
             var resultado = await cmd.ExecuteScalarAsync();
             var codigoDepartamento = Convert.ToInt32(resultado);
-            Console.WriteLine($"✅ Departamento {codigoDepartamento} creado en SEGURIDAD");
             return codigoDepartamento;
         }
 
@@ -134,7 +133,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Departamento {dto.Codigo} actualizado en SEGURIDAD");
             return filasAfectadas > 0;
         }
 
@@ -147,7 +145,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Codigo", codigo);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Departamento {codigo} eliminado de SEGURIDAD");
             return filasAfectadas > 0;
         }
 

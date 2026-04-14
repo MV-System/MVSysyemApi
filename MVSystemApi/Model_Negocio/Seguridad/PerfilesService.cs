@@ -119,7 +119,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
             var resultado = await cmd.ExecuteScalarAsync();
             var codigoPerfil = Convert.ToInt32(resultado);
-            Console.WriteLine($"✅ Perfil {codigoPerfil} creado en SEGURIDAD");
             return codigoPerfil;
         }
 
@@ -145,7 +144,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Perfil {dto.Codigo} actualizado en SEGURIDAD");
             return filasAfectadas > 0;
         }
 
@@ -178,13 +176,11 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 }
 
                 transaction.Commit();
-                Console.WriteLine($"✅ Permisos asignados al perfil {codigoPerfil} en SEGURIDAD");
                 return true;
             }
             catch (Exception ex)
             {
                 transaction.Rollback();
-                Console.WriteLine($"⚠️ Error asignando permisos al perfil {codigoPerfil}: {ex.Message}");
                 throw;
             }
         }
@@ -213,13 +209,11 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 var filasAfectadas = await cmdDelete.ExecuteNonQueryAsync();
 
                 transaction.Commit();
-                Console.WriteLine($"✅ Perfil {codigo} eliminado de SEGURIDAD");
                 return filasAfectadas > 0;
             }
             catch (Exception ex)
             {
                 transaction.Rollback();
-                Console.WriteLine($"⚠️ Error eliminando perfil {codigo}: {ex.Message}");
                 throw;
             }
         }

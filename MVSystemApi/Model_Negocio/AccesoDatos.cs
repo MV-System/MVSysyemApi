@@ -2556,11 +2556,9 @@ namespace MVSystemApi.Model
                             }
                         }
                     }
-                    Console.WriteLine($"[Sync] ProcesarPreFactura: encontrados {imeisSync.Count} equipos para sync");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Sync] Error leyendo IMEIs para sync: {ex.Message}");
                 }
 
                 cmd.ExecuteNonQuery();
@@ -2580,7 +2578,6 @@ namespace MVSystemApi.Model
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Sync] Error en ProcesarPreFactura sync: {ex.Message}");
                     }
                 }
 

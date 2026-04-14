@@ -179,7 +179,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                     
                     if (!existe)
                     {
-                        Console.WriteLine($"Permiso no encontrado - Usuario: {desasignacionDTO.CodigoUsuario}, Permiso: {desasignacionDTO.CodigoPermiso}");
                         return false;
                     }
                 }
@@ -193,16 +192,10 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
                 var filasAfectadas = await cmd.ExecuteNonQueryAsync();
                 
-                if (filasAfectadas > 0)
-                {
-                    Console.WriteLine($"Permiso desasignado exitosamente - Usuario: {desasignacionDTO.CodigoUsuario}, Permiso: {desasignacionDTO.CodigoPermiso}");
-                }
-                
                 return filasAfectadas > 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error desasignando permiso: {ex.Message}");
                 throw;
             }
         }

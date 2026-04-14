@@ -95,7 +95,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error obteniendo perfil del usuario: {ex.Message}");
                 return 0;
             }
         }
@@ -297,7 +296,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error obteniendo perfil del usuario desde SEGURIDAD: {ex.Message}");
                 return 0;
             }
         }
@@ -493,8 +491,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             var password = @"sunnek-tapraq-2Vunji";
             var passEncrypt = Encrypt(password);
             var decrypt = Decrypt(passEncrypt);
-            Console.WriteLine(passEncrypt);
-            Console.WriteLine(decrypt);
         }
     }
 }

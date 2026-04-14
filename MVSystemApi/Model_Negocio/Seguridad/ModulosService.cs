@@ -156,7 +156,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
             var resultado = await cmd.ExecuteScalarAsync();
             var codigoModulo = Convert.ToInt32(resultado);
-            Console.WriteLine($"✅ Módulo {codigoModulo} creado en SEGURIDAD");
             return codigoModulo;
         }
 
@@ -181,7 +180,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Estado", dto.Estado ?? 1);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Módulo {dto.Codigo} actualizado en SEGURIDAD");
             return filasAfectadas > 0;
         }
 
@@ -200,7 +198,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Codigo", codigo);
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
-            Console.WriteLine($"✅ Módulo {codigo} eliminado de SEGURIDAD");
             return filasAfectadas > 0;
         }
 

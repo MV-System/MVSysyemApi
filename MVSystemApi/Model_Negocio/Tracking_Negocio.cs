@@ -43,8 +43,6 @@ namespace MVSystemApi.Model_Negocio
                     throw new ArgumentException("Accion es requerida");
                 }
 
-                Console.WriteLine($"[Tracking] Insertando: Usuario={log.Usuario}, Modulo={log.Modulo}, Accion={log.Accion}");
-
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     await connection.OpenAsync();
@@ -70,16 +68,12 @@ namespace MVSystemApi.Model_Negocio
                         var result = await command.ExecuteScalarAsync();
                         var idTracking = Convert.ToInt32(result);
                         
-                        Console.WriteLine($"[Tracking] ✅ Registro guardado exitosamente. ID: {idTracking}");
-                        
                         return idTracking;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Tracking] ❌ Error al registrar tracking: {ex.Message}");
-                Console.WriteLine($"[Tracking] StackTrace: {ex.StackTrace}");
                 throw new Exception($"Error al registrar tracking: {ex.Message}", ex);
             }
         }
@@ -368,7 +362,7 @@ namespace MVSystemApi.Model_Negocio
             catch (Exception ex)
             {
                 // En caso de error, no notificar para evitar spam
-                Console.WriteLine($"Error al verificar configuraci�n de notificaciones: {ex.Message}");
+
                 return false;
             }
         }

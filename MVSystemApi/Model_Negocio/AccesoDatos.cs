@@ -2137,6 +2137,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Id_estado_Bloqueo", equipo.EstadoBloqueoId);
                 cmd.ExecuteNonQuery();
                 cn.Close();
+                _sync.Ejecutar("Equipo_Actualiza_Estado_y_precio", cmd.Parameters);
             }
             catch (Exception)
             {

@@ -184,5 +184,36 @@ namespace DTO.FacEDGI
         /// Una línea por método de pago, o un solo elemento si es pago único
         /// </summary>
         public List<EasyConexionPaymentDTO> Payments { get; set; } = new List<EasyConexionPaymentDTO>();
+
+        // === Campos exclusivos para Notas de Crédito (tipo 34) ===
+
+        /// <summary>
+        /// NCF de la factura original que se está creditando
+        /// Ejemplo: "E320000000104"
+        /// </summary>
+        public string ModifiedNcf { get; set; }
+
+        /// <summary>
+        /// RNC del emisor de la factura original
+        /// Ejemplo: "132307382"
+        /// </summary>
+        public string RncNcfModified { get; set; }
+
+        /// <summary>
+        /// Fecha de la factura original que se modifica
+        /// Formato: "yyyy-MM-dd"
+        /// </summary>
+        public string ModifDateNcf { get; set; }
+
+        /// <summary>
+        /// Motivo de la nota de crédito
+        /// 1 = Devolución, 2 = Error en facturación, etc.
+        /// </summary>
+        public int? ModifReasonId { get; set; }
+
+        /// <summary>
+        /// Indicador de nota de crédito (1 = sí)
+        /// </summary>
+        public int? CreditNoteIndicator { get; set; }
     }
 }

@@ -91,6 +91,11 @@ namespace MVSystemApi.Model
         /// </summary>
         public DateTime Fecha_Registro { get; set; }
 
+        /// <summary>
+        /// URL del QR para validación en DGI
+        /// </summary>
+        public string QR_Url { get; set; }
+
         // Propiedades de navegación (si usa Entity Framework)
         // public virtual Facturas Factura { get; set; }
     }

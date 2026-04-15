@@ -687,6 +687,7 @@ namespace MVSystemApi.Model
 
             da.Fill(dt);
             cn.Close();
+            _sync.Ejecutar("Suplidores_Insert", cmd.Parameters);
             return dt;
         }
         public DataTable Vendedor_Insert(Vendedor Vendedor)
@@ -2765,6 +2766,7 @@ namespace MVSystemApi.Model
                 command.Parameters.AddWithValue("@Fecha_Envio", log.Fecha_Envio);
                 command.Parameters.AddWithValue("@Error_Descripcion", log.Error_Descripcion ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@Usuario", log.Usuario ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@QR_Url", log.QR_Url ?? (object)DBNull.Value);
 
                 await connection.OpenAsync();
                 int rowsAffected = await command.ExecuteNonQueryAsync();
@@ -2799,6 +2801,7 @@ namespace MVSystemApi.Model
                 command.Parameters.AddWithValue("@Respuesta_JSON", log.Respuesta_JSON ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@Fecha_Confirmacion", log.Fecha_Confirmacion ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@Error_Descripcion", log.Error_Descripcion ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@QR_Url", log.QR_Url ?? (object)DBNull.Value);
 
                 await connection.OpenAsync();
                 int rowsAffected = await command.ExecuteNonQueryAsync();
@@ -2846,7 +2849,8 @@ namespace MVSystemApi.Model
                         Fecha_Confirmacion = reader.IsDBNull(reader.GetOrdinal("Fecha_Confirmacion")) ? null : reader.GetDateTime(reader.GetOrdinal("Fecha_Confirmacion")),
                         Error_Descripcion = reader.IsDBNull(reader.GetOrdinal("Error_Descripcion")) ? null : reader.GetString(reader.GetOrdinal("Error_Descripcion")),
                         Usuario = reader.IsDBNull(reader.GetOrdinal("Usuario")) ? null : reader.GetString(reader.GetOrdinal("Usuario")),
-                        Fecha_Registro = reader.GetDateTime(reader.GetOrdinal("Fecha_Registro"))
+                        Fecha_Registro = reader.GetDateTime(reader.GetOrdinal("Fecha_Registro")),
+                        QR_Url = reader.IsDBNull(reader.GetOrdinal("QR_Url")) ? null : reader.GetString(reader.GetOrdinal("QR_Url"))
                     };
                 }
 
@@ -2892,7 +2896,8 @@ namespace MVSystemApi.Model
                         Fecha_Confirmacion = reader.IsDBNull(reader.GetOrdinal("Fecha_Confirmacion")) ? null : reader.GetDateTime(reader.GetOrdinal("Fecha_Confirmacion")),
                         Error_Descripcion = reader.IsDBNull(reader.GetOrdinal("Error_Descripcion")) ? null : reader.GetString(reader.GetOrdinal("Error_Descripcion")),
                         Usuario = reader.IsDBNull(reader.GetOrdinal("Usuario")) ? null : reader.GetString(reader.GetOrdinal("Usuario")),
-                        Fecha_Registro = reader.GetDateTime(reader.GetOrdinal("Fecha_Registro"))
+                        Fecha_Registro = reader.GetDateTime(reader.GetOrdinal("Fecha_Registro")),
+                        QR_Url = reader.IsDBNull(reader.GetOrdinal("QR_Url")) ? null : reader.GetString(reader.GetOrdinal("QR_Url"))
                     });
                 }
 

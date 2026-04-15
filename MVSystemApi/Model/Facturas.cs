@@ -12,6 +12,7 @@ namespace MVSystemApi.Model
         public Clientes_consulta Cliente { get; set; }
         public string VendedorNombre { get; set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }
+        public string QrUrl { get; set; }
     }
 
     public class FacturaReporte
@@ -110,6 +111,7 @@ namespace MVSystemApi.Model
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }
+        public string QrUrl { get; set; }
     }
 
     public class DetalleFactura

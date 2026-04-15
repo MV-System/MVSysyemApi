@@ -11,6 +11,7 @@ using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using DTO;
+using DTO.FacEDGI;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -25,7 +26,7 @@ namespace MVSystemApi.Controllers
         private readonly IFacEDGIService _facEDGIService;
         private readonly PagoMixto_Negocio _pagoMixtoNegocio;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        
+
         public FacturacionController(Facturas_Negocio _en, IAccesoDatos accesoDatos, IFacEDGIService facEDGIService, IServiceScopeFactory serviceScopeFactory)
         {
             _accesoDatos = accesoDatos;
@@ -37,7 +38,7 @@ namespace MVSystemApi.Controllers
         [HttpPost]
         [Route("PostFactura")]
         //[Authorize(Roles = "MNU_MANT_FACTURACION")]
-        public ActionResult PostFactura([FromBody] FacturaRegistroDTO request)
+        public async Task<ActionResult> PostFactura([FromBody] FacturaRegistroDTO request)
         {
             try
             {
@@ -130,8 +131,27 @@ namespace MVSystemApi.Controllers
                 if (!string.IsNullOrEmpty(rncClaim))
                     resultFactura.RncEmpresa = rncClaim;
 
-                // Enviar factura a DGI de manera paralela
-                EnviarFacturaADGIEnBackground(resultFactura, factura.DetalleFacturaList);
+                // Enviar factura a DGI de manera síncrona
+                var errorDGI = await EnviarFacturaADGISincrono(resultFactura, factura.DetalleFacturaList, detallesPago);
+                if (errorDGI != null)
+                {
+                    // DGI rechazó la factura: anularla
+                    try
+                    {
+                        _accesoDatos.PostAnulaFactura(new FilterAnulaFactura
+                        {
+                            NumeroFactura = resultFactura.NumeroFactura,
+                            IDsucursal = resultFactura.IdAlmacen?.ToString() ?? "0",
+                            Usuario = request.Usuario ?? "Sistema"
+                        });
+                    }
+                    catch (Exception exAnula)
+                    {
+                        Console.WriteLine($"[DGI-ANULA-ERROR] No se pudo anular factura {resultFactura.NumeroFactura}: {exAnula.Message}");
+                    }
+
+                    return BadRequest(new { error = "La DGII no pudo procesar la factura. Intente nuevamente.", errorDGI = true });
+                }
 
                 return Ok(new { factura = resultFactura, mensaje = "Factura guardada exitosamente" });
             }
@@ -166,7 +186,7 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-               
+
                 var result = AD.GetFacturas(consulta);
                 if (result == null)return NotFound();
                 return Ok(result);
@@ -175,7 +195,7 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        }     
+        }
         [HttpGet]
         [Route("GetDetalleFactura/{numeroFactura}/{sucursal}")]
         //[Authorize(Roles = "MNU_CONS_FACTURAS")]
@@ -267,71 +287,72 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>
-        /// Método privado para enviar factura a DGI de forma asíncrona en background
+        /// Envía factura a DGI de manera síncrona. Retorna null si fue exitoso, o el mensaje de error si falló.
         /// </summary>
-        private void EnviarFacturaADGIEnBackground(Facturas facturaGuardada, List<DetalleFactura> detalles)
+        private async Task<string> EnviarFacturaADGISincrono(Facturas facturaGuardada, List<DetalleFactura> detalles, List<DetallePagoDTO> detallesPagoDTO)
         {
             // Verificar si la empresa está certificada para enviar a DGII
             var certificadoClaim = User?.FindFirst("Certificado")?.Value;
+            Console.WriteLine($"[DGI-DEBUG] Factura {facturaGuardada.NumeroFactura} | Certificado={certificadoClaim} | NcfTipo={facturaGuardada.NcfTipoNumero}");
             if (!string.Equals(certificadoClaim, "True", StringComparison.OrdinalIgnoreCase))
-                return;
+                return null; // No es certificada, no enviar pero no es error
 
             // No enviar a DGII si el comprobante es "NO REQUERIDO" (NcfTipoNumero == 0)
             if (facturaGuardada.NcfTipoNumero == 0)
-                return;
+                return null;
 
-            // IMPORTANTE: Capturar TODOS los datos del contexto ANTES de crear el Task.Run()
-            // porque User y cualquier dependency injection pertenece al HttpContext que se descarta después de la request
-            var usuarioDelToken = User?.Identity?.Name ?? "Sistema";
-            var rncDelToken = User?.FindFirst("Rnc")?.Value ?? "";
-            var empresaDelToken = User?.FindFirst("Empresa")?.Value ?? "";
-            var connectionString = _accesoDatos.ConnectionString; // Capturar connection string antes del Task
-            
-            // Obtener los pagos ANTES del Task.Run() para no depender de AccesoDatos dentro
-            var pagosDTO = _accesoDatos.GetDetallesPagoFactura(facturaGuardada.NumeroFactura);
-            var pagosCapturados = pagosDTO?.Select(p => new DetallesPagos_Factura
+            try
             {
-                Numero_Factura = facturaGuardada.NumeroFactura,
-                ID_Tipo_Pago = p.ID_Tipo_Pago,
-                Monto_Pago = p.Monto_Pago,
-                Numero_Referencia = p.Numero_Referencia
-            }).ToList() ?? new List<DetallesPagos_Factura>();
+                var usuarioDelToken = User?.Identity?.Name ?? "Sistema";
+                var rncDelToken = User?.FindFirst("Rnc")?.Value ?? "";
+                var empresaDelToken = User?.FindFirst("Empresa")?.Value ?? "";
 
-            _ = Task.Run(async () =>
+                // Convertir pagos DTO a modelo
+                var pagos = detallesPagoDTO?.Select(p => new DetallesPagos_Factura
+                {
+                    Numero_Factura = facturaGuardada.NumeroFactura,
+                    ID_Tipo_Pago = p.ID_Tipo_Pago,
+                    Monto_Pago = p.Monto_Pago,
+                    Numero_Referencia = p.Numero_Referencia
+                }).ToList() ?? new List<DetallesPagos_Factura>();
+
+                // Obtener el NCF de la BD
+                using var cn = new SqlConnection(_accesoDatos.ConnectionString);
+                using var cmd = new SqlCommand("SP_Reporte_Factura", cn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Cod_Factura", facturaGuardada.NumeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", facturaGuardada.IdAlmacen.Value);
+
+                var da = new SqlDataAdapter(cmd);
+                var dt = new DataTable();
+                da.Fill(dt);
+
+                if (dt != null && dt.Rows.Count > 0 && dt.Columns.Contains("NCF"))
+                    facturaGuardada.NcfNumero = dt.Rows[0]["NCF"]?.ToString() ?? "";
+
+                // Reintentar envío a DGI hasta 3 veces con espera entre intentos
+                const int maxIntentos = 3;
+                EasyConexionResponseDTO responseEDGI = null;
+                for (int intento = 1; intento <= maxIntentos; intento++)
+                {
+                    responseEDGI = await _facEDGIService.EnviarFacturaADGII(facturaGuardada, detalles, pagos, usuarioDelToken, rncDelToken, empresaDelToken);
+
+                    if (responseEDGI?.Success == true)
+                        return null; // Éxito
+
+                    Console.WriteLine($"[DGI-RETRY] Factura {facturaGuardada.NumeroFactura} | Intento {intento}/{maxIntentos} falló: {responseEDGI?.Message}");
+
+                    if (intento < maxIntentos)
+                        await Task.Delay(2000); // Esperar 2 segundos antes de reintentar
+                }
+
+                return responseEDGI?.Message ?? "Error desconocido al enviar a DGI";
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                  
-
-                   
-                    // Acceso directo al DataTable para obtener el NCF sin mapeo
-                    using var cn = new SqlConnection(connectionString);
-                    using var cmd = new SqlCommand("SP_Reporte_Factura", cn);
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@Cod_Factura", facturaGuardada.NumeroFactura);
-                    cmd.Parameters.AddWithValue("@sucursal", facturaGuardada.IdAlmacen.Value);
-                    
-                    var da = new SqlDataAdapter(cmd);
-                    var dt = new DataTable();
-                    da.Fill(dt);
-
-                    // Extraer el NCF de la primera fila
-                    if (dt != null && dt.Rows.Count > 0 && dt.Columns.Contains("NCF"))
-                    {
-                        facturaGuardada.NcfNumero = dt.Rows[0]["NCF"]?.ToString() ?? "";                        
-                    }
-                    else
-                    {
-                        if (dt != null) ;                           
-                    }
-
-                    var responseEDGI = await _facEDGIService.EnviarFacturaADGII(facturaGuardada, detalles, pagosCapturados, usuarioDelToken, rncDelToken, empresaDelToken);
-                                      
-                }
-                catch (Exception)
-                {
-                }
-            });
+                Console.WriteLine($"[DGI-ERROR] Factura {facturaGuardada.NumeroFactura}: {ex.Message}");
+                return $"Error al comunicarse con DGI: {ex.Message}";
+            }
         }
     }
 }

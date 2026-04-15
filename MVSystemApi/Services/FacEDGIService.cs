@@ -113,6 +113,7 @@ namespace MVSystemApi.Services
                 
                 // 4. Enviar POST a EasyConexión API
                 _logger.LogInformation($"[ENVIANDO] POST a {_invoicesEndpoint}");
+                _logger.LogInformation($"[REQUEST JSON] {jsonContent}");
                 var response = await httpClient.PostAsync(_invoicesEndpoint, content);
 
                 // 5. Leer respuesta
@@ -146,7 +147,29 @@ namespace MVSystemApi.Services
                     };
                 }
 
-                // 7. Guardar log en BD
+                // 7. Obtener QR URL de DGI consultando la factura creada
+                string qrUrl = null;
+                if (responseDto?.Success == true && responseDto.DocumentId > 0)
+                {
+                    try
+                    {
+                        var getResponse = await httpClient.GetAsync($"{_invoicesEndpoint}/{responseDto.DocumentId}");
+                        if (getResponse.IsSuccessStatusCode)
+                        {
+                            var getContent = await getResponse.Content.ReadAsStringAsync();
+                            using var doc = System.Text.Json.JsonDocument.Parse(getContent);
+                            if (doc.RootElement.TryGetProperty("qrData", out var qrProp))
+                                qrUrl = qrProp.GetString();
+                        }
+                        _logger.LogInformation($"[QR] Factura {factura.NumeroFactura} | QR URL: {qrUrl ?? "no disponible"}");
+                    }
+                    catch (Exception exQr)
+                    {
+                        _logger.LogWarning($"[QR] No se pudo obtener QR para factura {factura.NumeroFactura}: {exQr.Message}");
+                    }
+                }
+
+                // 8. Guardar log en BD
                 var logFactura = new LogFacturaElectronica
                 {
                     Numero_Factura = factura.NumeroFactura,
@@ -157,7 +180,8 @@ namespace MVSystemApi.Services
                     Respuesta_JSON = responseContent,
                     Fecha_Envio = DateTime.Now,
                     Error_Descripcion = responseDto?.Success == true ? null : responseDto?.Message,
-                    Usuario = usuario
+                    Usuario = usuario,
+                    QR_Url = qrUrl
                 };
 
                 var logInsertado = await InsertLogFacturaElectronica(logFactura);

@@ -100,7 +100,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpPost("FacturacionReporte/ReportFactura")]// Reimprimir factura 8.5x11
-        public IActionResult ReportFactura(FacturaFilter consulta)
+        public async Task<IActionResult> ReportFactura(FacturaFilter consulta)
         {
             var detalleFactura = (List<DetalleFactura>)_facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
             
@@ -139,11 +139,19 @@ namespace MVSystemApi.Controllers
                 DatosEmpresaFactura = DatosEmpresaFactura,
             };
 
+            // Obtener QR URL del log de factura electrónica
+            try
+            {
+                var log = await _accesoDatos.GetLogFacturaElectronica(consulta.NumeroFactura, "A");
+                if (log?.QR_Url != null) data.QrUrl = log.QR_Url;
+            }
+            catch { }
+
             return new ViewAsPdf(data);
         }
       
         [HttpPost("FacturacionReporte/ReportFacturaMini")]// Reimprimir factura 80mm
-        public IActionResult ReportFacturaMini(FacturaFilter consulta)
+        public async Task<IActionResult> ReportFacturaMini(FacturaFilter consulta)
         {
             var detalleFactura = (List<DetalleFactura>)_facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
 
@@ -161,6 +169,14 @@ namespace MVSystemApi.Controllers
                 Factura = factura,
                 DatosEmpresaFactura = DatosEmpresaFactura,
             };
+
+            // Obtener QR URL del log de factura electrónica
+            try
+            {
+                var log = await _accesoDatos.GetLogFacturaElectronica(consulta.NumeroFactura, "A");
+                if (log?.QR_Url != null) data.QrUrl = log.QR_Url;
+            }
+            catch { }
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}"; // Obtener la URL base del servidor
             factura.logo = baseUrl + "/assets/" +DatosEmpresaFactura.Logo + ".png"; // armar la ruta completa para acceder al logo

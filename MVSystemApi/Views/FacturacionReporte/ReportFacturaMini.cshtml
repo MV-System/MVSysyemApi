@@ -198,11 +198,11 @@
             var qrGenerator = new QRCoder.QRCodeGenerator();
             var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
             var qrCode = new QRCoder.PngByteQRCode(qrData);
-            var qrBytes = qrCode.GetGraphic(3);
+            var qrBytes = qrCode.GetGraphic(6);
             var qrBase64 = Convert.ToBase64String(qrBytes);
 
             <div class="container text-center" style="margin-top:10px;">
-                <img src="data:image/png;base64,@qrBase64" style="width:80px;height:80px;" />
+                <img src="data:image/png;base64,@qrBase64" style="width:3cm;height:3cm;" />
                 <p style="font-size:8px;margin-top:2px;">e-CF DGI</p>
             </div>
         }

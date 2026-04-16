@@ -41,6 +41,19 @@
         <p><b>RNC: @Model.DatosEmpresaFactura?.RNC</b></p>
     </div>
 
+    @{
+        var qrUrl = Model.QrUrl;
+        string qrBase64 = null;
+        if (!string.IsNullOrEmpty(qrUrl))
+        {
+            var qrGenerator = new QRCoder.QRCodeGenerator();
+            var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
+            var qrCode = new QRCoder.PngByteQRCode(qrData);
+            var qrBytes = qrCode.GetGraphic(6);
+            qrBase64 = Convert.ToBase64String(qrBytes);
+        }
+    }
+
     <div class="container border border-dark">
         <div class="row">
             <div class="col-6 border border-dark">
@@ -62,13 +75,24 @@
                 <b>Vendedor: </b>@Model.Factura?.Vendedor<br>
             </div>
             <div class="col-6 border border-dark">
-                <b>@Model.Factura?.FacturaTitulo: @Model.Factura?.NumeroFactura</b><br>
-                <b>@Model.Factura?.FacturaTituloTipo:</b> @Model.Factura?.TipoFactura<br>
-                <b>Tipo de pago: </b> @Model.Factura?.TipoPago<br>
-                <b>Fecha: </b> @Model.Factura?.FechaFacturacion<br>
-                <b>@Model.Factura?.VerNCF</b> @Model.Factura?.Ncf<br>
-
-                @* <b>NCF: </b>@Model.Factura?.Ncf *@
+                <table style="width:100%; border:none;">
+                    <tr>
+                        <td style="vertical-align:top; border:none; padding:0;">
+                            <b>@Model.Factura?.FacturaTitulo: @Model.Factura?.NumeroFactura</b><br>
+                            <b>@Model.Factura?.FacturaTituloTipo:</b> @Model.Factura?.TipoFactura<br>
+                            <b>Tipo de pago: </b> @Model.Factura?.TipoPago<br>
+                            <b>Fecha: </b> @Model.Factura?.FechaFacturacion<br>
+                            <b>@Model.Factura?.VerNCF</b> @Model.Factura?.Ncf<br>
+                        </td>
+                        @if (qrBase64 != null)
+                        {
+                            <td style="vertical-align:top; text-align:center; width:3.5cm; border:none; padding:0;">
+                                <img src="data:image/png;base64,@qrBase64" style="width:3cm;height:3cm;" />
+                                <p style="font-size:8px;margin:2px 0 0 0;">e-CF DGI</p>
+                            </td>
+                        }
+                    </tr>
+                </table>
             </div>
         </div>
     </div>
@@ -138,23 +162,6 @@
             </p>
         </div>
     </div>
-
-    @{
-        var qrUrl = Model.QrUrl;
-        if (!string.IsNullOrEmpty(qrUrl))
-        {
-            var qrGenerator = new QRCoder.QRCodeGenerator();
-            var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
-            var qrCode = new QRCoder.PngByteQRCode(qrData);
-            var qrBytes = qrCode.GetGraphic(4);
-            var qrBase64 = Convert.ToBase64String(qrBytes);
-
-            <div class="container text-center" style="margin-top:15px;">
-                <img src="data:image/png;base64,@qrBase64" style="width:120px;height:120px;" />
-                <p style="font-size:10px;margin-top:3px;">e-CF DGI</p>
-            </div>
-        }
-    }
 
     <br />
     <br />

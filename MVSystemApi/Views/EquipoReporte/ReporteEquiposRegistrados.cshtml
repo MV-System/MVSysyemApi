@@ -1,0 +1,265 @@
+@model MVSystemApi.Model.EmpresaReportes
+@{
+    Layout = null;
+    var equipos = Model.EquiposRegistrados;
+    var primerEquipo = equipos.FirstOrDefault();
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <link href="~/assets/bootstrap.min.css" rel="stylesheet" />
+    <title>Reporte de Equipos Registrados</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Header empresa */
+        .empresa-header {
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: 15px;
+        }
+        .empresa-header img {
+            max-height: 55px;
+            margin-bottom: 6px;
+        }
+        .empresa-header p {
+            margin: 1px 0;
+            font-size: 11px;
+            color: #555;
+        }
+        .empresa-header .rnc {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 11.5px;
+        }
+
+        /* Título del reporte */
+        .report-title {
+            text-align: center;
+            margin: 14px 0 12px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #2c3e50 100%);
+            padding: 8px 0;
+            border-radius: 6px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        /* Info del registro */
+        .registro-info {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fb;
+            border: 1px solid #e0e4ea;
+            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 14px;
+        }
+        .registro-info .info-item {
+            text-align: center;
+        }
+        .registro-info .info-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #888;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        .registro-info .info-value {
+            font-weight: 700;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+
+        /* Tabla */
+        .equipo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 11px;
+        }
+        .equipo-table thead th {
+            background: #2c3e50;
+            color: #fff;
+            padding: 7px 10px;
+            font-weight: 600;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+        .equipo-table thead th:first-child {
+            border-radius: 6px 0 0 0;
+        }
+        .equipo-table thead th:last-child {
+            border-radius: 0 6px 0 0;
+        }
+        .equipo-table tbody td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #eef0f3;
+        }
+        .equipo-table tbody tr:nth-child(even) {
+            background: #f8f9fb;
+        }
+        .equipo-table tbody tr:last-child td:first-child {
+            border-radius: 0 0 0 6px;
+        }
+        .equipo-table tbody tr:last-child td:last-child {
+            border-radius: 0 0 6px 0;
+        }
+        .equipo-table .row-num {
+            background: #667eea;
+            color: #fff;
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-weight: 700;
+            font-size: 10px;
+            display: inline-block;
+        }
+
+        /* Total */
+        .total-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #2c3e50 100%);
+            color: #fff;
+            padding: 7px 18px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            margin-bottom: 30px;
+        }
+        .total-bar span {
+            margin-left: 8px;
+            font-size: 15px;
+        }
+
+        /* Firmas */
+        .firma-table {
+            width: 100%;
+            margin-top: 60px;
+        }
+        .firma-table td {
+            width: 50%;
+            text-align: center;
+            padding: 0 40px;
+            vertical-align: bottom;
+        }
+        .firma-table .firma-line {
+            border-top: 2px solid #2c3e50;
+            margin-bottom: 4px;
+        }
+        .firma-table .firma-label {
+            font-weight: 600;
+            font-size: 10.5px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        /* Footer */
+        .report-footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e4ea;
+            font-size: 9.5px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER EMPRESA -->
+    <div class="empresa-header">
+        <img src="@primerEquipo?.Logo" alt="Logo" />
+        <p><b>@Model.DatosEmpresaFactura.Encabezado</b></p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p class="rnc">RNC: @Model.DatosEmpresaFactura.RNC</p>
+    </div>
+
+    <!-- TÍTULO -->
+    <div class="report-title">Reporte de Equipos Registrados</div>
+
+    <!-- INFO REGISTRO -->
+    <div class="registro-info">
+        <div class="info-item">
+            <div class="info-label">Registro No.</div>
+            <div class="info-value">@primerEquipo?.Numero_Registro</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Fecha</div>
+            <div class="info-value">@primerEquipo?.Fecha_Registro.ToString("dd/MM/yyyy hh:mm tt")</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Usuario</div>
+            <div class="info-value">@primerEquipo?.Usuario</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">Almacén</div>
+            <div class="info-value">@primerEquipo?.Almacen_Registro</div>
+        </div>
+    </div>
+
+    <!-- TABLA EQUIPOS -->
+    <table class="equipo-table">
+        <thead>
+            <tr>
+                <th style="width: 6%; text-align: center;">#</th>
+                <th style="width: 34%;">IMEI</th>
+                <th style="width: 40%;">MODELO</th>
+                <th style="width: 20%;">ALMACÉN</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{ int index = 1; }
+            @foreach (var item in equipos)
+            {
+                <tr>
+                    <td style="text-align: center;"><span class="row-num">@(index++)</span></td>
+                    <td><b>@item.Imei</b></td>
+                    <td>@item.Modelo</td>
+                    <td>@item.Almacen_Registro</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- TOTAL -->
+    <div class="total-bar">
+        TOTAL EQUIPOS: <span>@primerEquipo?.Total_Equipos</span>
+    </div>
+
+    <!-- FIRMAS -->
+    <table class="firma-table">
+        <tr>
+            <td>
+                <div class="firma-line"></div>
+                <div class="firma-label">Registrado por</div>
+            </td>
+            <td>
+                <div class="firma-line"></div>
+                <div class="firma-label">Recibido por</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- FOOTER -->
+    <div class="report-footer">
+        Fecha de Impresión: @DateTime.Now.ToString("dd/MM/yyyy hh:mm tt")
+    </div>
+</body>
+</html>

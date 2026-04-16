@@ -1313,6 +1313,29 @@ namespace MVSystemApi.Model
 
         }
 
+        public DataTable GetEquiposRegistrados(int numeroRegistro)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new(cmd);
+                DataTable dt = new();
+
+                cmd.CommandText = "Sp_Rpt_Equipos_Registro";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Numero_Registro", numeroRegistro);
+                cmd.ExecuteNonQuery();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         //public DataTable GetEquiposVendidos(EquipoVendidoFilter equipoVendidoFilter)
         //{
         //    try

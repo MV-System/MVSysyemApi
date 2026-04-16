@@ -53,6 +53,8 @@ namespace MVSystemApi.Interfaz
 
         public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion);
 
+        public DataTable GetEquiposRegistrados(int numeroRegistro);
+
         #endregion // ------------- fin de combos para el registro de equipo ----------------------
 
         #region // ------------- Clientes --------------------------

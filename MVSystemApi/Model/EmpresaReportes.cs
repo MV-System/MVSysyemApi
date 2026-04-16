@@ -9,6 +9,7 @@ namespace MVSystemApi.Model
         public List<EquipoDisponibleDTO> EquiposDTO { get; set; }
         public List<EquipoTransferencia> EquipoTransferencia { get; set; }
         public List<ReparacionReporteDTO> Reparaciones { get; set; }
+        public List<EquipoRegistrado> EquiposRegistrados { get; set; }
 
     }
 }

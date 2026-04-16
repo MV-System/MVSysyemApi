@@ -333,6 +333,23 @@ namespace MVSystemApi.Model
             return result;
         }
 
+        internal List<EquipoRegistrado> GetEquiposRegistrados(int numeroRegistro)
+        {
+            var result = (from dt in Ac.GetEquiposRegistrados(numeroRegistro).AsEnumerable()
+                          select new EquipoRegistrado
+                          {
+                              Imei = Convert.ToString(dt["Imei"]),
+                              Modelo = Convert.ToString(dt["modelo"]),
+                              Almacen_Registro = Convert.ToString(dt["Almacen_Registro"]),
+                              Usuario = Convert.ToString(dt["Usuario"]),
+                              Fecha_Registro = Convert.ToDateTime(dt["Fecha_registro"]),
+                              Numero_Registro = Convert.ToInt32(dt["Numero_Registro"]),
+                              Total_Equipos = Convert.ToInt32(dt["total_equipos"])
+                          }).ToList();
+
+            return result;
+        }
+
 
         internal object PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {

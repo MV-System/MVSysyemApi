@@ -147,5 +147,35 @@ namespace MVSystemApi.Controllers
             // Retornar la vista PDF
             return new ViewAsPdf(data);
         }
+
+        [HttpGet]
+        [Route("ReporteEquiposRegistrados")]
+        public IActionResult ReporteEquiposRegistrados(int numeroRegistro, int idEmpresa, int idSucursal)
+        {
+            try
+            {
+                var equiposRegistrados = _equipos_Negocio.GetEquiposRegistrados(numeroRegistro);
+
+                if (equiposRegistrados == null || equiposRegistrados.Count == 0)
+                    return NotFound("No se encontraron equipos para este número de registro.");
+
+                DatosEmpresa datosEmpresa = _SS.GetDatosEmpresa(idEmpresa, idSucursal);
+
+                string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+                equiposRegistrados.ForEach(e => e.Logo = baseUrl + "/assets/" + datosEmpresa.Logo + ".png");
+
+                var data = new EmpresaReportes
+                {
+                    DatosEmpresaFactura = datosEmpresa,
+                    EquiposRegistrados = equiposRegistrados
+                };
+
+                return new ViewAsPdf("ReporteEquiposRegistrados", data);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Se produjo un error al generar el reporte de equipos registrados.");
+            }
+        }
     }
 }

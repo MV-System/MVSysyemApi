@@ -261,4 +261,16 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
     }
 
+    public class EquipoRegistrado
+    {
+        public string Imei { get; set; }
+        public string Modelo { get; set; }
+        public string Almacen_Registro { get; set; }
+        public string Usuario { get; set; }
+        public DateTime Fecha_Registro { get; set; }
+        public int Numero_Registro { get; set; }
+        public int Total_Equipos { get; set; }
+        public string Logo { get; set; }
+    }
+
 }

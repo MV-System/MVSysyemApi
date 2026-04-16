@@ -7,6 +7,7 @@ using System.Data;
 using System.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -26,14 +27,16 @@ namespace MVSystemApi.Controllers
         private readonly IFacEDGIService _facEDGIService;
         private readonly PagoMixto_Negocio _pagoMixtoNegocio;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly ILogger<FacturacionController> _logger;
 
-        public FacturacionController(Facturas_Negocio _en, IAccesoDatos accesoDatos, IFacEDGIService facEDGIService, IServiceScopeFactory serviceScopeFactory)
+        public FacturacionController(Facturas_Negocio _en, IAccesoDatos accesoDatos, IFacEDGIService facEDGIService, IServiceScopeFactory serviceScopeFactory, ILogger<FacturacionController> logger)
         {
             _accesoDatos = accesoDatos;
             AD = _en;
             _facEDGIService = facEDGIService;
             _serviceScopeFactory = serviceScopeFactory;
             _pagoMixtoNegocio = new PagoMixto_Negocio();
+            _logger = logger;
         }
         [HttpPost]
         [Route("PostFactura")]
@@ -291,21 +294,31 @@ namespace MVSystemApi.Controllers
         /// </summary>
         private async Task<string> EnviarFacturaADGISincrono(Facturas facturaGuardada, List<DetalleFactura> detalles, List<DetallePagoDTO> detallesPagoDTO)
         {
+            _logger.LogInformation($"[CTRL-DGI-1] INICIO EnviarFacturaADGISincrono Factura={facturaGuardada?.NumeroFactura}");
+            _logger.LogInformation($"[CTRL-DGI-1] NcfTipo={facturaGuardada?.NcfTipoNumero}, NcfNumero={facturaGuardada?.NcfNumero}, Total={facturaGuardada?.Total}, IdAlmacen={facturaGuardada?.IdAlmacen}");
+
             // Verificar si la empresa está certificada para enviar a DGII
             var certificadoClaim = User?.FindFirst("Certificado")?.Value;
-            Console.WriteLine($"[DGI-DEBUG] Factura {facturaGuardada.NumeroFactura} | Certificado={certificadoClaim} | NcfTipo={facturaGuardada.NcfTipoNumero}");
+            _logger.LogInformation($"[CTRL-DGI-2] Certificado={certificadoClaim}");
             if (!string.Equals(certificadoClaim, "True", StringComparison.OrdinalIgnoreCase))
-                return null; // No es certificada, no enviar pero no es error
+            {
+                _logger.LogInformation($"[CTRL-DGI-2] Empresa NO certificada, saltando envío DGI");
+                return null;
+            }
 
             // No enviar a DGII si el comprobante es "NO REQUERIDO" (NcfTipoNumero == 0)
             if (facturaGuardada.NcfTipoNumero == 0)
+            {
+                _logger.LogInformation($"[CTRL-DGI-2] NcfTipoNumero=0 (NO REQUERIDO), saltando envío DGI");
                 return null;
+            }
 
             try
             {
                 var usuarioDelToken = User?.Identity?.Name ?? "Sistema";
                 var rncDelToken = User?.FindFirst("Rnc")?.Value ?? "";
                 var empresaDelToken = User?.FindFirst("Empresa")?.Value ?? "";
+                _logger.LogInformation($"[CTRL-DGI-3] Token: Usuario={usuarioDelToken}, RNC={rncDelToken}, Empresa={empresaDelToken}");
 
                 // Convertir pagos DTO a modelo
                 var pagos = detallesPagoDTO?.Select(p => new DetallesPagos_Factura
@@ -317,6 +330,7 @@ namespace MVSystemApi.Controllers
                 }).ToList() ?? new List<DetallesPagos_Factura>();
 
                 // Obtener el NCF de la BD
+                _logger.LogInformation($"[CTRL-DGI-4] Obteniendo NCF de BD con SP_Reporte_Factura (Factura={facturaGuardada.NumeroFactura}, Sucursal={facturaGuardada.IdAlmacen})");
                 using var cn = new SqlConnection(_accesoDatos.ConnectionString);
                 using var cmd = new SqlCommand("SP_Reporte_Factura", cn);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -327,20 +341,31 @@ namespace MVSystemApi.Controllers
                 var dt = new DataTable();
                 da.Fill(dt);
 
+                _logger.LogInformation($"[CTRL-DGI-4] SP_Reporte_Factura devolvió {dt?.Rows?.Count ?? 0} filas");
                 if (dt != null && dt.Rows.Count > 0 && dt.Columns.Contains("NCF"))
+                {
                     facturaGuardada.NcfNumero = dt.Rows[0]["NCF"]?.ToString() ?? "";
+                    _logger.LogInformation($"[CTRL-DGI-4] NCF obtenido: '{facturaGuardada.NcfNumero}'");
+                }
+                else
+                {
+                    _logger.LogWarning($"[CTRL-DGI-4] NCF NO encontrado en SP_Reporte_Factura");
+                }
 
+                _logger.LogInformation($"[CTRL-DGI-5] Detalles={detalles?.Count ?? 0}, Pagos={pagos?.Count ?? 0}");
                 // Reintentar envío a DGI hasta 3 veces con espera entre intentos
                 const int maxIntentos = 3;
                 EasyConexionResponseDTO responseEDGI = null;
                 for (int intento = 1; intento <= maxIntentos; intento++)
                 {
+                    _logger.LogInformation($"[CTRL-DGI-6] Intento {intento}/{maxIntentos} - Llamando EnviarFacturaADGII...");
                     responseEDGI = await _facEDGIService.EnviarFacturaADGII(facturaGuardada, detalles, pagos, usuarioDelToken, rncDelToken, empresaDelToken);
+                    _logger.LogInformation($"[CTRL-DGI-6] Intento {intento} resultado: Success={responseEDGI?.Success}, Message={responseEDGI?.Message}");
 
                     if (responseEDGI?.Success == true)
                         return null; // Éxito
 
-                    Console.WriteLine($"[DGI-RETRY] Factura {facturaGuardada.NumeroFactura} | Intento {intento}/{maxIntentos} falló: {responseEDGI?.Message}");
+                    _logger.LogWarning($"[CTRL-DGI-6] Intento {intento}/{maxIntentos} FALLÓ: {responseEDGI?.Message}");
 
                     if (intento < maxIntentos)
                         await Task.Delay(2000); // Esperar 2 segundos antes de reintentar
@@ -350,7 +375,9 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DGI-ERROR] Factura {facturaGuardada.NumeroFactura}: {ex.Message}");
+                _logger.LogError($"[CTRL-DGI-ERROR] Factura {facturaGuardada?.NumeroFactura}: {ex.Message}");
+                _logger.LogError($"[CTRL-DGI-ERROR] InnerException: {ex.InnerException?.Message}");
+                _logger.LogError($"[CTRL-DGI-ERROR] StackTrace: {ex.StackTrace}");
                 return $"Error al comunicarse con DGI: {ex.Message}";
             }
         }

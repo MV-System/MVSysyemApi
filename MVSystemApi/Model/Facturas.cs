@@ -63,6 +63,8 @@ namespace MVSystemApi.Model
         public decimal Itbis { get; set; }
         public decimal Total { get; set; }
         public decimal TotalFacturado { get; set; }
+        public decimal TotalItbis { get; set; }
+        public decimal TotalSinItbis { get; set; }
         public DateTime FechaFacturacion { get; set; }
         public string empresa { get; set; }
         

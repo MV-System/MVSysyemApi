@@ -50,7 +50,8 @@ namespace MVSystemApi.Model_Negocio
         {
 
 
-            var result = (from dt in Ac.GetFacturas(consulta).AsEnumerable()
+            var pageTable = Ac.GetFacturas(consulta);
+            var result = (from dt in pageTable.AsEnumerable()
                           select new FacturaConsulta
                           {
                               NumeroFactura = Convert.ToInt32(dt["Numero de Factura"]),
@@ -76,8 +77,82 @@ namespace MVSystemApi.Model_Negocio
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
                               TotalFacturado = Convert.ToDecimal(dt["TotalFacturado"])
                           }).ToList();
+
+            if (result.Count == 0)
+            {
+                return result;
+            }
+
+            var totalFacturado = result[0].TotalFacturado;
+            var totalRecord = result[0].TotalRecord;
+
+            decimal totalItbis;
+            if (pageTable.Columns.Contains("TotalItbis"))
+            {
+                totalItbis = Convert.ToDecimal(pageTable.Rows[0]["TotalItbis"]);
+            }
+            else
+            {
+                var aggregateRows = pageTable.AsEnumerable();
+
+                if (totalRecord > pageTable.Rows.Count)
+                {
+                    var aggregateFilter = new FacturaFilter
+                    {
+                        NumeroFactura = consulta.NumeroFactura,
+                        Criterio = consulta.Criterio,
+                        Almacen = consulta.Almacen,
+                        TipoPago = consulta.TipoPago,
+                        empresa = consulta.empresa,
+                        IdEmpresa = consulta.IdEmpresa,
+                        IdSucursal = consulta.IdSucursal,
+                        EstadoFactura = consulta.EstadoFactura,
+                        ComprobanteCheck = consulta.ComprobanteCheck,
+                        IdVendedor = consulta.IdVendedor,
+                        Usuario = consulta.Usuario,
+                        FechaInicio = consulta.FechaInicio,
+                        FechaFinal = consulta.FechaFinal,
+                        PageIndex = 1,
+                        PageSize = totalRecord
+                    };
+
+                    var aggregateTable = Ac.GetFacturas(aggregateFilter);
+                    aggregateRows = aggregateTable.AsEnumerable();
+                }
+
+                totalItbis = aggregateRows.Sum(CalcularItbisFactura);
+            }
+
+            var totalSinItbis = Math.Max(totalFacturado - totalItbis, 0m);
+            foreach (var factura in result)
+            {
+                factura.TotalItbis = totalItbis;
+                factura.TotalSinItbis = totalSinItbis;
+            }
+
             return result;
         }
+
+        private decimal CalcularItbisFactura(DataRow row)
+        {
+            if (row.Table.Columns.Contains("Itbis"))
+            {
+                var itbis = Convert.ToDecimal(row["Itbis"]);
+                if (itbis > 0)
+                {
+                    return itbis;
+                }
+            }
+
+            var subTotal = row.Table.Columns.Contains("SubTotal") ? Convert.ToDecimal(row["SubTotal"]) : 0m;
+            var descuento = row.Table.Columns.Contains("Descuento") ? Convert.ToDecimal(row["Descuento"]) : 0m;
+            var total = row.Table.Columns.Contains("Total") ? Convert.ToDecimal(row["Total"]) : 0m;
+            var baseSinItbis = subTotal - descuento;
+            var itbisCalculado = total - baseSinItbis;
+
+            return itbisCalculado > 0 ? itbisCalculado : 0m;
+        }
+
         internal object GetFacturasReporte(FacturaFilter consulta)
         {
 

@@ -87,6 +87,8 @@ namespace MVSystemApi.Model_Negocio
             var totalRecord = result[0].TotalRecord;
 
             decimal totalItbis;
+            decimal totalSinItbis;
+            
             if (pageTable.Columns.Contains("TotalItbis"))
             {
                 totalItbis = Convert.ToDecimal(pageTable.Rows[0]["TotalItbis"]);
@@ -123,7 +125,14 @@ namespace MVSystemApi.Model_Negocio
                 totalItbis = aggregateRows.Sum(CalcularItbisFactura);
             }
 
-            var totalSinItbis = Math.Max(totalFacturado - totalItbis, 0m);
+            if (pageTable.Columns.Contains("TotalSinItbis"))
+            {
+                totalSinItbis = Convert.ToDecimal(pageTable.Rows[0]["TotalSinItbis"]);
+            }
+            else
+            {
+                totalSinItbis = Math.Max(totalFacturado - totalItbis, 0m);
+            }
             foreach (var factura in result)
             {
                 factura.TotalItbis = totalItbis;

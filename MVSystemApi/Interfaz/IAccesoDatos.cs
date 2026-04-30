@@ -165,5 +165,12 @@ namespace MVSystemApi.Interfaz
         /// </summary>
         Task<int> ExecuteNonQueryAsync(string query, params SqlParameter[] parameters);
         #endregion
+
+        #region --------------Tipos de Pagos -------------------
+        /// <summary>
+        /// Obtiene un tipo de pago por su ID, incluyendo el código DGI
+        /// </summary>
+        Tipos_Pagos Tipo_Pagos_GetById(int idTipoPago);
+        #endregion
     }
 }

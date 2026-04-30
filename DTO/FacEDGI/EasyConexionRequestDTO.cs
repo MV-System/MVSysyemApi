@@ -106,8 +106,8 @@ namespace DTO.FacEDGI
 
         /// <summary>
         /// Condición de pago
-        /// Origen: Dropdown tipo de pago
-        /// Valores: "1" (Pago único), "2" (Crédito), etc.
+        /// Origen: Tipo_Pagos.Codigo_DGI
+        /// Valores: "1" (Efectivo), "2" (Transferencia), "3" (Tarjeta), "4" (Crédito), etc. (SIN cero a la izquierda)
         /// </summary>
         public string PaymentCondition { get; set; }
 

@@ -120,7 +120,7 @@ namespace MVSystemApi.Controllers
                 StringComparer.OrdinalIgnoreCase);
 
             // Determinar si debe mostrar como cotización o factura
-            bool esCotizacion = DatosEmpresaFactura.IdEmpresa == 1 
+            bool esCotizacion = DatosEmpresaFactura.IdEmpresa == 30
                              && factura.TipoFactura == "Al Por Mayor"
                              && usuariosAutorizadosCotizacion.Contains(consulta.Usuario);
 

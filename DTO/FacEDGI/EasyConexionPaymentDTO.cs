@@ -6,9 +6,17 @@ namespace DTO.FacEDGI
     public class EasyConexionPaymentDTO
     {
         /// <summary>
-        /// Código del método de pago
-        /// Origen: DetallesPagos_Factura.ID_Tipo_Pago
-        /// Valor: 1=Efectivo, 2=Tarjeta, 3=Cheque, etc.
+        /// Código del método de pago (según catálogo DGI)
+        /// Origen: Tipo_Pagos.Codigo_DGI (convertido de string a int)
+        /// Valores válidos: 1, 2, 3, 4, 5, 6, 7, 8
+        /// - 1 = Efectivo
+        /// - 2 = Cheque / Transferencia / Depósito
+        /// - 3 = Tarjeta Crédito / Débito
+        /// - 4 = Venta a Crédito
+        /// - 5 = Bonos o Certificados de Regalo
+        /// - 6 = Permuta
+        /// - 7 = Nota de Crédito
+        /// - 8 = Mixto
         /// </summary>
         public int Method { get; set; }
 

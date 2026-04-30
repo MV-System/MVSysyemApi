@@ -9,6 +9,7 @@ namespace MVSystemApi.Model
     {
         public int ID_Tipo_Pagos { get; set; }
         public string Descripcion_Tipo_Pagos { get; set; }
+        public string Codigo_DGI { get; set; }  // Código del tipo de pago en catálogo DGI (ej: "01", "02", "03", etc.)
 
     }
 }

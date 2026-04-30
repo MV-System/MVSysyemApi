@@ -334,7 +334,7 @@ namespace MVSystemApi.Services
                 CurrencyType = _currencyType,
                 ExchangeRate = null,  // DOP es moneda local
                 IncomeType = _incomeType,
-                PaymentCondition = factura.IdTipoPago.ToString(), // Condición de pago
+                PaymentCondition = "1",  // Siempre "1" según DGI
                 TaxedAmountIndicator = _taxedAmountIndicator,
                 
                 // Fechas
@@ -363,8 +363,18 @@ namespace MVSystemApi.Services
             // Log del total a enviar a DGI
             _logger.LogInformation($"[REQUEST DGI] Comprobante: {request.VoucherNumber}");
             _logger.LogInformation($"[REQUEST DGI] Tipo: {request.VoucherType} - Comprador: {request.BuyerName}");
+            _logger.LogInformation($"[REQUEST DGI] Tipo de Pago Principal: ID={factura.IdTipoPago} → Código DGI={request.PaymentCondition}");
             _logger.LogInformation($"[REQUEST DGI] Total a enviar: RD${request.TotalAmount:F2}");
             _logger.LogInformation($"[REQUEST DGI] Líneas: {request.Lines.Count}, Métodos de pago: {request.Payments.Count}");
+            
+            // Log de detalle de métodos de pago
+            if (request.Payments != null && request.Payments.Count > 0)
+            {
+                foreach (var i in Enumerable.Range(0, request.Payments.Count))
+                {
+                    _logger.LogInformation($"[REQUEST DGI] Pago[{i}]: Método={request.Payments[i].Method} (Código DGI), Monto=RD${request.Payments[i].Amount:F2}");
+                }
+            }
 
             return request;
         }
@@ -429,21 +439,28 @@ namespace MVSystemApi.Services
             // Si hay detalles de pago registrados, usarlos
             if (pagos != null && pagos.Count > 0)
             {
+                _logger.LogInformation($"[MAPEO-PAGOS] ================================");
+                _logger.LogInformation($"[MAPEO-PAGOS] Procesando {pagos.Count} métodos de pago");
                 foreach (var pago in pagos)
                 {
+                    _logger.LogInformation($"[MAPEO-PAGOS] Procesando pago: ID_Tipo_Pago={pago.ID_Tipo_Pago}, Monto={pago.Monto_Pago}");
+                    var codigoDGI = ObtenerCodigoDGI(pago.ID_Tipo_Pago);
+                    _logger.LogInformation($"[MAPEO-PAGOS] Resultado: ID_Tipo_Pago={pago.ID_Tipo_Pago} → Código_DGI devuelto={codigoDGI}");
                     payments.Add(new EasyConexionPaymentDTO
                     {
-                        Method = pago.ID_Tipo_Pago,
+                        Method = int.Parse(codigoDGI), // Convertir string "01" → int 1, etc.
                         Amount = pago.Monto_Pago
                     });
                 }
+                _logger.LogInformation($"[MAPEO-PAGOS] ================================");
             }
             else
             {
-                // Si no hay detalles, asumir pago único con efectivo (método 1)
+                // Si no hay detalles, asumir pago único con efectivo (método 1 = código DGI "01")
+                _logger.LogWarning($"[MAPEO-PAGOS] ⚠ No hay detalles de pago. Asumiendo pago único con Efectivo (1)");
                 payments.Add(new EasyConexionPaymentDTO
                 {
-                    Method = 1, // Efectivo por defecto
+                    Method = 1, // Efectivo por defecto (código DGI como int)
                     Amount = totalFactura
                 });
             }
@@ -516,6 +533,58 @@ namespace MVSystemApi.Services
             {
                 _logger.LogError($"Error al insertar log de factura: {ex.Message}", ex);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el código DGI para un tipo de pago desde la BD
+        /// Consulta la columna Codigo_DGI de la tabla Tipo_Pagos
+        /// Si no encuentra o si Codigo_DGI es nulo, devuelve "01" (Efectivo) como defecto
+        /// </summary>
+        private string ObtenerCodigoDGI(int idTipoPago)
+        {
+            try
+            {
+                _logger.LogInformation($"[MAPEO-TIPOPAGO] ================================");
+                _logger.LogInformation($"[MAPEO-TIPOPAGO] Iniciando búsqueda de código DGI");
+                _logger.LogInformation($"[MAPEO-TIPOPAGO] ID_Tipo_Pago recibido: {idTipoPago}");
+                
+                var tipoPago = _accesoDatos.Tipo_Pagos_GetById(idTipoPago);
+                _logger.LogInformation($"[MAPEO-TIPOPAGO] Resultado de GetById: tipoPago={tipoPago}");
+                
+                if (tipoPago != null)
+                {
+                    _logger.LogInformation($"[MAPEO-TIPOPAGO] Objeto devuelto:");
+                    _logger.LogInformation($"[MAPEO-TIPOPAGO]   - ID: {tipoPago.ID_Tipo_Pagos}");
+                    _logger.LogInformation($"[MAPEO-TIPOPAGO]   - Descripción: {tipoPago.Descripcion_Tipo_Pagos}");
+                    _logger.LogInformation($"[MAPEO-TIPOPAGO]   - Codigo_DGI: '{tipoPago.Codigo_DGI}' (Length={tipoPago.Codigo_DGI?.Length ?? 0})");
+                    
+                    if (!string.IsNullOrEmpty(tipoPago.Codigo_DGI))
+                    {
+                        _logger.LogInformation($"[MAPEO-TIPOPAGO] ✓ ÉXITO | Devolviendo: {tipoPago.Codigo_DGI}");
+                        return tipoPago.Codigo_DGI;
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"[MAPEO-TIPOPAGO] ⚠ Codigo_DGI VACÍO o NULL. Devolviendo defecto: 01");
+                        return "01";
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning($"[MAPEO-TIPOPAGO] ⚠ ObjETipoPago es NULL. Devolviendo defecto: 01");
+                    return "01";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[MAPEO-TIPOPAGO] ✗ EXCEPCIÓN: {ex.GetType().Name}: {ex.Message}");
+                _logger.LogError($"[MAPEO-TIPOPAGO] Stack trace: {ex.StackTrace}");
+                return "01";
+            }
+            finally
+            {
+                _logger.LogInformation($"[MAPEO-TIPOPAGO] ================================\n");
             }
         }
 

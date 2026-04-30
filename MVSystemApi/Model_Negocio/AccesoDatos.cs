@@ -2982,6 +2982,58 @@ namespace MVSystemApi.Model
         }
 
         #endregion
+
+        /// <summary>
+        /// Obtiene un tipo de pago por su ID, incluyendo el código DGI
+        /// </summary>
+        public Tipos_Pagos Tipo_Pagos_GetById(int idTipoPago)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT 
+                        ID_Tipo_Pagos,
+                        Descripcion_Tipo_Pagos,
+                        ISNULL(Codigo_DGI, '01') AS Codigo_DGI
+                    FROM Tipos_Pagos_Cata
+                    WHERE ID_Tipo_Pagos = @IdTipoPago";
+
+                cmd.Parameters.AddWithValue("@IdTipoPago", idTipoPago);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return new Tipos_Pagos
+                        {
+                            ID_Tipo_Pagos = Convert.ToInt32(reader["ID_Tipo_Pagos"]),
+                            Descripcion_Tipo_Pagos = reader["Descripcion_Tipo_Pagos"]?.ToString(),
+                            Codigo_DGI = reader["Codigo_DGI"]?.ToString() ?? "01"  // Defecto: Efectivo
+                        };
+                    }
+                }
+
+                // Si no existe, retornar un tipo de pago por defecto
+                _logger.LogWarning($"Tipo de pago con ID {idTipoPago} no encontrado. Retornando defecto (Efectivo).");
+                return new Tipos_Pagos
+                {
+                    ID_Tipo_Pagos = idTipoPago,
+                    Descripcion_Tipo_Pagos = "Desconocido",
+                    Codigo_DGI = "01"  // Defecto: Efectivo
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error al obtener tipo de pago por ID {idTipoPago}: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                cn.Close();
+            }
+        }
     }
 }
 

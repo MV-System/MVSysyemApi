@@ -10,5 +10,7 @@ namespace MVSystemApi.Model
         public int NFCTipoNumero { get; set; }
         public string NFCTipoDescripcion { get; set; }
         public bool Visible_Venta { get; set; }
+        public long? NFCTipoCantidad { get; set; }
+        public long? NFCTipoSecuencia { get; set; }
     }
 }

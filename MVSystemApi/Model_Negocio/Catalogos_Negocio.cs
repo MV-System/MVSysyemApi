@@ -309,7 +309,9 @@ namespace MVSystemApi.Model
                           {
                               NFCTipoNumero = Convert.ToInt32(dt["NFCTipoNumero"]),
                               NFCTipoDescripcion = Convert.ToString(dt["NFCTipoDescripcion"]),
-                              Visible_Venta = Convert.ToBoolean(dt["Visible_Venta"])
+                              Visible_Venta = Convert.ToBoolean(dt["Visible_Venta"]),
+                              NFCTipoCantidad = dt["NFCTipoCantidad"] == DBNull.Value ? (long?)null : Convert.ToInt64(dt["NFCTipoCantidad"]),
+                              NFCTipoSecuencia = dt["NFCTipoSecuencia"] == DBNull.Value ? (long?)null : Convert.ToInt64(dt["NFCTipoSecuencia"])
                           }).ToList();
             return result;
         }

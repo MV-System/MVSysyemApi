@@ -147,6 +147,7 @@ namespace MVSystemApi.Interfaz
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
         string AbonoAfactura(AbonoFacturaParam param);
         string AbonoGeneral(AbonoFacturaParam param);
+        ReciboAbonoDTO GetReciboAbono(int idCliente, int numeroFactura, int idSucursal);
         #endregion
 
         #region // ------------- Métodos Asíncronos para ADO.NET --------------------------

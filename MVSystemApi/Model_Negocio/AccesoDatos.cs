@@ -106,7 +106,7 @@ namespace MVSystemApi.Model
 
                 throw;
             }
-           
+
         }
         /// <summary>
         /// Author: Xavier Mejia
@@ -281,7 +281,7 @@ namespace MVSystemApi.Model
             {
                 throw;
             }
-        }      
+        }
         /// <summary>
         /// Author: Xavier Mejia
         /// Date: 8.Oct.2022
@@ -334,7 +334,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Comprobante", consulta.ComprobanteCheck);
                 cmd.Parameters.AddWithValue("@Criterio", consulta.Criterio);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
-                cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal); 
+                cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal);
                 cmd.Parameters.AddWithValue("@PageIndex", consulta.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", consulta.PageSize);
                 cmd.Parameters.AddWithValue("@EstadoFactura", consulta.EstadoFactura);
@@ -381,7 +381,7 @@ namespace MVSystemApi.Model
             {
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = @"
-                    SELECT 
+                    SELECT
                         F.ID_Tipo_Pagos,
                         COUNT(DISTINCT F.Numero_Factura) as CantidadFacturas,
                         COUNT(DISTINCT CASE
@@ -392,7 +392,7 @@ namespace MVSystemApi.Model
                         SUM(F.Descuento) as Descuento,
                         SUM(F.Itbis) as Itbis,
                         SUM(F.Total) as TotalFacturado,
-                        SUM(CASE 
+                        SUM(CASE
                             WHEN F.ID_Tipo_Pagos = 1 THEN F.Total
                             ELSE ISNULL(F.Abono, 0)
                         END) as EfectivoReal,
@@ -407,7 +407,7 @@ namespace MVSystemApi.Model
                         AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
                     GROUP BY F.ID_Tipo_Pagos
                     ORDER BY TotalFacturado DESC";
-                
+
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", filtro.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", filtro.FechaFinal);
@@ -437,7 +437,7 @@ namespace MVSystemApi.Model
             {
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = @"
-                    SELECT 
+                    SELECT
                         F.Numero_Factura,
                         F.Total,
                         F.ID_Sucursal,
@@ -449,7 +449,7 @@ namespace MVSystemApi.Model
                         AND F.ID_Tipo_Pagos = 6
                         AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
                     ORDER BY F.Numero_Factura DESC";
-                
+
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", filtro.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", filtro.FechaFinal);
@@ -471,7 +471,7 @@ namespace MVSystemApi.Model
 
         #region Accesorios
         /// <summary>
-        /// Return a equipo by Imei    
+        /// Return a equipo by Imei
         /// Author: Xavier Mejia
         /// Date: 6.Oct.2022
         /// </summary>
@@ -489,7 +489,7 @@ namespace MVSystemApi.Model
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@id", id);
-              
+
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
                 cn.Close();
@@ -502,7 +502,7 @@ namespace MVSystemApi.Model
             }
         }
         /// <summary>
-        /// 
+        ///
         /// Author: Xavier Mejia
         /// Date: 8.Oct.2022
         /// </summary>
@@ -526,7 +526,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Precio_Detalle", accesorio.PrecioDetalle);
                 cmd.Parameters.AddWithValue("@Estado", accesorio.Estado);
                 cmd.Parameters.AddWithValue("@Cantidad", accesorio.Cantidad);
-                cmd.Parameters.AddWithValue("@Costo_Equipo", accesorio.CostoEquipo); 
+                cmd.Parameters.AddWithValue("@Costo_Equipo", accesorio.CostoEquipo);
                 cmd.Parameters.AddWithValue("@Usuario", accesorio.Usuario);
 
                 cmd.ExecuteNonQuery();
@@ -581,7 +581,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Fecha_Final", paginate.FechaFinal);
                 cmd.Parameters.AddWithValue("@PageIndex", paginate.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", paginate.PageSize);
-                
+
 
                 cmd.ExecuteNonQuery();
                 da.Fill(dt);
@@ -1141,7 +1141,7 @@ namespace MVSystemApi.Model
 
             cmd.CommandText = "Estados_Taller_Cata_Combo";
             cmd.CommandType = CommandType.StoredProcedure;
-            
+
             da.Fill(dt);
             cn.Close();
             return dt;
@@ -1258,7 +1258,7 @@ namespace MVSystemApi.Model
                 throw;
             }
 
-        }  
+        }
         public DataTable GetEquiposTranferidos(int? idTransferencia)
         {
             try
@@ -1283,7 +1283,7 @@ namespace MVSystemApi.Model
             }
 
         }
-        
+
         public DataTable GetEquiposRecibidos(CriterioFilters filterData)
         {
             try
@@ -1576,7 +1576,7 @@ namespace MVSystemApi.Model
         }
 
         public DataTable PostDetalleFactura(List<DetalleFactura> detalleFactura, int numeroFactura)
-        {          
+        {
 
             DataTable dt = new DataTable();
             using (cn)
@@ -1688,7 +1688,7 @@ namespace MVSystemApi.Model
                     cmd.ExecuteNonQuery();
                     Factura.NumeroFactura = Convert.ToInt32(cmd.Parameters["@Numero_factura"].Value.ToString());
                     cn.Close();
-                    
+
                     // Solo guardar detalles si hay artículos en la factura
                     if (Factura.DetalleFacturaList != null && Factura.DetalleFacturaList.Count > 0)
                     {
@@ -2328,7 +2328,7 @@ namespace MVSystemApi.Model
                 cn.Close();
                 return dt;
 
-              
+
             }
             catch (Exception)
             {
@@ -2380,8 +2380,8 @@ namespace MVSystemApi.Model
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@Imei", Reparaciones.IMEI);
                     cmd.Parameters.AddWithValue("@ID_Cliente", Reparaciones.ID_Cliente);
-                    cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion); 
-                    cmd.Parameters.AddWithValue("@Observaciones", Reparaciones.Observaciones); 
+                    cmd.Parameters.AddWithValue("@Detalle_Reparacion", Reparaciones.Detalle_Reparacion);
+                    cmd.Parameters.AddWithValue("@Observaciones", Reparaciones.Observaciones);
                     cmd.Parameters.AddWithValue("@Costo", Reparaciones.Costo);
                     cmd.Parameters.AddWithValue("@Precio", Reparaciones.Precio);
                     cmd.Parameters.AddWithValue("@Fecha_Entrega", DateTime.Now);
@@ -2952,10 +2952,10 @@ namespace MVSystemApi.Model
             using var connection = new SqlConnection(_connectionStrings);
             using var cmd = new SqlCommand("UpdateDetallesPagoFactura", connection);
             cmd.CommandType = CommandType.StoredProcedure;
-            
+
             cmd.Parameters.AddWithValue("@Numero_Factura_Anterior", numeroPreFactura);
             cmd.Parameters.AddWithValue("@Numero_Factura_Nueva", nuevoNumeroFactura);
-            
+
             connection.Open();
             cmd.ExecuteNonQuery();
         }
@@ -2993,7 +2993,7 @@ namespace MVSystemApi.Model
             {
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = @"
-                    SELECT 
+                    SELECT
                         ID_Tipo_Pagos,
                         Descripcion_Tipo_Pagos,
                         ISNULL(Codigo_DGI, '01') AS Codigo_DGI
@@ -3033,6 +3033,182 @@ namespace MVSystemApi.Model
             {
                 cn.Close();
             }
+        }
+
+        public ReciboAbonoDTO GetReciboAbono(int idCliente, int numeroFactura, int idSucursal)
+        {
+            using var cn = new SqlConnection(_connectionStrings);
+            const string sql = @"
+                DECLARE @NombreExpr NVARCHAR(200) =
+                    CASE
+                        WHEN COL_LENGTH('Clientes', 'Nombres') IS NOT NULL THEN 'c.Nombres'
+                        WHEN COL_LENGTH('Clientes', 'Nombre')  IS NOT NULL THEN 'c.Nombre'
+                        ELSE ''''''
+                    END;
+
+                DECLARE @ApellidoExpr NVARCHAR(200) =
+                    CASE
+                        WHEN COL_LENGTH('Clientes', 'Apellidos') IS NOT NULL THEN 'c.Apellidos'
+                        WHEN COL_LENGTH('Clientes', 'Apellido')  IS NOT NULL THEN 'c.Apellido'
+                        ELSE ''''''
+                    END;
+
+                DECLARE @sql NVARCHAR(MAX) = N'
+                    SELECT TOP 1
+                        hp.Id,
+                        TRY_CONVERT(INT, hp.Numero_factura)                AS Numero_factura,
+                        TRY_CONVERT(DECIMAL(18,2), hp.Total_Factura)       AS Total_Factura,
+                        TRY_CONVERT(DECIMAL(18,2), hp.Total_Abono)         AS Total_Abono,
+                        TRY_CONVERT(DECIMAL(18,2), hp.Pendiente)           AS Pendiente,
+                        CAST(ISNULL(hp.Tipo_Factura, '''') AS NVARCHAR(50))  AS Tipo_Factura,
+                        CAST(ISNULL(hp.Usuario, '''') AS NVARCHAR(100))      AS Usuario,
+                        hp.Fecha_registro,
+                        CAST(ISNULL(' + @NombreExpr + ', '''') AS NVARCHAR(150))   AS NombreCliente,
+                        CAST(ISNULL(' + @ApellidoExpr + ', '''') AS NVARCHAR(150)) AS ApellidoCliente
+                    FROM Historio_Pagos hp
+                    INNER JOIN Clientes c ON c.Id_Cliente = hp.id_Cliente_Suplidor
+                    WHERE hp.id_Cliente_Suplidor = @idCliente
+                      AND hp.Id_Sucursal         = @idSucursal
+                      AND (@numeroFactura = 0 OR TRY_CONVERT(INT, hp.Numero_factura) = @numeroFactura)
+                    ORDER BY hp.Fecha_registro DESC';
+
+                EXEC sp_executesql @sql,
+                    N'@idCliente INT, @numeroFactura INT, @idSucursal INT',
+                    @idCliente=@idCliente, @numeroFactura=@numeroFactura, @idSucursal=@idSucursal;";
+
+            using var cmd = new SqlCommand(sql, cn);
+            cmd.Parameters.AddWithValue("@idCliente",      idCliente);
+            cmd.Parameters.AddWithValue("@numeroFactura",  numeroFactura);
+            cmd.Parameters.AddWithValue("@idSucursal",     idSucursal);
+
+            cn.Open();
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                int idxId = reader.GetOrdinal("Id");
+                int idxNombreCliente = reader.GetOrdinal("NombreCliente");
+                int idxApellidoCliente = reader.GetOrdinal("ApellidoCliente");
+                int idxNumeroFactura = reader.GetOrdinal("Numero_factura");
+                int idxTotalFactura = reader.GetOrdinal("Total_Factura");
+                int idxTotalAbono = reader.GetOrdinal("Total_Abono");
+                int idxPendiente = reader.GetOrdinal("Pendiente");
+                int idxTipoFactura = reader.GetOrdinal("Tipo_Factura");
+                int idxUsuario = reader.GetOrdinal("Usuario");
+                int idxFechaRegistro = reader.GetOrdinal("Fecha_registro");
+
+                decimal ToDecimalSafe(int index)
+                {
+                    if (reader.IsDBNull(index))
+                    {
+                        return 0;
+                    }
+
+                    var value = reader.GetValue(index);
+                    try
+                    {
+                        return Convert.ToDecimal(value);
+                    }
+                    catch
+                    {
+                        return decimal.TryParse(value?.ToString(), out var parsed) ? parsed : 0;
+                    }
+                }
+
+                DateTime ToDateTimeSafe(int index)
+                {
+                    if (reader.IsDBNull(index))
+                    {
+                        return DateTime.Now;
+                    }
+
+                    var value = reader.GetValue(index);
+                    try
+                    {
+                        return Convert.ToDateTime(value);
+                    }
+                    catch
+                    {
+                        return DateTime.Now;
+                    }
+                }
+
+                string ToStringSafe(int index)
+                {
+                    if (reader.IsDBNull(index))
+                    {
+                        return "";
+                    }
+
+                    return reader.GetValue(index)?.ToString() ?? "";
+                }
+
+                string GetClienteValueFromRow(DataRow row, string[] candidateColumns)
+                {
+                    if (row == null || row.Table == null || candidateColumns == null || candidateColumns.Length == 0)
+                    {
+                        return "";
+                    }
+
+                    for (int i = 0; i < row.Table.Columns.Count; i++)
+                    {
+                        string currentColumn = row.Table.Columns[i].ColumnName;
+
+                        for (int j = 0; j < candidateColumns.Length; j++)
+                        {
+                            if (!string.Equals(currentColumn, candidateColumns[j], StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            var value = row[currentColumn];
+                            if (value == null || value == DBNull.Value)
+                            {
+                                return "";
+                            }
+
+                            return value.ToString() ?? "";
+                        }
+                    }
+
+                    return "";
+                }
+
+                string nombreCliente = ToStringSafe(idxNombreCliente);
+                string apellidoCliente = ToStringSafe(idxApellidoCliente);
+
+                if (string.IsNullOrWhiteSpace(nombreCliente) && string.IsNullOrWhiteSpace(apellidoCliente))
+                {
+                    try
+                    {
+                        DataTable clienteData = Cliente_Consulta_Por_Id_Cliente(idCliente);
+                        if (clienteData != null && clienteData.Rows.Count > 0)
+                        {
+                            DataRow clienteRow = clienteData.Rows[0];
+                            nombreCliente = GetClienteValueFromRow(clienteRow, new[] { "Nombres", "Nombre", "NombreCliente" });
+                            apellidoCliente = GetClienteValueFromRow(clienteRow, new[] { "Apellidos", "Apellido", "ApellidoCliente" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "No se pudo resolver nombre/apellido del cliente por ID en GetReciboAbono. idCliente={IdCliente}", idCliente);
+                    }
+                }
+
+                return new ReciboAbonoDTO
+                {
+                    Id             = reader.IsDBNull(idxId) ? 0 : reader.GetInt32(idxId),
+                    NombreCliente  = nombreCliente,
+                    ApellidoCliente= apellidoCliente,
+                    NumeroFactura  = reader.IsDBNull(idxNumeroFactura) ? "" : reader.GetInt32(idxNumeroFactura).ToString(),
+                    TotalFactura   = ToDecimalSafe(idxTotalFactura),
+                    TotalAbono     = ToDecimalSafe(idxTotalAbono),
+                    Pendiente      = ToDecimalSafe(idxPendiente),
+                    TipoFactura    = ToStringSafe(idxTipoFactura),
+                    Usuario        = ToStringSafe(idxUsuario),
+                    FechaRegistro  = ToDateTimeSafe(idxFechaRegistro)
+                };
+            }
+            return null;
         }
     }
 }

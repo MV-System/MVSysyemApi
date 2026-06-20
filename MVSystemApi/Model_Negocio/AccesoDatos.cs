@@ -381,31 +381,84 @@ namespace MVSystemApi.Model
             {
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = @"
+                    ;WITH FacturasPeriodo AS (
+                        SELECT
+                            F.ID_Tipo_Pagos,
+                            COUNT(DISTINCT F.Numero_Factura) AS CantidadFacturas,
+                            COUNT(DISTINCT CASE
+                                WHEN F.Abono > 0 THEN F.Numero_Factura
+                            END) AS CantidadAbonosRecibidosBase,
+                            SUM(F.SubTotal) AS SubTotal,
+                            SUM(F.Descuento) AS Descuento,
+                            SUM(F.Itbis) AS Itbis,
+                            SUM(F.Total) AS TotalFacturado,
+                            SUM(CASE
+                                WHEN F.ID_Tipo_Pagos = 1 THEN F.Total
+                                ELSE ISNULL(F.Abono, 0)
+                            END) AS EfectivoRealBase,
+                            SUM(CASE
+                                WHEN F.ID_Tipo_Pagos = 2 THEN F.Total - ISNULL(F.Abono, 0)
+                                ELSE 0
+                            END) AS SaldoPendiente
+                        FROM Facturas F
+                        WHERE CAST(F.Fecha_Registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
+                            AND F.ID_Sucursal = @Almacen
+                            AND F.Estado = @EstadoFactura
+                            AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
+                        GROUP BY F.ID_Tipo_Pagos
+                    ),
+                    AbonosPeriodo AS (
+                        SELECT
+                            COUNT(DISTINCT TRY_CONVERT(INT, hp.Numero_factura)) AS CantidadAbonosRecibidos,
+                            SUM(ISNULL(TRY_CONVERT(DECIMAL(18, 2), hp.Total_Abono), 0)) AS TotalAbonos
+                        FROM Historio_Pagos hp
+                        INNER JOIN Facturas fRel
+                            ON fRel.ID_Sucursal = hp.Id_Sucursal
+                            AND fRel.Numero_Factura = TRY_CONVERT(INT, hp.Numero_factura)
+                        WHERE CAST(hp.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
+                            AND hp.Id_Sucursal = @Almacen
+                            AND (@IdVendedor = 0 OR fRel.ID_Vendedor = @IdVendedor)
+                            AND fRel.ID_Tipo_Pagos = 2
+                    )
                     SELECT
-                        F.ID_Tipo_Pagos,
-                        COUNT(DISTINCT F.Numero_Factura) as CantidadFacturas,
-                        COUNT(DISTINCT CASE
-                            WHEN F.Abono > 0
-                            THEN F.Numero_Factura
-                        END) as CantidadAbonosRecibidos,
-                        SUM(F.SubTotal) as SubTotal,
-                        SUM(F.Descuento) as Descuento,
-                        SUM(F.Itbis) as Itbis,
-                        SUM(F.Total) as TotalFacturado,
-                        SUM(CASE
-                            WHEN F.ID_Tipo_Pagos = 1 THEN F.Total
-                            ELSE ISNULL(F.Abono, 0)
-                        END) as EfectivoReal,
-                        SUM(CASE
-                            WHEN F.ID_Tipo_Pagos = 2 THEN F.Total - ISNULL(F.Abono, 0)
-                            ELSE 0
-                        END) as SaldoPendiente
-                    FROM Facturas F
-                    WHERE CAST(F.Fecha_Registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
-                        AND F.ID_Sucursal = @Almacen
-                        AND F.Estado = @EstadoFactura
-                        AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
-                    GROUP BY F.ID_Tipo_Pagos
+                        fp.ID_Tipo_Pagos,
+                        fp.CantidadFacturas,
+                        CASE
+                            WHEN fp.ID_Tipo_Pagos = 2 THEN ISNULL(ap.CantidadAbonosRecibidos, 0)
+                            ELSE fp.CantidadAbonosRecibidosBase
+                        END AS CantidadAbonosRecibidos,
+                        fp.SubTotal,
+                        fp.Descuento,
+                        fp.Itbis,
+                        fp.TotalFacturado,
+                        CASE
+                            WHEN fp.ID_Tipo_Pagos = 2 THEN ISNULL(ap.TotalAbonos, 0)
+                            ELSE fp.EfectivoRealBase
+                        END AS EfectivoReal,
+                        fp.SaldoPendiente
+                    FROM FacturasPeriodo fp
+                    CROSS JOIN AbonosPeriodo ap
+
+                    UNION ALL
+
+                    SELECT
+                        2 AS ID_Tipo_Pagos,
+                        0 AS CantidadFacturas,
+                        ISNULL(ap.CantidadAbonosRecibidos, 0) AS CantidadAbonosRecibidos,
+                        CAST(0 AS DECIMAL(18, 2)) AS SubTotal,
+                        CAST(0 AS DECIMAL(18, 2)) AS Descuento,
+                        CAST(0 AS DECIMAL(18, 2)) AS Itbis,
+                        CAST(0 AS DECIMAL(18, 2)) AS TotalFacturado,
+                        ISNULL(ap.TotalAbonos, 0) AS EfectivoReal,
+                        CAST(0 AS DECIMAL(18, 2)) AS SaldoPendiente
+                    FROM AbonosPeriodo ap
+                    WHERE ISNULL(ap.TotalAbonos, 0) > 0
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM FacturasPeriodo fp
+                            WHERE fp.ID_Tipo_Pagos = 2
+                        )
+
                     ORDER BY TotalFacturado DESC";
 
                 cmd.CommandType = CommandType.Text;

@@ -14,11 +14,11 @@ namespace DTO
         public DateTime? FechaEntrega { get; set; }
         public string Usuario { get; set; }
 
-        // Propiedades de paginación
+        // Propiedades de paginaciï¿½n
         public int PageIndex { get; set; } = 1;
         public int PageSize { get; set; } = 10;
         public int Line { get; set; }
         public int LastLine { get; set; }
-        public int TotalRecord { get; set; }
+        public int TotalRecords { get; set; }
     }
 }

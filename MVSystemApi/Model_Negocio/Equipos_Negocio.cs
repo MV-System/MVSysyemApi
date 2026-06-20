@@ -402,12 +402,12 @@ namespace MVSystemApi.Model
                               Costo = Convert.ToDecimal(dt["costo"]),
                               FechaEntrega = dt["fechaEntrega"] != DBNull.Value ? 
                                   Convert.ToDateTime(dt["fechaEntrega"]) : (DateTime?)null,
-                              // Propiedades de paginación 
-                              TotalRecord = dt.Table.Columns.Contains("totalRecords") ? 
+                              // Propiedades de paginación
+                              TotalRecords = (dt.Table.Columns.Contains("totalRecords") && dt["totalRecords"] != DBNull.Value) ?
                                   Convert.ToInt32(dt["totalRecords"]) : 0,
-                              Line = dt.Table.Columns.Contains("line") ? 
+                              Line = (dt.Table.Columns.Contains("line") && dt["line"] != DBNull.Value) ?
                                   Convert.ToInt32(dt["line"]) : 0,
-                              LastLine = dt.Table.Columns.Contains("lastLine") ? 
+                              LastLine = (dt.Table.Columns.Contains("lastLine") && dt["lastLine"] != DBNull.Value) ?
                                   Convert.ToInt32(dt["lastLine"]) : 0
                           }).ToList();
 

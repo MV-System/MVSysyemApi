@@ -81,5 +81,8 @@ namespace DTO.FacEDGI
         /// Origen: null por defecto
         /// </summary>
         public int? RetentionAgentInd { get; set; }
+        public Boolean PriceIncludesTax { get; set; }
+
+        
     }
 }

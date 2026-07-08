@@ -91,36 +91,7 @@ namespace MVSystemApi.Services
         {
             try
             {
-                _logger.LogInformation($"[DGI-PASO-0] INICIO EnviarFacturaADGII");
-                _logger.LogInformation($"[DGI-PASO-0] Factura={factura?.NumeroFactura}, NcfTipo={factura?.NcfTipoNumero}, NcfNumero={factura?.NcfNumero}, Total={factura?.Total}");
-                _logger.LogInformation($"[DGI-PASO-0] IdCliente={factura?.IdCliente}, IdAlmacen={factura?.IdAlmacen}, IdTipoPago={factura?.IdTipoPago}, IdVendedor={factura?.IdVendedor}");
-                _logger.LogInformation($"[DGI-PASO-0] RNC Emisor={rncEmisor}, Empresa={nombreEmisor}, Usuario={usuario}");
-                _logger.LogInformation($"[DGI-PASO-0] Detalles={detalles?.Count ?? 0}, Pagos={pagos?.Count ?? 0}");
-                if (detalles != null)
-                {
-                    for (int i = 0; i < detalles.Count; i++)
-                        _logger.LogInformation($"[DGI-PASO-0] Detalle[{i}]: Desc={detalles[i].Descripcion}, Precio={detalles[i].Precio}, Qty={detalles[i].Cantidad}, SubTotal={detalles[i].SubTotal}, Desc={detalles[i].Descuento}, ITBIS={detalles[i].Itbis}");
-                }
-                if (pagos != null)
-                {
-                    for (int i = 0; i < pagos.Count; i++)
-                        _logger.LogInformation($"[DGI-PASO-0] Pago[{i}]: TipoPago={pagos[i].ID_Tipo_Pago}, Monto={pagos[i].Monto_Pago}");
-                }
-
-                var tipoComprobanteDesc = factura.NcfTipoNumero == 31 ? "CRÉDITO FISCAL (31)" : "CONSUMIDOR FINAL (32)";
-                _logger.LogInformation($"[DGI-PASO-1] Tipo comprobante: {tipoComprobanteDesc}");
-
-                // 1. Mapear datos a RequestDTO (pasando RNC y empresa capturados del token)
-                _logger.LogInformation($"[DGI-PASO-2] Iniciando MapearFacturaARequest...");
                 var request = MapearFacturaARequest(factura, detalles, pagos, rncEmisor, nombreEmisor);
-                _logger.LogInformation($"[DGI-PASO-2] Mapeo OK: VoucherType={request.VoucherType}, VoucherNumber={request.VoucherNumber}");
-                _logger.LogInformation($"[DGI-PASO-2] IssuerRnc={request.IssuerRnc}, IssuerName={request.IssuerName}");
-                _logger.LogInformation($"[DGI-PASO-2] BuyerRnc={request.BuyerRnc}, BuyerName={request.BuyerName}");
-                _logger.LogInformation($"[DGI-PASO-2] PaymentCondition={request.PaymentCondition}, TotalAmount={request.TotalAmount}");
-                _logger.LogInformation($"[DGI-PASO-2] Lines={request.Lines?.Count ?? 0}, Payments={request.Payments?.Count ?? 0}");
-
-                // 2. Serializar a JSON con camelCase (incluir null values)
-                _logger.LogInformation($"[DGI-PASO-3] Serializando a JSON...");
                 var jsonOptions = new JsonSerializerOptions 
                 { 
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -128,24 +99,11 @@ namespace MVSystemApi.Services
                 };
                 var jsonContent = JsonSerializer.Serialize(request, jsonOptions);
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-                _logger.LogInformation($"[DGI-PASO-3] JSON listo, longitud={jsonContent.Length}");
 
-                // 3. Crear cliente HTTP para este envío (evita disposed object en background tasks)
-                _logger.LogInformation($"[DGI-PASO-4] Creando HttpClient 'FacEDGI'...");
                 var httpClient = _httpClientFactory.CreateClient("FacEDGI");
-                _logger.LogInformation($"[DGI-PASO-4] BaseAddress={httpClient.BaseAddress}, Timeout={httpClient.Timeout}");
-                
-                // 4. Enviar POST a EasyConexión API
-                _logger.LogInformation($"[DGI-PASO-5] POST a {_invoicesEndpoint}");
-                _logger.LogInformation($"[DGI-PASO-5] REQUEST JSON: {jsonContent}");
                 var response = await httpClient.PostAsync(_invoicesEndpoint, content);
 
-                // 5. Leer respuesta
                 var responseContent = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"[DGI-PASO-6] Status: {(int)response.StatusCode} {response.StatusCode}");
-                _logger.LogInformation($"[DGI-PASO-6] Response Body: {responseContent}");
-               
-                // 6. Deserializar respuesta
                 EasyConexionResponseDTO responseDto = null;
                 var jsonDeserializeOptions = new JsonSerializerOptions 
                 { 
@@ -156,11 +114,9 @@ namespace MVSystemApi.Services
                 if (response.IsSuccessStatusCode)
                 {
                     responseDto = JsonSerializer.Deserialize<EasyConexionResponseDTO>(responseContent, jsonDeserializeOptions);
-                    _logger.LogInformation($"[DGI-PASO-7] ÉXITO: DocId={responseDto?.DocumentId}, Voucher={responseDto?.VoucherNumber}, Status={responseDto?.Status}, Message={responseDto?.Message}");
                 }
                 else
                 {
-                    _logger.LogError($"[DGI-PASO-7] ERROR HTTP {(int)response.StatusCode} | Body: {responseContent}");
                     var errorMsg = $"HTTP {response.StatusCode}";
                     if (!string.IsNullOrEmpty(responseContent))
                         errorMsg += $": {responseContent}";
@@ -172,7 +128,6 @@ namespace MVSystemApi.Services
                     };
                 }
 
-                // 7. Obtener QR URL de DGI consultando la factura creada
                 string qrUrl = null;
                 if (responseDto?.Success == true && responseDto.DocumentId > 0)
                 {
@@ -186,15 +141,12 @@ namespace MVSystemApi.Services
                             if (doc.RootElement.TryGetProperty("qrData", out var qrProp))
                                 qrUrl = qrProp.GetString();
                         }
-                        _logger.LogInformation($"[QR] Factura {factura.NumeroFactura} | QR URL: {qrUrl ?? "no disponible"}");
                     }
                     catch (Exception exQr)
                     {
-                        _logger.LogWarning($"[QR] No se pudo obtener QR para factura {factura.NumeroFactura}: {exQr.Message}");
                     }
                 }
 
-                // 8. Guardar log en BD
                 var logFactura = new LogFacturaElectronica
                 {
                     Numero_Factura = factura.NumeroFactura,
@@ -209,23 +161,11 @@ namespace MVSystemApi.Services
                     QR_Url = qrUrl
                 };
 
-                _logger.LogInformation($"[DGI-PASO-9] Guardando log en BD...");
                 var logInsertado = await InsertLogFacturaElectronica(logFactura);
-                _logger.LogInformation($"[DGI-PASO-9] Log insertado={logInsertado}");
-                if (!logInsertado)
-                {
-                    _logger.LogWarning($"[DGI-PASO-9] No se pudo guardar el log de la factura {factura.NumeroFactura} en BD");
-                }
-
-                _logger.LogInformation($"[DGI-PASO-10] FIN EnviarFacturaADGII - Success={responseDto?.Success}");
                 return responseDto;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[DGI-EXCEPCION] Error al enviar factura {factura?.NumeroFactura}: {ex.Message}");
-                _logger.LogError($"[DGI-EXCEPCION] InnerException: {ex.InnerException?.Message}");
-                _logger.LogError($"[DGI-EXCEPCION] StackTrace: {ex.StackTrace}");
-                
                 // Guardar error en log
                 var logError = new LogFacturaElectronica
                 {
@@ -336,8 +276,9 @@ namespace MVSystemApi.Services
                 IncomeType = _incomeType,
                 PaymentCondition = "1",  // Siempre "1" según DGI
                 TaxedAmountIndicator = _taxedAmountIndicator,
-                
+
                 // Fechas
+                IssueDate = factura.FechaRegistro,
                 SequenceExpDate = null,
                 PaymentDeadline = factura.IdTipoPago == 2 ? factura.fechaLimitePago : (DateTime?)null,  // Solo si es CRÉDITO (IdTipoPago = 2)
                 
@@ -419,7 +360,8 @@ namespace MVSystemApi.Services
                     UnitMeasure = null,
                     ItbisRetAmount = null,
                     IsrRetAmount = null,
-                    RetentionAgentInd = null
+                    RetentionAgentInd = null,
+                    PriceIncludesTax = true
                 });
             }
 

@@ -122,6 +122,9 @@ namespace DTO.FacEDGI
         /// Origen: null por defecto
         /// </summary>
         public DateTime? SequenceExpDate { get; set; }
+        public DateTime? IssueDate { get; set; }
+
+        
 
         /// <summary>
         /// Fecha límite de pago

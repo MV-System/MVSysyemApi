@@ -143,7 +143,14 @@ namespace MVSystemApi.Controllers
             try
             {
                 var log = await _accesoDatos.GetLogFacturaElectronica(consulta.NumeroFactura, "A");
-                if (log?.QR_Url != null) data.QrUrl = log.QR_Url;
+                if (log?.QR_Url != null)
+                {
+                    data.QrUrl = log.QR_Url;
+                    // Extraer FechaFirma y CodigoSeguridad de la URL
+                    var (fechaFirma, codigoSeguridad) = ExtractQrParameters(log.QR_Url);
+                    data.FechaFirma = fechaFirma;
+                    data.CodigoSeguridad = codigoSeguridad;
+                }
             }
             catch { }
 
@@ -174,7 +181,14 @@ namespace MVSystemApi.Controllers
             try
             {
                 var log = await _accesoDatos.GetLogFacturaElectronica(consulta.NumeroFactura, "A");
-                if (log?.QR_Url != null) data.QrUrl = log.QR_Url;
+                if (log?.QR_Url != null)
+                {
+                    data.QrUrl = log.QR_Url;
+                    // Extraer FechaFirma y CodigoSeguridad de la URL
+                    var (fechaFirma, codigoSeguridad) = ExtractQrParameters(log.QR_Url);
+                    data.FechaFirma = fechaFirma;
+                    data.CodigoSeguridad = codigoSeguridad;
+                }
             }
             catch { }
 
@@ -227,6 +241,31 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Extrae parámetros de la URL del QR de validación de DGI
+        /// Busca FechaFirma y CodigoSeguridad en los parámetros de la URL
+        /// </summary>
+        private (string FechaFirma, string CodigoSeguridad) ExtractQrParameters(string qrUrl)
+        {
+            if (string.IsNullOrEmpty(qrUrl))
+                return (null, null);
+
+            try
+            {
+                var uri = new Uri(qrUrl);
+                var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                
+                string fechaFirma = queryParams["FechaFirma"];
+                string codigoSeguridad = queryParams["CodigoSeguridad"];
+
+                return (fechaFirma, codigoSeguridad);
+            }
+            catch
+            {
+                return (null, null);
             }
         }
     }

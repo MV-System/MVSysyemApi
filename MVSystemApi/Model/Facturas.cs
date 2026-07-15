@@ -114,6 +114,8 @@ namespace MVSystemApi.Model
         public string IdSucursal { get; set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }
         public string QrUrl { get; set; }
+        public string FechaFirma { get; set; }
+        public string CodigoSeguridad { get; set; }
     }
 
     public class DetalleFactura

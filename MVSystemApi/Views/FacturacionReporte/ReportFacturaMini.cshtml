@@ -191,23 +191,6 @@
         </div>
     </div>
 
-    @{
-        var qrUrl = Model.QrUrl;
-        if (!string.IsNullOrEmpty(qrUrl))
-        {
-            var qrGenerator = new QRCoder.QRCodeGenerator();
-            var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
-            var qrCode = new QRCoder.PngByteQRCode(qrData);
-            var qrBytes = qrCode.GetGraphic(6);
-            var qrBase64 = Convert.ToBase64String(qrBytes);
-
-            <div class="container text-center" style="margin-top:10px;">
-                <img src="data:image/png;base64,@qrBase64" style="width:3cm;height:3cm;" />
-                <p style="font-size:8px;margin-top:2px;">e-CF DGI</p>
-            </div>
-        }
-    }
-
     <div class="container">
         <div class="row">
             <div class="col-6 text-center">
@@ -221,6 +204,35 @@
             </div>
         </div>
     </div>
+
+    <!-- Sección QR en parte inferior izquierda con fecha y código -->
+    @{
+        var qrUrl = Model.QrUrl;
+        if (!string.IsNullOrEmpty(qrUrl))
+        {
+            var qrGenerator = new QRCoder.QRCodeGenerator();
+            var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
+            var qrCode = new QRCoder.PngByteQRCode(qrData);
+            var qrBytes = qrCode.GetGraphic(6);
+            var qrBase64 = Convert.ToBase64String(qrBytes);
+
+            <div class="container" style="margin-top:10px;">
+                <div style="padding: 4px; width: fit-content;">
+                    <img src="data:image/png;base64,@qrBase64" style="width:2.9cm;height:2.9cm; display: block;" />
+                    <div style="font-size:7px; margin-top:4px; line-height:1.2;">
+                        @if (!string.IsNullOrEmpty(Model.CodigoSeguridad))
+                        {
+                            <p style="margin:1px 0;"><b>Código de Seguridad:</b> @Model.CodigoSeguridad</p>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.FechaFirma))
+                        {
+                            <p style="margin:1px 0;"><b>Fecha Firma:</b> @Model.FechaFirma</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
 
     <div class="container text-right">
         Fecha de Impresión: @DateTime.Now

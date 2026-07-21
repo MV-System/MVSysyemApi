@@ -16,5 +16,6 @@
         public string NombreEmpresaMostrar { get; set; }
         public string Rnc { get; set; }
         public bool Certificado { get; set; }
+        public int IdProveedorFacturacionElectronica { get; set; }
     }
 }

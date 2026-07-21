@@ -45,6 +45,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             claims.Add(new Claim("NombreEmpresaMostrar", user.EmpresaMostrar));
             claims.Add(new Claim("Rnc", user.Rnc ?? string.Empty));
             claims.Add(new Claim("Certificado", user.Certificado.ToString()));
+            claims.Add(new Claim("IdProveedor", user.IdProveedorFacturacionElectronica.ToString()));
             claims.Add(new Claim("IdEmpresaE", user.IdEmpresaE.ToString()));
 
             var expires = DateTime.UtcNow.Date.AddDays(1);

@@ -67,6 +67,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 usuarioDb.EmpresaMostrar = empresa.NombreEmpresaMostrar;
                 usuarioDb.Rnc = empresa.Rnc;
                 usuarioDb.Certificado = empresa.Certificado;
+                usuarioDb.IdProveedorFacturacionElectronica = empresa.IdProveedorFacturacionElectronica;
                 
                 // Obtener el Perfil de la tabla seg.Usuarios de SEGURIDAD (por Login)
                 usuarioDb.Perfil = await GetPerfilUsuarioSeguridad(usuarioDb.Login);
@@ -113,7 +114,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             E.Nombre_Empresa, 
             E.Nombre_Empresa_Mostrar,
             E.RNC,
-            ISNULL(E.Certificado, 0) AS Certificado
+            ISNULL(E.Certificado, 0) AS Certificado,
+            ISNULL(E.IdProveedorFacturacionElectronica, 1) AS IdProveedorFacturacionElectronica
         FROM Empresas E 
         JOIN Usuarios U ON U.Id_Empresa = E.ID_Empresa 
         WHERE U.Id_Empresa = @idEmpresa", conn);
@@ -133,7 +135,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                     NombreEmpresa = firstRow.Field<string>("Nombre_Empresa"),
                     NombreEmpresaMostrar = firstRow.Field<string>("Nombre_Empresa_Mostrar"),
                     Rnc = firstRow.Field<string>("RNC"),
-                    Certificado = firstRow.Field<bool>("Certificado")
+                    Certificado = firstRow.Field<bool>("Certificado"),
+                    IdProveedorFacturacionElectronica = firstRow.IsNull("IdProveedorFacturacionElectronica") ? 1 : firstRow.Field<int>("IdProveedorFacturacionElectronica")
                 };
             }
 

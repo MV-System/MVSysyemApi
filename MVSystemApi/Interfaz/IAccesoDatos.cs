@@ -114,6 +114,7 @@ namespace MVSystemApi.Interfaz
         public Task<bool> UpdateLogFacturaElectronica(LogFacturaElectronica log);
         public Task<LogFacturaElectronica> GetLogFacturaElectronica(int numeroFactura, string literal);
         public Task<List<LogFacturaElectronica>> GetLogFacturasElectronicasPendientes();
+        public Task<bool> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor);
 
         #endregion
 

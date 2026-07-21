@@ -318,7 +318,11 @@ namespace MVSystemApi.Controllers
                 var usuarioDelToken = User?.Identity?.Name ?? "Sistema";
                 var rncDelToken = User?.FindFirst("Rnc")?.Value ?? "";
                 var empresaDelToken = User?.FindFirst("Empresa")?.Value ?? "";
+                var idProveedorClaim = User?.FindFirst("IdProveedor")?.Value ?? "1";
+                int.TryParse(idProveedorClaim, out var idProveedor);
+                if (idProveedor <= 0) idProveedor = 1;
                 _logger.LogInformation($"[CTRL-DGI-3] Token: Usuario={usuarioDelToken}, RNC={rncDelToken}, Empresa={empresaDelToken}");
+                _logger.LogInformation($"[CTRL-DGI-3] IdProveedor={idProveedorClaim}");
 
                 // Convertir pagos DTO a modelo
                 var pagos = detallesPagoDTO?.Select(p => new DetallesPagos_Factura
@@ -350,6 +354,13 @@ namespace MVSystemApi.Controllers
                 else
                 {
                     _logger.LogWarning($"[CTRL-DGI-4] NCF NO encontrado en SP_Reporte_Factura");
+                }
+
+                if (idProveedor == 2)
+                {
+                    _logger.LogInformation("[CTRL-DGI-4] Proveedor 2 detectado, insertando en PIVOT local y remoto (detalle -> encabezado).");
+                    var okProveedor2 = await _accesoDatos.InsertFacturaProveedor2Dual(facturaGuardada, detalles, usuarioDelToken, rncDelToken);
+                    return okProveedor2 ? null : "No se pudo registrar la factura en Proveedor 2";
                 }
 
                 _logger.LogInformation($"[CTRL-DGI-5] Detalles={detalles?.Count ?? 0}, Pagos={pagos?.Count ?? 0}");

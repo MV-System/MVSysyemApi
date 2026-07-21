@@ -1,6 +1,7 @@
 using DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
@@ -19,16 +20,20 @@ namespace MVSystemApi.Model
         private readonly IMemoryCache _memoryCache;
         private readonly ILogger<AccesoDatos> _logger;
         private readonly ISyncService _sync;
+        private readonly string _seguridadConnectionString;
+        private readonly string _proveedor2ConnectionString;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
         public string ConnectionString => _connectionStrings;
 
-        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync, IConfiguration configuration)
         {
             _memoryCache = memoryCache;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sync = sync;
+            _seguridadConnectionString = configuration.GetConnectionString("MVSystemSeguridad") ?? string.Empty;
+            _proveedor2ConnectionString = configuration.GetConnectionString("Proveedor2MicroStar") ?? string.Empty;
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -3032,6 +3037,153 @@ namespace MVSystemApi.Model
             if (parameters != null) command.Parameters.AddRange(parameters);
             await connection.OpenAsync();
             return await command.ExecuteNonQueryAsync();
+        }
+
+        public async Task<bool> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor)
+        {
+            if (factura == null || detalles == null || detalles.Count == 0)
+                return false;
+
+            if (string.IsNullOrWhiteSpace(factura.NcfNumero) || string.IsNullOrWhiteSpace(rncEmisor))
+                return false;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_seguridadConnectionString) || string.IsNullOrWhiteSpace(_proveedor2ConnectionString))
+                {
+                    _logger.LogError("No se encontraron las cadenas de conexión para proveedor 2 (seguridad/remota).");
+                    return false;
+                }
+
+                var okLocal = await InsertFacturaProveedor2EnConexion(_seguridadConnectionString, factura, detalles, usuario, rncEmisor);
+                if (!okLocal)
+                    return false;
+
+                var okRemoto = await InsertFacturaProveedor2EnConexion(_proveedor2ConnectionString, factura, detalles, usuario, rncEmisor);
+                if (!okRemoto)
+                    return false;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error en InsertFacturaProveedor2Dual: {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task<bool> InsertFacturaProveedor2EnConexion(string connectionString, Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor)
+        {
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            await using var tx = connection.BeginTransaction();
+
+            try
+            {
+                foreach (var det in detalles)
+                {
+                    await using var cmdDet = new SqlCommand(@"
+INSERT INTO dbo.PIVOT_FACTURAS_DET
+(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,ENCF,COD_PRODUCTO,TIPO_PRODUCTO,UND_MEDIDA,DESCRIPCION,CANTIDAD,PRECIO,IND_IMP,IND_EXENTO,TASA_IMPUESTO,PORC_DESCUENTO,MONTO_DESCUENTO,SUB_TOTAL,IMPUESTO,TOTAL)
+VALUES
+(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@ENCF,@COD_PRODUCTO,@TIPO_PRODUCTO,@UND_MEDIDA,@DESCRIPCION,@CANTIDAD,@PRECIO,@IND_IMP,@IND_EXENTO,@TASA_IMPUESTO,@PORC_DESCUENTO,@MONTO_DESCUENTO,@SUB_TOTAL,@IMPUESTO,@TOTAL)", connection, tx);
+
+                    cmdDet.Parameters.AddWithValue("@COMPANIA", "1");
+                    cmdDet.Parameters.AddWithValue("@SUCURSAL", factura.IdSucursal ?? "1");
+                    cmdDet.Parameters.AddWithValue("@TIPO_DOCUMENTO_COMPANIA", 1);
+                    cmdDet.Parameters.AddWithValue("@COD_EMPRESA", int.TryParse(factura.IdEmpresa, out var idEmp) ? idEmp : 1);
+                    cmdDet.Parameters.AddWithValue("@COD_SUCURSAL", int.TryParse(factura.IdSucursal, out var idSuc) ? idSuc : (object)DBNull.Value);
+                    cmdDet.Parameters.AddWithValue("@TIPO_DOCUMENTO", "FT");
+                    cmdDet.Parameters.AddWithValue("@NUM_DOCUMENTO", factura.NumeroFactura.ToString());
+                    cmdDet.Parameters.AddWithValue("@RNC_EMISOR", rncEmisor);
+                    cmdDet.Parameters.AddWithValue("@ENCF", factura.NcfNumero);
+                    cmdDet.Parameters.AddWithValue("@COD_PRODUCTO", det.IdEquipo ?? string.Empty);
+                    cmdDet.Parameters.AddWithValue("@TIPO_PRODUCTO", (object)DBNull.Value);
+                    cmdDet.Parameters.AddWithValue("@UND_MEDIDA", "43");
+                    cmdDet.Parameters.AddWithValue("@DESCRIPCION", det.Descripcion ?? det.IdEquipo ?? "ITEM");
+                    cmdDet.Parameters.AddWithValue("@CANTIDAD", det.Cantidad);
+                    cmdDet.Parameters.AddWithValue("@PRECIO", det.Precio);
+                    cmdDet.Parameters.AddWithValue("@IND_IMP", det.Itbis > 0 ? "S" : "N");
+                    cmdDet.Parameters.AddWithValue("@IND_EXENTO", det.Itbis > 0 ? "N" : "S");
+                    cmdDet.Parameters.AddWithValue("@TASA_IMPUESTO", det.Itbis > 0 ? 18 : 0);
+                    cmdDet.Parameters.AddWithValue("@PORC_DESCUENTO", 0);
+                    cmdDet.Parameters.AddWithValue("@MONTO_DESCUENTO", det.Descuento);
+                    cmdDet.Parameters.AddWithValue("@SUB_TOTAL", det.SubTotal);
+                    cmdDet.Parameters.AddWithValue("@IMPUESTO", det.Itbis);
+                    cmdDet.Parameters.AddWithValue("@TOTAL", det.Total);
+
+                    await cmdDet.ExecuteNonQueryAsync();
+                }
+
+                var nombreCliente = "CONSUMIDOR FINAL";
+                if (factura.NcfTipoNumero == 31)
+                {
+                    try
+                    {
+                        var clientes = Cliente_Consulta_Por_Id_Cliente(factura.IdCliente);
+                        if (clientes != null && clientes.Rows.Count > 0)
+                        {
+                            var nombres = clientes.Rows[0]["Nombres"]?.ToString();
+                            var apellidos = clientes.Rows[0]["Apellidos"]?.ToString();
+                            nombreCliente = !string.IsNullOrWhiteSpace(nombres) ? nombres : "Cliente";
+                            if (!string.IsNullOrWhiteSpace(apellidos))
+                                nombreCliente += " " + apellidos;
+                        }
+                        else
+                        {
+                            nombreCliente = "Cliente";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error obteniendo nombre del cliente para Proveedor2. IdCliente={factura.IdCliente}, Error={ex.Message}");
+                        nombreCliente = "Cliente";
+                    }
+                }
+
+                await using var cmdEnc = new SqlCommand(@"
+INSERT INTO dbo.PIVOT_FACTURAS_ENC
+(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,TIPO_NCF,ENCF,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION)
+VALUES
+(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@TIPO_NCF,@ENCF,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,@FECHA_REGISTRO,@Indicador_NotaCredito,@DIRECCION)", connection, tx);
+
+                cmdEnc.Parameters.AddWithValue("@COMPANIA", "1");
+                cmdEnc.Parameters.AddWithValue("@SUCURSAL", factura.IdSucursal ?? "1");
+                cmdEnc.Parameters.AddWithValue("@TIPO_DOCUMENTO_COMPANIA", 1);
+                cmdEnc.Parameters.AddWithValue("@COD_EMPRESA", int.TryParse(factura.IdEmpresa, out var codEmp) ? codEmp : 1);
+                cmdEnc.Parameters.AddWithValue("@COD_SUCURSAL", int.TryParse(factura.IdSucursal, out var codSuc) ? codSuc : (object)DBNull.Value);
+                cmdEnc.Parameters.AddWithValue("@TIPO_DOCUMENTO", "FT");
+                cmdEnc.Parameters.AddWithValue("@NUM_DOCUMENTO", factura.NumeroFactura.ToString());
+                cmdEnc.Parameters.AddWithValue("@RNC_EMISOR", rncEmisor);
+                cmdEnc.Parameters.AddWithValue("@NUM_RNC", string.IsNullOrWhiteSpace(factura.RNC) ? (object)DBNull.Value : factura.RNC);
+                cmdEnc.Parameters.AddWithValue("@NUM_CLIENTE", factura.IdCliente.ToString());
+                cmdEnc.Parameters.AddWithValue("@NOMBRE_CLIENTE", nombreCliente);
+                cmdEnc.Parameters.AddWithValue("@TIPO_INGRESO", "01");
+                cmdEnc.Parameters.AddWithValue("@FORMA_PAGO", 1);
+                cmdEnc.Parameters.AddWithValue("@MONEDA", 1);
+                cmdEnc.Parameters.AddWithValue("@FECHA_FACTURA", factura.FechaRegistro);
+                cmdEnc.Parameters.AddWithValue("@TIPO_NCF", factura.NcfTipoNumero);
+                cmdEnc.Parameters.AddWithValue("@ENCF", factura.NcfNumero);
+                cmdEnc.Parameters.AddWithValue("@SUB_TOTAL", factura.SubTotal);
+                cmdEnc.Parameters.AddWithValue("@DESCUENTO", factura.Descuento);
+                cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.Itbis);
+                cmdEnc.Parameters.AddWithValue("@TOTAL", factura.Total);
+                cmdEnc.Parameters.AddWithValue("@USUARIO_CREA", string.IsNullOrWhiteSpace(usuario) ? "Sistema" : usuario);
+                cmdEnc.Parameters.AddWithValue("@FECHA_REGISTRO", DateTime.Now);
+                cmdEnc.Parameters.AddWithValue("@Indicador_NotaCredito", factura.NcfTipoNumero == 34 ? 1 : 0);
+                cmdEnc.Parameters.AddWithValue("@DIRECCION", "N/A");
+
+                await cmdEnc.ExecuteNonQueryAsync();
+
+                await tx.CommitAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError($"Error insertando Proveedor2 (detalle->encabezado): {ex.Message}");
+                return false;
+            }
         }
 
         #endregion

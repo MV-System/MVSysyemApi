@@ -7,8 +7,18 @@ using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
+using DTO;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using MVSystemApi.Interfaz;
+using MVSystemApi.Model.Seguridad;
+using MVSystemApi.Model_Negocio.Seguridad;
+using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Drawing.Printing;
+using System.Globalization;
 
 namespace MVSystemApi.Model
 {
@@ -22,6 +32,8 @@ namespace MVSystemApi.Model
         private readonly ISyncService _sync;
         private readonly string _seguridadConnectionString;
         private readonly string _proveedor2ConnectionString;
+        private readonly string _dgiQrBaseUrl;
+        private readonly string _dgiQrBaseUrlFiscal;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
@@ -34,6 +46,8 @@ namespace MVSystemApi.Model
             _sync = sync;
             _seguridadConnectionString = configuration.GetConnectionString("MVSystemSeguridad") ?? string.Empty;
             _proveedor2ConnectionString = configuration.GetConnectionString("Proveedor2MicroStar") ?? string.Empty;
+            _dgiQrBaseUrl = configuration["Dgi:QrBaseUrl"] ?? string.Empty;
+            _dgiQrBaseUrlFiscal = configuration["Dgi:QrBaseUrlFiscal"] ?? string.Empty;
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -3039,36 +3053,57 @@ namespace MVSystemApi.Model
             return await command.ExecuteNonQueryAsync();
         }
 
-        public async Task<bool> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor)
+        public async Task<(bool, string)> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor)
         {
             if (factura == null || detalles == null || detalles.Count == 0)
-                return false;
+                return (false, "Factura o detalles inválidos");
+
+            factura.RNC = NormalizarRncReceptor(factura.RNC);
 
             if (string.IsNullOrWhiteSpace(factura.NcfNumero) || string.IsNullOrWhiteSpace(rncEmisor))
-                return false;
+                return (false, "NCF o RNC del emisor inválido");
 
             try
             {
                 if (string.IsNullOrWhiteSpace(_seguridadConnectionString) || string.IsNullOrWhiteSpace(_proveedor2ConnectionString))
-                {
-                    _logger.LogError("No se encontraron las cadenas de conexión para proveedor 2 (seguridad/remota).");
-                    return false;
-                }
+                    return (false, "Error de conexión: cadenas de conexión no disponibles");
 
                 var okLocal = await InsertFacturaProveedor2EnConexion(_seguridadConnectionString, factura, detalles, usuario, rncEmisor);
                 if (!okLocal)
-                    return false;
+                    return (false, "Error al insertar factura en base de datos local");
 
                 var okRemoto = await InsertFacturaProveedor2EnConexion(_proveedor2ConnectionString, factura, detalles, usuario, rncEmisor);
                 if (!okRemoto)
-                    return false;
+                    return (false, "Error al insertar factura en Proveedor 2");
 
-                return true;
+                await Task.Delay(1000);  // Reducido de 3000 a 1000ms, dando tiempo inicial mínimo
+
+                var (estatusFinal, errorMsg, codigoSeguridad, fechaFirma) = await VerificaryActualizarEstatusProveedor2Async(factura.NcfNumero, rncEmisor);
+
+                if (estatusFinal)
+                {
+                    string qrUrl = null;
+                    var estadoLog = "PEND";
+                    string errorLog = "Pendiente confirmación final de Proveedor 2";
+                    if (!string.IsNullOrWhiteSpace(codigoSeguridad))
+                    {
+                        qrUrl = ConstruirQrUrl(factura, rncEmisor, factura.NcfNumero, factura.Total, codigoSeguridad, fechaFirma);
+                        estadoLog = "ACEPTADA";
+                        errorLog = null;
+                    }
+
+                    await GuardarLogFacturaElectronica(factura.NumeroFactura, "A", estadoLog, errorLog, qrUrl, usuario, factura.NcfNumero);
+                }
+                else
+                {
+                    await GuardarLogFacturaElectronica(factura.NumeroFactura, "A", "RECHAZADO_DGII", errorMsg, null, usuario, factura.NcfNumero);
+                }
+
+                return (estatusFinal, errorMsg);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error en InsertFacturaProveedor2Dual: {ex.Message}");
-                return false;
+                return (false, $"Error procesando factura: {ex.Message}");
             }
         }
 
@@ -3076,6 +3111,7 @@ namespace MVSystemApi.Model
         {
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
+
             await using var tx = connection.BeginTransaction();
 
             try
@@ -3098,7 +3134,7 @@ VALUES
                     cmdDet.Parameters.AddWithValue("@RNC_EMISOR", rncEmisor);
                     cmdDet.Parameters.AddWithValue("@ENCF", factura.NcfNumero);
                     cmdDet.Parameters.AddWithValue("@COD_PRODUCTO", det.IdEquipo ?? string.Empty);
-                    cmdDet.Parameters.AddWithValue("@TIPO_PRODUCTO", (object)DBNull.Value);
+                    cmdDet.Parameters.AddWithValue("@TIPO_PRODUCTO", 1);
                     cmdDet.Parameters.AddWithValue("@UND_MEDIDA", "43");
                     cmdDet.Parameters.AddWithValue("@DESCRIPCION", det.Descripcion ?? det.IdEquipo ?? "ITEM");
                     cmdDet.Parameters.AddWithValue("@CANTIDAD", det.Cantidad);
@@ -3134,18 +3170,31 @@ VALUES
                             nombreCliente = "Cliente";
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        _logger.LogError($"Error obteniendo nombre del cliente para Proveedor2. IdCliente={factura.IdCliente}, Error={ex.Message}");
                         nombreCliente = "Cliente";
                     }
                 }
 
-                await using var cmdEnc = new SqlCommand(@"
+                DateTime? fechaVenceEncf = null;
+                if (factura.NcfTipoNumero == 31)
+                    fechaVenceEncf = await GetFechaVenceEncfTipoNfc(factura.NcfTipoNumero);
+                
+
+                var esConexionRemotaProveedor2 = connectionString.Contains("hstgr.cloud", StringComparison.OrdinalIgnoreCase);
+                var sqlInsertEnc = esConexionRemotaProveedor2
+                    ? @"
 INSERT INTO dbo.PIVOT_FACTURAS_ENC
-(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,TIPO_NCF,ENCF,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION)
+(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,FECHA_VENCE_ENCF,TIPO_NCF,ENCF,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION)
 VALUES
-(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@TIPO_NCF,@ENCF,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,@FECHA_REGISTRO,@Indicador_NotaCredito,@DIRECCION)", connection, tx);
+(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@FECHA_VENCE_ENCF,@TIPO_NCF,@ENCF,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,DATEADD(hour,-4,GETDATE()),@Indicador_NotaCredito,@DIRECCION)"
+                    : @"
+INSERT INTO dbo.PIVOT_FACTURAS_ENC
+(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,FECHA_VENCE_ENCF,TIPO_NCF,ENCF,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION,ESTATUS)
+VALUES
+(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@FECHA_VENCE_ENCF,@TIPO_NCF,@ENCF,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,DATEADD(hour,-4,GETDATE()),@Indicador_NotaCredito,@DIRECCION,@ESTATUS)";
+
+                await using var cmdEnc = new SqlCommand(sqlInsertEnc, connection, tx);
 
                 cmdEnc.Parameters.AddWithValue("@COMPANIA", "1");
                 cmdEnc.Parameters.AddWithValue("@SUCURSAL", factura.IdSucursal ?? "1");
@@ -3160,8 +3209,9 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@NOMBRE_CLIENTE", nombreCliente);
                 cmdEnc.Parameters.AddWithValue("@TIPO_INGRESO", "01");
                 cmdEnc.Parameters.AddWithValue("@FORMA_PAGO", 1);
-                cmdEnc.Parameters.AddWithValue("@MONEDA", 1);
+                cmdEnc.Parameters.AddWithValue("@MONEDA", "DOP");
                 cmdEnc.Parameters.AddWithValue("@FECHA_FACTURA", factura.FechaRegistro);
+                cmdEnc.Parameters.AddWithValue("@FECHA_VENCE_ENCF", (object)(fechaVenceEncf?.Date) ?? DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@TIPO_NCF", factura.NcfTipoNumero);
                 cmdEnc.Parameters.AddWithValue("@ENCF", factura.NcfNumero);
                 cmdEnc.Parameters.AddWithValue("@SUB_TOTAL", factura.SubTotal);
@@ -3169,20 +3219,273 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.Itbis);
                 cmdEnc.Parameters.AddWithValue("@TOTAL", factura.Total);
                 cmdEnc.Parameters.AddWithValue("@USUARIO_CREA", string.IsNullOrWhiteSpace(usuario) ? "Sistema" : usuario);
-                cmdEnc.Parameters.AddWithValue("@FECHA_REGISTRO", DateTime.Now);
                 cmdEnc.Parameters.AddWithValue("@Indicador_NotaCredito", factura.NcfTipoNumero == 34 ? 1 : 0);
                 cmdEnc.Parameters.AddWithValue("@DIRECCION", "N/A");
+                if (!esConexionRemotaProveedor2)
+                    cmdEnc.Parameters.AddWithValue("@ESTATUS", "ENVIADA");
 
                 await cmdEnc.ExecuteNonQueryAsync();
 
                 await tx.CommitAsync();
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await tx.RollbackAsync();
-                _logger.LogError($"Error insertando Proveedor2 (detalle->encabezado): {ex.Message}");
                 return false;
+            }
+        }
+
+        private async Task<DateTime?> GetFechaVenceEncfTipoNfc(int ncfTipoNumero)
+        {
+            try
+            {
+                await using var cnTipoNfc = new SqlConnection(_connectionStrings);
+                await cnTipoNfc.OpenAsync();
+
+                await using var cmd = new SqlCommand(@"
+SELECT TOP (1) CAST(Fecha_Vence_ENCF AS DATE)
+FROM TIPO_NFC
+WHERE NFCTipoNumero = @ncfTipoNumero", cnTipoNfc);
+
+                cmd.Parameters.AddWithValue("@ncfTipoNumero", ncfTipoNumero);
+                var result = await cmd.ExecuteScalarAsync();
+
+                if (result == null || result == DBNull.Value)
+                    return null;
+
+                return Convert.ToDateTime(result).Date;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private async Task<(bool, string, string, DateTime?)> VerificaryActualizarEstatusProveedor2Async(string encf, string rncEmisor)
+        {
+            try
+            {
+                const int maxIntentos = 30;
+                const int delayEntreIntentosMs = 2000;
+
+                string ultimoEstatus = null;
+                string ultimoStatusError = null;
+                string ultimoCodigoSeguridad = null;
+                DateTime? ultimaFechaFirma = null;
+                bool encontradoFinal = false;
+
+                for (int intento = 1; intento <= maxIntentos; intento++)
+                {
+                    await using var connection = new SqlConnection(_proveedor2ConnectionString);
+                    await connection.OpenAsync();
+
+                    await using var cmd = new SqlCommand(@"
+SELECT TOP (1) ESTATUS, ESTATUS_ERROR, ENCF_CODIGO_SEGURIDAD, COALESCE(ENCF_FECHA_FIRMA, FECHA_REGISTRO) AS FECHA_FIRMA
+FROM PIVOT_FACTURAS_ENC
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
+
+                    cmd.Parameters.AddWithValue("@encf", encf);
+                    cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor);
+
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
+                    {
+                        ultimoEstatus = "ENVIADO";
+                        ultimoStatusError = "No encontrado aún en tabla remota";
+
+                        if (intento < maxIntentos)
+                        {
+                            await Task.Delay(delayEntreIntentosMs);
+                            continue;
+                        }
+
+                        // Se agotó la espera inicial sin respuesta final: mantener pendiente para reconciliación posterior
+                        var timeoutNoEncontrado = $"Sin confirmación final luego de {maxIntentos} intentos. Pendiente respuesta de DGII en servidor remoto.";
+                        await ActualizarEstatusLocal(encf, "ENVIADO", timeoutNoEncontrado, ultimaFechaFirma);
+                        return (true, null, null, ultimaFechaFirma);
+                    }
+
+                    var estatusRaw = reader["ESTATUS"]?.ToString();
+                    var estatus = NormalizarEstatus(estatusRaw);
+                    var statusError = reader["ESTATUS_ERROR"]?.ToString() ?? "";
+                    var codigoSeguridad = reader["ENCF_CODIGO_SEGURIDAD"]?.ToString() ?? "";
+
+                    DateTime? fechaFirma = null;
+                    var fechaFirmaRaw = reader["FECHA_FIRMA"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(fechaFirmaRaw) && DateTime.TryParse(fechaFirmaRaw, out var fechaParsed))
+                    {
+                        fechaFirma = fechaParsed;
+                    }
+
+                    ultimoEstatus = estatus;
+                    ultimoStatusError = statusError;
+                    ultimoCodigoSeguridad = codigoSeguridad;
+                    ultimaFechaFirma = fechaFirma;
+
+                    // ESTADO FINAL: ACEPTADO
+                    if (estatus == "ACEPTADO")
+                    {
+                        bool okUpdate = await ActualizarEstatusLocal(encf, "ACEPTADO", null, fechaFirma);
+                        if (!okUpdate && intento < maxIntentos)
+                        {
+                            // Falló actualización local, reintentar sin perder estado final remoto
+                            await Task.Delay(delayEntreIntentosMs);
+                            continue;
+                        }
+                        encontradoFinal = true;
+                        return (true, null, codigoSeguridad, fechaFirma);
+                    }
+
+                    // ESTADO FINAL: RECHAZADO
+                    if (estatus == "RECHAZADO_DGII" || estatus == "RECHAZADO")
+                    {
+                        var msg = $"Factura rechazada por DGII (ESTATUS={estatus}). Detalle: {statusError}";
+                        bool okUpdate = await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma);
+                        if (!okUpdate && intento < maxIntentos)
+                        {
+                            // Falló actualización local, reintentar sin perder estado final remoto
+                            await Task.Delay(delayEntreIntentosMs);
+                            continue;
+                        }
+                        encontradoFinal = true;
+                        return (false, msg, null, fechaFirma);
+                    }
+
+                    // Estado transitorio: seguir consultando hasta tener estado final o agotar tiempo de espera
+                    await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma);
+
+                    if (intento < maxIntentos)
+                    {
+                        await Task.Delay(delayEntreIntentosMs);
+                        continue;
+                    }
+
+                }
+
+                // Se agotaron los reintentos sin estado final: no marcar error definitivo, mantener ENVIADO
+                if (!encontradoFinal)
+                {
+                    var timeoutMsg = $"Sin confirmación final luego de {maxIntentos} intentos. Último estado remoto: {ultimoEstatus}.";
+                    await ActualizarEstatusLocal(encf, "ENVIADO", string.IsNullOrWhiteSpace(ultimoStatusError) ? timeoutMsg : ultimoStatusError, ultimaFechaFirma);
+                    return (true, null, ultimoCodigoSeguridad, ultimaFechaFirma);
+                }
+
+                return (true, null, ultimoCodigoSeguridad, ultimaFechaFirma);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error al verificar estatus: {ex.Message}", null, null);
+            }
+        }
+
+        private async Task<bool> ActualizarEstatusLocal(string encf, string estatus, string statusError, DateTime? fechaFirma)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(_seguridadConnectionString);
+                await connection.OpenAsync();
+
+                await using var cmd = new SqlCommand(@"
+UPDATE PIVOT_FACTURAS_ENC
+    SET ESTATUS = @estatus, ESTATUS_ERROR = @statusError, ENCF_FECHA_FIRMA = COALESCE(@fechaFirma, ENCF_FECHA_FIRMA)
+WHERE ENCF = @encf", connection);
+
+                cmd.Parameters.AddWithValue("@estatus", estatus ?? "");
+                cmd.Parameters.AddWithValue("@statusError", (object)statusError ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@fechaFirma", (object)fechaFirma ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@encf", encf);
+
+                int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        private string ConstruirQrUrl(Facturas factura, string rncEmisor, string encf, decimal total, string codigoSeguridad, DateTime? fechaFirma)
+        {
+            try
+            {
+                if (factura?.NcfTipoNumero == 31 && string.IsNullOrWhiteSpace(_dgiQrBaseUrlFiscal))
+                    return null;
+
+                if (factura?.NcfTipoNumero != 31 && string.IsNullOrWhiteSpace(_dgiQrBaseUrl))
+                    return null;
+
+                string url;
+                if (factura?.NcfTipoNumero == 31)
+                {
+                    var rncComprador = NormalizarRncReceptor(factura.RNC);
+                    var fechaEmision = factura.FechaRegistro.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
+                    var fechaFirmaValor = (fechaFirma ?? DateTime.Now).ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+
+                    url = $"{_dgiQrBaseUrlFiscal}?RncEmisor={Uri.EscapeDataString(rncEmisor)}&RncComprador={Uri.EscapeDataString(rncComprador)}&ENCF={Uri.EscapeDataString(encf)}&FechaEmision={Uri.EscapeDataString(fechaEmision)}&MontoTotal={total.ToString("F2", CultureInfo.InvariantCulture)}&FechaFirma={Uri.EscapeDataString(fechaFirmaValor)}&CodigoSeguridad={Uri.EscapeDataString(codigoSeguridad)}";
+                }
+                else
+                    url = $"{_dgiQrBaseUrl}?rncemisor={rncEmisor}&encf={encf}&montototal={total:F2}&codigoseguridad={codigoSeguridad}";
+
+                return url;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private string NormalizarRncReceptor(string rnc)
+        {
+            if (string.IsNullOrWhiteSpace(rnc))
+                return string.Empty;
+
+            return rnc
+                .Replace("-", string.Empty)
+                .Replace(" ", string.Empty)
+                .Replace("\t", string.Empty)
+                .Trim();
+        }
+
+        private string NormalizarEstatus(string estatus)
+        {
+            if (string.IsNullOrWhiteSpace(estatus))
+                return "";
+
+            // Normalizar: trim, uppercase, remover espacios extras
+            var normalized = estatus.Trim().ToUpper().Replace("  ", " ");
+            
+            // Mapeo de variaciones conocidas
+            if (normalized == "ACEPTADA" || normalized == "ACEPTADO")
+                return "ACEPTADO";
+            if (normalized == "RECHAZADO_DGII" || normalized == "RECHAZADO DGII")
+                return "RECHAZADO_DGII";
+            if (normalized.StartsWith("RECHAZAD"))
+                return "RECHAZADO";
+            
+            return normalized;
+        }
+
+        private async Task GuardarLogFacturaElectronica(int numeroFactura, string literal, string estado, string errorDescripcion, string qrUrl, string usuario, string voucherNumberDgii)
+        {
+            try
+            {
+                var log = new LogFacturaElectronica
+                {
+                    Numero_Factura = numeroFactura,
+                    Literal = string.IsNullOrWhiteSpace(literal) ? "A" : literal,
+                    VoucherNumber_DGII = string.IsNullOrWhiteSpace(voucherNumberDgii) ? null : voucherNumberDgii,
+                    Estado = string.IsNullOrWhiteSpace(estado) ? "PEND" : estado,
+                    Error_Descripcion = errorDescripcion,
+                    Usuario = usuario,
+                    QR_Url = qrUrl,
+                    Fecha_Envio = DateTime.Now
+                };
+
+                await InsertLogFacturaElectronica(log);
+            }
+            catch (Exception)
+            {
             }
         }
 

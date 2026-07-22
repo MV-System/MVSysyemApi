@@ -359,8 +359,8 @@ namespace MVSystemApi.Controllers
                 if (idProveedor == 2)
                 {
                     _logger.LogInformation("[CTRL-DGI-4] Proveedor 2 detectado, insertando en PIVOT local y remoto (detalle -> encabezado).");
-                    var okProveedor2 = await _accesoDatos.InsertFacturaProveedor2Dual(facturaGuardada, detalles, usuarioDelToken, rncDelToken);
-                    return okProveedor2 ? null : "No se pudo registrar la factura en Proveedor 2";
+                    var (okProveedor2, errorMsg) = await _accesoDatos.InsertFacturaProveedor2Dual(facturaGuardada, detalles, usuarioDelToken, rncDelToken);
+                    return okProveedor2 ? null : errorMsg ?? "No se pudo registrar la factura en Proveedor 2";
                 }
 
                 _logger.LogInformation($"[CTRL-DGI-5] Detalles={detalles?.Count ?? 0}, Pagos={pagos?.Count ?? 0}");

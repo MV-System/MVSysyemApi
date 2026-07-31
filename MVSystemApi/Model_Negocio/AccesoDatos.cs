@@ -3138,7 +3138,7 @@ VALUES
                     cmdDet.Parameters.AddWithValue("@UND_MEDIDA", "43");
                     cmdDet.Parameters.AddWithValue("@DESCRIPCION", det.Descripcion ?? det.IdEquipo ?? "ITEM");
                     cmdDet.Parameters.AddWithValue("@CANTIDAD", det.Cantidad);
-                    cmdDet.Parameters.AddWithValue("@PRECIO", det.Precio);
+                    cmdDet.Parameters.AddWithValue("@PRECIO", det.SubTotal);
                     cmdDet.Parameters.AddWithValue("@IND_IMP", det.Itbis > 0 ? "S" : "N");
                     cmdDet.Parameters.AddWithValue("@IND_EXENTO", det.Itbis > 0 ? "N" : "S");
                     cmdDet.Parameters.AddWithValue("@TASA_IMPUESTO", det.Itbis > 0 ? 18 : 0);

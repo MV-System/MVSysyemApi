@@ -156,50 +156,61 @@
         </div>
     </div>
 
-    <br />
-    <br />
-
-    <div class="container">
-        <div class="row">
-            <div class="col-6 text-center">
-                <hr>
-                <b>Entregado por</b>
-            </div>
-            <div class="col-6 text-center">
-                <hr>
-                <b>Recibido por</b>
+    <div id="invoice-footer" style="page-break-inside: avoid;">
+        <div class="container">
+            <div class="row">
+                <div class="col-6 text-center">
+                    <hr>
+                    <b>Entregado por</b>
+                </div>
+                <div class="col-6 text-center">
+                    <hr>
+                    <b>Recibido por</b>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Sección QR en parte inferior izquierda -->
-    @if (qrBase64 != null)
-    {
-        <div class="container" style="margin-top: 2rem;">
-            <div class="row">
-                <div class="col-6">
-                    <div style="padding: 0.5rem; width: fit-content;">
-                        <img src="data:image/png;base64,@qrBase64" style="width:3.0cm;height:3.0cm; display: block;" />
-                        <div style="font-size:8px; margin-top:6px; line-height:1.25;">
-                            @if (!string.IsNullOrEmpty(Model.CodigoSeguridad))
-                            {
-                                <p style="margin:2px 0;"><b>Código de Seguridad:</b> @Model.CodigoSeguridad</p>
-                            }
-                            @if (!string.IsNullOrEmpty(Model.FechaFirma))
-                            {
-                                <p style="margin:2px 0;"><b>Fecha Firma:</b> @Model.FechaFirma</p>
-                            }
+        <!-- Sección QR en parte inferior izquierda -->
+        @if (qrBase64 != null)
+        {
+            <div class="container" style="margin-top: 2rem;">
+                <div class="row">
+                    <div class="col-6">
+                        <div style="padding: 0.5rem; width: fit-content;">
+                            <img src="data:image/png;base64,@qrBase64" style="width:3.0cm;height:3.0cm; display: block;" />
+                            <div style="font-size:8px; margin-top:6px; line-height:1.25;">
+                                @if (!string.IsNullOrEmpty(Model.CodigoSeguridad))
+                                {
+                                    <p style="margin:2px 0;"><b>Código de Seguridad:</b> @Model.CodigoSeguridad</p>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.FechaFirma))
+                                {
+                                    <p style="margin:2px 0;"><b>Fecha Firma:</b> @Model.FechaFirma</p>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    }
+        }
 
-    <div class="container">
-        <div class="text-right">
-            Fecha de Impresión: @DateTime.Now
+        <div class="container">
+            <div class="text-right">
+                Fecha de Impresión: @DateTime.Now
+            </div>
         </div>
     </div>
+
+    <script>
+        window.onload = function () {
+            var footer = document.getElementById('invoice-footer');
+            var pageH = window.innerHeight; // altura real de la página usada por wkhtmltopdf
+            var footerH = footer.offsetHeight;
+            var footerTop = footer.getBoundingClientRect().top + window.pageYOffset;
+            var remainder = footerTop % pageH;
+            var gap = pageH - remainder - footerH - 20;
+            if (gap > 0) footer.style.marginTop = gap + 'px';
+        };
+    </script>
 </body>
 </html>

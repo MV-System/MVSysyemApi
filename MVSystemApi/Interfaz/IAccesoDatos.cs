@@ -1,6 +1,7 @@
 ﻿using DTO;
 using MVSystemApi.Model;
 using MVSystemApi.Model.Seguridad;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -146,9 +147,10 @@ namespace MVSystemApi.Interfaz
         int UpdateAsumeITBIS(string asumeITBIS, string usuario);
         string Equipo_Delete(string imei, string Usuario);
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
-        string AbonoAfactura(AbonoFacturaParam param);
-        string AbonoGeneral(AbonoFacturaParam param);
+        string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono);
+        string AbonoGeneral(AbonoFacturaParam param, out Guid idLoteAbono);
         ReciboAbonoDTO GetReciboAbono(int idCliente, int numeroFactura, int idSucursal);
+        ReciboAbonoGeneralDTO GetReciboAbonoGeneral(Guid idLoteAbono);
         #endregion
 
         #region // ------------- Métodos Asíncronos para ADO.NET --------------------------

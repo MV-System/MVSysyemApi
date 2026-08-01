@@ -71,12 +71,13 @@ namespace MVSystemApi.Model
             try
             {
                 // Llamamos al procedimiento almacenado que devuelve el mensaje
-                var mensaje = AA.AbonoAfactura(param);  // Este método debería devolver un string (mensaje)
+                var mensaje = AA.AbonoAfactura(param, out Guid idLoteAbono);
 
                 // Creación de un objeto de tipo EquipoEliminado con el mensaje
                 var result = new AbonoFacturaParamRetorn
                 {
-                    Mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                    Mensaje = mensaje.ToString(),  // Asignar el mensaje al objeto
+                    IdLoteAbono = idLoteAbono
                 };
 
                 return result;  // Retornamos el objeto con el mensaje
@@ -92,12 +93,13 @@ namespace MVSystemApi.Model
             try
             {
                 // Llamamos al procedimiento almacenado que devuelve el mensaje
-                var mensaje = AA.AbonoGeneral(param);  // Este método debería devolver un string (mensaje)
+                var mensaje = AA.AbonoGeneral(param, out Guid idLoteAbono);
 
                 // Creación de un objeto de tipo EquipoEliminado con el mensaje
                 var result = new AbonoFacturaParamRetorn
                 {
-                    Mensaje = mensaje.ToString()  // Asignar el mensaje al objeto
+                    Mensaje = mensaje.ToString(),  // Asignar el mensaje al objeto
+                    IdLoteAbono = idLoteAbono
                 };
 
                 return result;  // Retornamos el objeto con el mensaje

@@ -2134,7 +2134,7 @@ namespace MVSystemApi.Model
                 throw;
             }
         }
-        public string AbonoAfactura(AbonoFacturaParam param)
+        public string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono)
         {
             try
             {
@@ -2147,6 +2147,8 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@IdCliente", param.Id_Cliente);
                     cmd.Parameters.AddWithValue("@Numero_Factura", param.NumeroFactura);
                     cmd.Parameters.AddWithValue("@MontoAbono", param.MontoAbono);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", param.IdTipoPago);
+                    cmd.Parameters.AddWithValue("@Nota", (object)param.Nota ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@Id_Sucursal", param.IdSucursal);
                     cmd.Parameters.AddWithValue("@Usuario", param.Usuario);
 
@@ -2157,13 +2159,18 @@ namespace MVSystemApi.Model
                     };
                     cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
 
+                    SqlParameter idLoteParam = new SqlParameter("@IdLoteAbono", SqlDbType.UniqueIdentifier)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(idLoteParam);
+
                     // Abrir la conexi�n
                     cn.Open();
                     cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
 
-                    // Obtener el valor del mensaje de salida
-                   // string mensaje = mensajeParam.Value.ToString();
+                    idLoteAbono = idLoteParam.Value is Guid guid ? guid : Guid.Empty;
 
                     return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
                 }
@@ -2174,7 +2181,7 @@ namespace MVSystemApi.Model
                 throw new Exception("Error al intentar eliminar el equipo", ex);
             }
         }
-        public string AbonoGeneral(AbonoFacturaParam param)
+        public string AbonoGeneral(AbonoFacturaParam param, out Guid idLoteAbono)
         {
             try
             {
@@ -2186,6 +2193,8 @@ namespace MVSystemApi.Model
                     // Agregar solo el par�metro de entrada @imei
                     cmd.Parameters.AddWithValue("@IdCliente", param.Id_Cliente);
                     cmd.Parameters.AddWithValue("@MontoAbono", param.MontoAbono);
+                    cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", param.IdTipoPago);
+                    cmd.Parameters.AddWithValue("@Nota", (object)param.Nota ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@Usuario", param.Usuario);
 
                     // Crear el par�metro de salida para el mensaje
@@ -2195,13 +2204,18 @@ namespace MVSystemApi.Model
                     };
                     cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
 
+                    SqlParameter idLoteParam = new SqlParameter("@IdLoteAbono", SqlDbType.UniqueIdentifier)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(idLoteParam);
+
                     // Abrir la conexi�n
                     cn.Open();
                     cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
                     cn.Close();
 
-                    // Obtener el valor del mensaje de salida
-                    // string mensaje = mensajeParam.Value.ToString();
+                    idLoteAbono = idLoteParam.Value is Guid guid ? guid : Guid.Empty;
 
                     return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
                 }
@@ -2210,6 +2224,62 @@ namespace MVSystemApi.Model
             {
                 // Manejo de excepciones
                 throw new Exception("Error al intentar eliminar el equipo", ex);
+            }
+        }
+        public ReciboAbonoGeneralDTO GetReciboAbonoGeneral(Guid idLoteAbono)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Proc_ReciboAbonoGeneral_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdLoteAbono", idLoteAbono);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+
+                if (dt.Rows.Count == 0)
+                {
+                    return null;
+                }
+
+                DataRow first = dt.Rows[0];
+
+                var resultado = new ReciboAbonoGeneralDTO
+                {
+                    NombreCliente   = first["NombreCliente"].ToString(),
+                    ApellidoCliente = first["ApellidoCliente"].ToString(),
+                    TipoPago        = first["Tipo_Pago"].ToString(),
+                    Nota            = first["Nota"].ToString(),
+                    Usuario         = first["Usuario"].ToString(),
+                    FechaRegistro   = first["Fecha_registro"] == DBNull.Value ? DateTime.Now : Convert.ToDateTime(first["Fecha_registro"])
+                };
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    var totalAbono = row["Total_Abono"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Total_Abono"]);
+
+                    resultado.Facturas.Add(new DetalleAbonoFacturaDTO
+                    {
+                        NumeroFactura = row["Numero_factura"] == DBNull.Value ? "" : row["Numero_factura"].ToString(),
+                        TotalFactura  = row["Total_Factura"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Total_Factura"]),
+                        TotalAbono    = totalAbono,
+                        Pendiente     = row["Pendiente"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Pendiente"]),
+                        Saldada       = row["Saldada"] != DBNull.Value && Convert.ToInt32(row["Saldada"]) == 1,
+                        TipoFactura   = row["Tipo_Factura"].ToString()
+                    });
+
+                    resultado.TotalAbonado += totalAbono;
+                }
+
+                return resultado;
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
         public void ModificarEquipo(Equipo_return_Imei equipo)
@@ -3545,178 +3615,48 @@ WHERE ENCF = @encf", connection);
 
         public ReciboAbonoDTO GetReciboAbono(int idCliente, int numeroFactura, int idSucursal)
         {
-            using var cn = new SqlConnection(_connectionStrings);
-            const string sql = @"
-                DECLARE @NombreExpr NVARCHAR(200) =
-                    CASE
-                        WHEN COL_LENGTH('Clientes', 'Nombres') IS NOT NULL THEN 'c.Nombres'
-                        WHEN COL_LENGTH('Clientes', 'Nombre')  IS NOT NULL THEN 'c.Nombre'
-                        ELSE ''''''
-                    END;
-
-                DECLARE @ApellidoExpr NVARCHAR(200) =
-                    CASE
-                        WHEN COL_LENGTH('Clientes', 'Apellidos') IS NOT NULL THEN 'c.Apellidos'
-                        WHEN COL_LENGTH('Clientes', 'Apellido')  IS NOT NULL THEN 'c.Apellido'
-                        ELSE ''''''
-                    END;
-
-                DECLARE @sql NVARCHAR(MAX) = N'
-                    SELECT TOP 1
-                        hp.Id,
-                        TRY_CONVERT(INT, hp.Numero_factura)                AS Numero_factura,
-                        TRY_CONVERT(DECIMAL(18,2), hp.Total_Factura)       AS Total_Factura,
-                        TRY_CONVERT(DECIMAL(18,2), hp.Total_Abono)         AS Total_Abono,
-                        TRY_CONVERT(DECIMAL(18,2), hp.Pendiente)           AS Pendiente,
-                        CAST(ISNULL(hp.Tipo_Factura, '''') AS NVARCHAR(50))  AS Tipo_Factura,
-                        CAST(ISNULL(hp.Usuario, '''') AS NVARCHAR(100))      AS Usuario,
-                        hp.Fecha_registro,
-                        CAST(ISNULL(' + @NombreExpr + ', '''') AS NVARCHAR(150))   AS NombreCliente,
-                        CAST(ISNULL(' + @ApellidoExpr + ', '''') AS NVARCHAR(150)) AS ApellidoCliente
-                    FROM Historio_Pagos hp
-                    INNER JOIN Clientes c ON c.Id_Cliente = hp.id_Cliente_Suplidor
-                    WHERE hp.id_Cliente_Suplidor = @idCliente
-                      AND hp.Id_Sucursal         = @idSucursal
-                      AND (@numeroFactura = 0 OR TRY_CONVERT(INT, hp.Numero_factura) = @numeroFactura)
-                    ORDER BY hp.Fecha_registro DESC';
-
-                EXEC sp_executesql @sql,
-                    N'@idCliente INT, @numeroFactura INT, @idSucursal INT',
-                    @idCliente=@idCliente, @numeroFactura=@numeroFactura, @idSucursal=@idSucursal;";
-
-            using var cmd = new SqlCommand(sql, cn);
-            cmd.Parameters.AddWithValue("@idCliente",      idCliente);
-            cmd.Parameters.AddWithValue("@numeroFactura",  numeroFactura);
-            cmd.Parameters.AddWithValue("@idSucursal",     idSucursal);
-
             cn.Open();
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
+            try
             {
-                int idxId = reader.GetOrdinal("Id");
-                int idxNombreCliente = reader.GetOrdinal("NombreCliente");
-                int idxApellidoCliente = reader.GetOrdinal("ApellidoCliente");
-                int idxNumeroFactura = reader.GetOrdinal("Numero_factura");
-                int idxTotalFactura = reader.GetOrdinal("Total_Factura");
-                int idxTotalAbono = reader.GetOrdinal("Total_Abono");
-                int idxPendiente = reader.GetOrdinal("Pendiente");
-                int idxTipoFactura = reader.GetOrdinal("Tipo_Factura");
-                int idxUsuario = reader.GetOrdinal("Usuario");
-                int idxFechaRegistro = reader.GetOrdinal("Fecha_registro");
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Proc_ReciboAbono_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdCliente", idCliente);
+                cmd.Parameters.AddWithValue("@NumeroFactura", numeroFactura);
+                cmd.Parameters.AddWithValue("@IdSucursal", idSucursal);
 
-                decimal ToDecimalSafe(int index)
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+
+                if (dt.Rows.Count == 0)
                 {
-                    if (reader.IsDBNull(index))
-                    {
-                        return 0;
-                    }
-
-                    var value = reader.GetValue(index);
-                    try
-                    {
-                        return Convert.ToDecimal(value);
-                    }
-                    catch
-                    {
-                        return decimal.TryParse(value?.ToString(), out var parsed) ? parsed : 0;
-                    }
+                    return null;
                 }
 
-                DateTime ToDateTimeSafe(int index)
-                {
-                    if (reader.IsDBNull(index))
-                    {
-                        return DateTime.Now;
-                    }
-
-                    var value = reader.GetValue(index);
-                    try
-                    {
-                        return Convert.ToDateTime(value);
-                    }
-                    catch
-                    {
-                        return DateTime.Now;
-                    }
-                }
-
-                string ToStringSafe(int index)
-                {
-                    if (reader.IsDBNull(index))
-                    {
-                        return "";
-                    }
-
-                    return reader.GetValue(index)?.ToString() ?? "";
-                }
-
-                string GetClienteValueFromRow(DataRow row, string[] candidateColumns)
-                {
-                    if (row == null || row.Table == null || candidateColumns == null || candidateColumns.Length == 0)
-                    {
-                        return "";
-                    }
-
-                    for (int i = 0; i < row.Table.Columns.Count; i++)
-                    {
-                        string currentColumn = row.Table.Columns[i].ColumnName;
-
-                        for (int j = 0; j < candidateColumns.Length; j++)
-                        {
-                            if (!string.Equals(currentColumn, candidateColumns[j], StringComparison.OrdinalIgnoreCase))
-                            {
-                                continue;
-                            }
-
-                            var value = row[currentColumn];
-                            if (value == null || value == DBNull.Value)
-                            {
-                                return "";
-                            }
-
-                            return value.ToString() ?? "";
-                        }
-                    }
-
-                    return "";
-                }
-
-                string nombreCliente = ToStringSafe(idxNombreCliente);
-                string apellidoCliente = ToStringSafe(idxApellidoCliente);
-
-                if (string.IsNullOrWhiteSpace(nombreCliente) && string.IsNullOrWhiteSpace(apellidoCliente))
-                {
-                    try
-                    {
-                        DataTable clienteData = Cliente_Consulta_Por_Id_Cliente(idCliente);
-                        if (clienteData != null && clienteData.Rows.Count > 0)
-                        {
-                            DataRow clienteRow = clienteData.Rows[0];
-                            nombreCliente = GetClienteValueFromRow(clienteRow, new[] { "Nombres", "Nombre", "NombreCliente" });
-                            apellidoCliente = GetClienteValueFromRow(clienteRow, new[] { "Apellidos", "Apellido", "ApellidoCliente" });
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "No se pudo resolver nombre/apellido del cliente por ID en GetReciboAbono. idCliente={IdCliente}", idCliente);
-                    }
-                }
+                DataRow row = dt.Rows[0];
 
                 return new ReciboAbonoDTO
                 {
-                    Id             = reader.IsDBNull(idxId) ? 0 : reader.GetInt32(idxId),
-                    NombreCliente  = nombreCliente,
-                    ApellidoCliente= apellidoCliente,
-                    NumeroFactura  = reader.IsDBNull(idxNumeroFactura) ? "" : reader.GetInt32(idxNumeroFactura).ToString(),
-                    TotalFactura   = ToDecimalSafe(idxTotalFactura),
-                    TotalAbono     = ToDecimalSafe(idxTotalAbono),
-                    Pendiente      = ToDecimalSafe(idxPendiente),
-                    TipoFactura    = ToStringSafe(idxTipoFactura),
-                    Usuario        = ToStringSafe(idxUsuario),
-                    FechaRegistro  = ToDateTimeSafe(idxFechaRegistro)
+                    Id              = row["Id"] == DBNull.Value ? 0 : Convert.ToInt32(row["Id"]),
+                    NombreCliente   = row["NombreCliente"].ToString(),
+                    ApellidoCliente = row["ApellidoCliente"].ToString(),
+                    NumeroFactura   = row["Numero_factura"] == DBNull.Value ? "" : row["Numero_factura"].ToString(),
+                    TotalFactura    = row["Total_Factura"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Total_Factura"]),
+                    TotalAbono      = row["Total_Abono"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Total_Abono"]),
+                    Pendiente       = row["Pendiente"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Pendiente"]),
+                    TipoFactura     = row["Tipo_Factura"].ToString(),
+                    TipoPago        = row["Tipo_Pago"].ToString(),
+                    Nota            = row["Nota"].ToString(),
+                    Usuario         = row["Usuario"].ToString(),
+                    FechaRegistro   = row["Fecha_registro"] == DBNull.Value ? DateTime.Now : Convert.ToDateTime(row["Fecha_registro"])
                 };
             }
-            return null;
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

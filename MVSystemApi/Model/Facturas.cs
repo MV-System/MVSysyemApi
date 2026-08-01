@@ -156,6 +156,34 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
         public string Motivo { get; set; }
     }
+    public class NotaCreditoDetalleReporte
+    {
+        public string CodProducto { get; set; }
+        public string Descripcion { get; set; }
+        public string UndMedida { get; set; }
+        public string TipoProducto { get; set; }
+        public decimal Cantidad { get; set; }
+        public decimal Precio { get; set; }
+        public decimal Impuesto { get; set; }
+        public decimal Total { get; set; }
+    }
+    public class NotaCreditoReporteViewModel
+    {
+        public string Encf { get; set; }
+        public string EncfReferencia { get; set; }
+        public string Condicion { get; set; }
+        public DateTime FechaEmision { get; set; }
+        public string NombreCliente { get; set; }
+        public string RncCliente { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal Impuesto { get; set; }
+        public decimal Total { get; set; }
+        public List<NotaCreditoDetalleReporte> Detalle { get; set; } = new List<NotaCreditoDetalleReporte>();
+        public DatosEmpresa DatosEmpresaFactura { get; set; }
+        public string QrUrl { get; set; }
+        public string CodigoSeguridad { get; set; }
+        public string FechaFirma { get; set; }
+    }
     public class EditaDetalleFactura
     {
         public int NumeroFactura { get; set; }

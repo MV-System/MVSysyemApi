@@ -1,0 +1,160 @@
+@model MVSystemApi.Model.NotaCreditoReporteViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
+    <title>Nota de Crédito</title>
+    <style>
+        .p0 p {
+            padding: 0%;
+            margin: 0%;
+        }
+        .nc-box {
+            border: 2px solid #dc3545;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+        }
+        .nc-titulo {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .total-row {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <img src="@Model.DatosEmpresaFactura?.Logo" alt="Logo Empresa" />
+    </div>
+
+    <div class="container text-center p0 mb-3">
+        <p>@Model.DatosEmpresaFactura?.Encabezado</p>
+        <p>@Model.DatosEmpresaFactura?.Direccion</p>
+        <p>@Model.DatosEmpresaFactura?.Telefonos</p>
+        <p><b>RNC: @Model.DatosEmpresaFactura?.RNC</b></p>
+    </div>
+
+    @{
+        var qrUrl = Model.QrUrl;
+        string qrBase64 = null;
+        if (!string.IsNullOrEmpty(qrUrl))
+        {
+            var qrGenerator = new QRCoder.QRCodeGenerator();
+            var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
+            var qrCode = new QRCoder.PngByteQRCode(qrData);
+            var qrBytes = qrCode.GetGraphic(6);
+            qrBase64 = Convert.ToBase64String(qrBytes);
+        }
+    }
+
+    <div class="container border border-dark">
+        <div class="row">
+            <div class="col-6 border border-dark">
+                <p><b>Fecha Emisión: </b>@Model.FechaEmision.ToString("dd/MM/yyyy")</p>
+            </div>
+            <div class="col-6 border border-dark nc-box">
+                <div class="nc-titulo">NOTA DE CRÉDITO ELECTRÓNICA</div>
+                <div><b>e-NCF: @Model.Encf</b></div>
+                <div>Condición: @Model.Condicion</div>
+                <div>Ref. NCF: @Model.EncfReferencia</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row text-center mt-3 mb-2">
+            <b>DATOS DEL CLIENTE/COMPRADOR</b>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <b>Razón Social: </b>@Model.NombreCliente
+            </div>
+            <div class="col-6">
+                <b>RNC/Cédula: </b>@Model.RncCliente
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row text-center mt-4 mb-3">
+            <b>DETALLE DE PRODUCTOS / SERVICIOS</b>
+        </div>
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col">COD.</th>
+                        <th scope="col">DESCRIPCIÓN</th>
+                        <th scope="col">U/M</th>
+                        <th scope="col">TIPO</th>
+                        <th scope="col">CANT.</th>
+                        <th scope="col">PRECIO</th>
+                        <th scope="col">ITBIS</th>
+                        <th scope="col">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Detalle)
+                    {
+                        <tr>
+                            <td>@item.CodProducto</td>
+                            <td>@item.Descripcion</td>
+                            <td>@item.UndMedida</td>
+                            <td>@item.TipoProducto</td>
+                            <td>@item.Cantidad.ToString("N2")</td>
+                            <td>@item.Precio.ToString("N2")</td>
+                            <td>@item.Impuesto.ToString("N2")</td>
+                            <td>@item.Total.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container text-right">
+        <div>Subtotal: <b>@Model.SubTotal.ToString("N2")</b></div>
+        <div>Total ITBIS: <b>@Model.Impuesto.ToString("N2")</b></div>
+        <div class="total-row">TOTAL: RD$@Model.Total.ToString("N2")</div>
+    </div>
+
+    <div id="invoice-footer" style="page-break-inside: avoid;">
+        @if (qrBase64 != null)
+        {
+            <div class="container" style="margin-top: 2rem;">
+                <div class="row">
+                    <div class="col-6">
+                        <div style="padding: 0.5rem; width: fit-content;">
+                            <img src="data:image/png;base64,@qrBase64" style="width:3.0cm;height:3.0cm; display: block;" />
+                            <div style="font-size:8px; margin-top:6px; line-height:1.25;">
+                                @if (!string.IsNullOrEmpty(Model.CodigoSeguridad))
+                                {
+                                    <p style="margin:2px 0;"><b>Código de Seguridad:</b> @Model.CodigoSeguridad</p>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.FechaFirma))
+                                {
+                                    <p style="margin:2px 0;"><b>Fecha/Hora Firma:</b> @Model.FechaFirma</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="container text-center" style="margin-top: 1rem;">
+            <small>Representación impresa de un e-CF — Consulte el original en ecf.dgii.gov.do</small>
+        </div>
+    </div>
+</body>
+</html>

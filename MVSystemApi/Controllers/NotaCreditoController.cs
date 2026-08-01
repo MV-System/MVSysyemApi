@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using MVSystemApi.Model_Negocio.Seguridad;
+using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
 {
@@ -17,16 +19,18 @@ namespace MVSystemApi.Controllers
     /// </summary>
     [Route("NotaCredito")]
     [ApiController]
-    public class NotaCreditoController : ControllerBase
+    public class NotaCreditoController : Controller
     {
         private readonly Facturas_Negocio AD;
         private readonly IAccesoDatos _accesoDatos;
+        private readonly SeguridadService _seguridadService;
         private readonly ILogger<NotaCreditoController> _logger;
 
-        public NotaCreditoController(Facturas_Negocio _en, IAccesoDatos accesoDatos, ILogger<NotaCreditoController> logger)
+        public NotaCreditoController(Facturas_Negocio _en, IAccesoDatos accesoDatos, SeguridadService seguridadService, ILogger<NotaCreditoController> logger)
         {
             AD = _en;
             _accesoDatos = accesoDatos;
+            _seguridadService = seguridadService;
             _logger = logger;
         }
 
@@ -110,6 +114,55 @@ namespace MVSystemApi.Controllers
             {
                 _logger.LogError(ex, "Error al generar Nota de Crédito Proveedor 2");
                 return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("ReportNotaCredito")]
+        public async Task<IActionResult> ReportNotaCredito([FromBody] NotaCreditoProveedor2Request request)
+        {
+            var sucursal = int.TryParse(request.IDsucursal, out var idSuc) ? idSuc : 0;
+
+            var data = await _accesoDatos.ObtenerNotaCreditoReporte(request.NumeroFacturaOrigen, sucursal);
+            if (data == null)
+                return NotFound(new { error = "Nota de Crédito no encontrada." });
+
+            var idEmpresaClaim = User?.FindFirst("IdEmpresa")?.Value ?? "1";
+            data.DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(idEmpresaClaim), sucursal);
+
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+            data.DatosEmpresaFactura.Logo = baseUrl + "/assets/" + data.DatosEmpresaFactura.Logo + ".png";
+
+            var log = await _accesoDatos.GetLogFacturaElectronica(request.NumeroFacturaOrigen, "NC");
+            if (log?.QR_Url != null)
+            {
+                data.QrUrl = log.QR_Url;
+                var (fechaFirma, codigoSeguridad) = ExtractQrParameters(log.QR_Url);
+                data.FechaFirma = fechaFirma;
+                data.CodigoSeguridad = codigoSeguridad;
+            }
+
+            return new ViewAsPdf(data);
+        }
+
+        private (string FechaFirma, string CodigoSeguridad) ExtractQrParameters(string qrUrl)
+        {
+            if (string.IsNullOrEmpty(qrUrl))
+                return (null, null);
+
+            try
+            {
+                var uri = new Uri(qrUrl);
+                var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+                string fechaFirma = queryParams["FechaFirma"];
+                string codigoSeguridad = queryParams["CodigoSeguridad"];
+
+                return (fechaFirma, codigoSeguridad);
+            }
+            catch
+            {
+                return (null, null);
             }
         }
     }

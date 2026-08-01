@@ -119,6 +119,7 @@ namespace MVSystemApi.Interfaz
         public Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal);
         public Task<string> ObtenerNcfNotaCredito(int tipoNcf);
         public Task<string> ObtenerEstatusRemotoProveedor2(string encf, string rncEmisor);
+        public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal);
 
         #endregion
 

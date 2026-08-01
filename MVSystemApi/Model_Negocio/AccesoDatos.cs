@@ -583,6 +583,88 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
         }
 
         /// <summary>
+        /// Obtiene los datos de una Nota de Crédito ya emitida (PIVOT_FACTURAS_ENC/DET local,
+        /// TIPO_DOCUMENTO='NC') para armar el reporte PDF. No consulta la tabla Facturas.
+        /// </summary>
+        public async Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal)
+        {
+            await using var connection = new SqlConnection(_seguridadConnectionString);
+            await connection.OpenAsync();
+
+            NotaCreditoReporteViewModel data = null;
+
+            await using (var cmdEnc = new SqlCommand(@"
+SELECT TOP (1)
+    ENCF, ENCF_REFERENCIA, NOMBRE_CLIENTE, NUM_RNC, FECHA_FACTURA,
+    SUB_TOTAL, IMPUESTO, TOTAL
+FROM PIVOT_FACTURAS_ENC
+WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'NC'
+ORDER BY FECHA_REGISTRO DESC", connection))
+            {
+                cmdEnc.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen.ToString());
+                cmdEnc.Parameters.AddWithValue("@sucursal", sucursal);
+
+                await using var reader = await cmdEnc.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                    return null;
+
+                data = new NotaCreditoReporteViewModel
+                {
+                    Encf = reader.IsDBNull(reader.GetOrdinal("ENCF")) ? "" : reader.GetString(reader.GetOrdinal("ENCF")),
+                    EncfReferencia = reader.IsDBNull(reader.GetOrdinal("ENCF_REFERENCIA")) ? "" : reader.GetString(reader.GetOrdinal("ENCF_REFERENCIA")),
+                    NombreCliente = reader.IsDBNull(reader.GetOrdinal("NOMBRE_CLIENTE")) ? "" : reader.GetString(reader.GetOrdinal("NOMBRE_CLIENTE")),
+                    RncCliente = reader.IsDBNull(reader.GetOrdinal("NUM_RNC")) ? "" : reader.GetString(reader.GetOrdinal("NUM_RNC")),
+                    FechaEmision = reader.GetDateTime(reader.GetOrdinal("FECHA_FACTURA")),
+                    SubTotal = reader.GetDecimal(reader.GetOrdinal("SUB_TOTAL")),
+                    Impuesto = reader.GetDecimal(reader.GetOrdinal("IMPUESTO")),
+                    Total = reader.GetDecimal(reader.GetOrdinal("TOTAL")),
+                    Condicion = ""
+                };
+            }
+
+            await using (var cnTipoPago = new SqlConnection(_connectionStrings))
+            await using (var cmdTipoPago = new SqlCommand(@"
+SELECT TOP (1) TP.Descripcion_Tipo_Pagos
+FROM Facturas F
+INNER JOIN Tipos_Pagos TP ON TP.ID_Tipo_Pagos = F.ID_Tipo_Pagos
+WHERE F.Numero_Factura = @numeroFactura AND F.ID_Sucursal = @sucursal", cnTipoPago))
+            {
+                await cnTipoPago.OpenAsync();
+                cmdTipoPago.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen);
+                cmdTipoPago.Parameters.AddWithValue("@sucursal", sucursal);
+
+                var descripcionTipoPago = await cmdTipoPago.ExecuteScalarAsync();
+                data.Condicion = descripcionTipoPago?.ToString() ?? "";
+            }
+
+            await using (var cmdDet = new SqlCommand(@"
+SELECT COD_PRODUCTO, DESCRIPCION, UND_MEDIDA, TIPO_PRODUCTO, CANTIDAD, PRECIO, IMPUESTO, TOTAL
+FROM PIVOT_FACTURAS_DET
+WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
+            {
+                cmdDet.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen.ToString());
+
+                await using var reader = await cmdDet.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    data.Detalle.Add(new NotaCreditoDetalleReporte
+                    {
+                        CodProducto = reader.IsDBNull(reader.GetOrdinal("COD_PRODUCTO")) ? "" : reader.GetString(reader.GetOrdinal("COD_PRODUCTO")),
+                        Descripcion = reader.IsDBNull(reader.GetOrdinal("DESCRIPCION")) ? "" : reader.GetString(reader.GetOrdinal("DESCRIPCION")),
+                        UndMedida = reader.IsDBNull(reader.GetOrdinal("UND_MEDIDA")) ? "" : reader.GetString(reader.GetOrdinal("UND_MEDIDA")),
+                        TipoProducto = reader.IsDBNull(reader.GetOrdinal("TIPO_PRODUCTO")) ? "" : Convert.ToInt32(reader["TIPO_PRODUCTO"]).ToString(),
+                        Cantidad = reader.GetDecimal(reader.GetOrdinal("CANTIDAD")),
+                        Precio = reader.GetDecimal(reader.GetOrdinal("PRECIO")),
+                        Impuesto = reader.GetDecimal(reader.GetOrdinal("IMPUESTO")),
+                        Total = reader.GetDecimal(reader.GetOrdinal("TOTAL"))
+                    });
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
         /// Obtiene todas las facturas MIXTO (ID_Tipo_Pagos = 6) en el período especificado
         /// </summary>
         public DataTable GetFacturasMixtoEnPeriodo(FacturaFilter filtro)
@@ -3233,6 +3315,8 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
 
                 var (estatusFinal, errorMsg, codigoSeguridad, fechaFirma) = await VerificaryActualizarEstatusProveedor2Async(factura.NcfNumero, rncEmisor);
 
+                var literalLog = notaCreditoInfo != null ? "NC" : "A";
+
                 if (estatusFinal)
                 {
                     string qrUrl = null;
@@ -3245,11 +3329,11 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                         errorLog = null;
                     }
 
-                    await GuardarLogFacturaElectronica(factura.NumeroFactura, "A", estadoLog, errorLog, qrUrl, usuario, factura.NcfNumero);
+                    await GuardarLogFacturaElectronica(factura.NumeroFactura, literalLog, estadoLog, errorLog, qrUrl, usuario, factura.NcfNumero);
                 }
                 else
                 {
-                    await GuardarLogFacturaElectronica(factura.NumeroFactura, "A", "RECHAZADO_DGII", errorMsg, null, usuario, factura.NcfNumero);
+                    await GuardarLogFacturaElectronica(factura.NumeroFactura, literalLog, "RECHAZADO_DGII", errorMsg, null, usuario, factura.NcfNumero);
                 }
 
                 return (estatusFinal, errorMsg);
@@ -3386,7 +3470,7 @@ VALUES
                 await tx.CommitAsync();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await tx.RollbackAsync();
                 return false;

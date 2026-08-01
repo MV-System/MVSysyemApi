@@ -500,6 +500,89 @@ namespace MVSystemApi.Model
         }
 
         /// <summary>
+        /// Obtiene los datos ciertos de la factura origen (FT) necesarios para construir una Nota de Crédito
+        /// (Proveedor 2), consultando directamente PIVOT_FACTURAS_ENC local (lo que realmente se transmitió a la DGII),
+        /// sin depender de la tabla Facturas.
+        /// </summary>
+        public async Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal)
+        {
+            await using var connection = new SqlConnection(_seguridadConnectionString);
+            await connection.OpenAsync();
+
+            await using var cmd = new SqlCommand(@"
+SELECT TOP (1)
+    NUM_CLIENTE, NUM_RNC, SUB_TOTAL, DESCUENTO, IMPUESTO, TOTAL, ENCF, FECHA_FACTURA
+FROM PIVOT_FACTURAS_ENC
+WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'FT'
+ORDER BY FECHA_REGISTRO DESC", connection);
+
+            cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura.ToString());
+            cmd.Parameters.AddWithValue("@sucursal", sucursal);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return null;
+
+            int.TryParse(reader.IsDBNull(reader.GetOrdinal("NUM_CLIENTE")) ? "" : reader.GetString(reader.GetOrdinal("NUM_CLIENTE")), out var idCliente);
+
+            return new Facturas
+            {
+                NumeroFactura = numeroFactura,
+                IdCliente = idCliente,
+                IdAlmacen = sucursal,
+                SubTotal = reader.GetDecimal(reader.GetOrdinal("SUB_TOTAL")),
+                Descuento = reader.GetDecimal(reader.GetOrdinal("DESCUENTO")),
+                Itbis = reader.GetDecimal(reader.GetOrdinal("IMPUESTO")),
+                Total = reader.GetDecimal(reader.GetOrdinal("TOTAL")),
+                RNC = reader.IsDBNull(reader.GetOrdinal("NUM_RNC")) ? "" : reader.GetString(reader.GetOrdinal("NUM_RNC")),
+                NcfNumero = reader.IsDBNull(reader.GetOrdinal("ENCF")) ? "" : reader.GetString(reader.GetOrdinal("ENCF")),
+                FechaRegistro = reader.GetDateTime(reader.GetOrdinal("FECHA_FACTURA"))
+            };
+        }
+
+        /// <summary>
+        /// Genera y reserva de forma atómica el siguiente e-NCF para el tipo de comprobante indicado
+        /// (usado para Notas de Crédito, tipoNcf = 34), sin insertar en la tabla Facturas.
+        /// </summary>
+        public async Task<string> ObtenerNcfNotaCredito(int tipoNcf)
+        {
+            await using var connection = new SqlConnection(_connectionStrings);
+            await using var cmd = new SqlCommand("Proc_Generar_NCF_NotaCredito", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddWithValue("@Tipo_NCF", tipoNcf);
+
+            await connection.OpenAsync();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return "";
+
+            return reader.IsDBNull(reader.GetOrdinal("NCF")) ? "" : reader.GetString(reader.GetOrdinal("NCF"));
+        }
+
+        /// <summary>
+        /// Consulta puntual (sin reintentos) del ESTATUS real de un e-CF en la tabla remota
+        /// PIVOT_FACTURAS_ENC de Proveedor 2, normalizado (ej. "ACEPTADO", "RECHAZADO_DGII").
+        /// </summary>
+        public async Task<string> ObtenerEstatusRemotoProveedor2(string encf, string rncEmisor)
+        {
+            await using var connection = new SqlConnection(_proveedor2ConnectionString);
+            await connection.OpenAsync();
+
+            await using var cmd = new SqlCommand(@"
+SELECT TOP (1) ESTATUS
+FROM PIVOT_FACTURAS_ENC
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
+
+            cmd.Parameters.AddWithValue("@encf", encf);
+            cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return NormalizarEstatus(result?.ToString());
+        }
+
+        /// <summary>
         /// Obtiene todas las facturas MIXTO (ID_Tipo_Pagos = 6) en el período especificado
         /// </summary>
         public DataTable GetFacturasMixtoEnPeriodo(FacturaFilter filtro)
@@ -3123,7 +3206,7 @@ namespace MVSystemApi.Model
             return await command.ExecuteNonQueryAsync();
         }
 
-        public async Task<(bool, string)> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor)
+        public async Task<(bool, string)> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor, NotaCreditoInfo notaCreditoInfo = null)
         {
             if (factura == null || detalles == null || detalles.Count == 0)
                 return (false, "Factura o detalles inválidos");
@@ -3138,11 +3221,11 @@ namespace MVSystemApi.Model
                 if (string.IsNullOrWhiteSpace(_seguridadConnectionString) || string.IsNullOrWhiteSpace(_proveedor2ConnectionString))
                     return (false, "Error de conexión: cadenas de conexión no disponibles");
 
-                var okLocal = await InsertFacturaProveedor2EnConexion(_seguridadConnectionString, factura, detalles, usuario, rncEmisor);
+                var okLocal = await InsertFacturaProveedor2EnConexion(_seguridadConnectionString, factura, detalles, usuario, rncEmisor, notaCreditoInfo);
                 if (!okLocal)
                     return (false, "Error al insertar factura en base de datos local");
 
-                var okRemoto = await InsertFacturaProveedor2EnConexion(_proveedor2ConnectionString, factura, detalles, usuario, rncEmisor);
+                var okRemoto = await InsertFacturaProveedor2EnConexion(_proveedor2ConnectionString, factura, detalles, usuario, rncEmisor, notaCreditoInfo);
                 if (!okRemoto)
                     return (false, "Error al insertar factura en Proveedor 2");
 
@@ -3177,7 +3260,7 @@ namespace MVSystemApi.Model
             }
         }
 
-        private async Task<bool> InsertFacturaProveedor2EnConexion(string connectionString, Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor)
+        private async Task<bool> InsertFacturaProveedor2EnConexion(string connectionString, Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor, NotaCreditoInfo notaCreditoInfo)
         {
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
@@ -3199,7 +3282,7 @@ VALUES
                     cmdDet.Parameters.AddWithValue("@TIPO_DOCUMENTO_COMPANIA", 1);
                     cmdDet.Parameters.AddWithValue("@COD_EMPRESA", int.TryParse(factura.IdEmpresa, out var idEmp) ? idEmp : 1);
                     cmdDet.Parameters.AddWithValue("@COD_SUCURSAL", int.TryParse(factura.IdSucursal, out var idSuc) ? idSuc : (object)DBNull.Value);
-                    cmdDet.Parameters.AddWithValue("@TIPO_DOCUMENTO", "FT");
+                    cmdDet.Parameters.AddWithValue("@TIPO_DOCUMENTO", notaCreditoInfo != null ? "NC" : "FT");
                     cmdDet.Parameters.AddWithValue("@NUM_DOCUMENTO", factura.NumeroFactura.ToString());
                     cmdDet.Parameters.AddWithValue("@RNC_EMISOR", rncEmisor);
                     cmdDet.Parameters.AddWithValue("@ENCF", factura.NcfNumero);
@@ -3255,14 +3338,14 @@ VALUES
                 var sqlInsertEnc = esConexionRemotaProveedor2
                     ? @"
 INSERT INTO dbo.PIVOT_FACTURAS_ENC
-(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,FECHA_VENCE_ENCF,TIPO_NCF,ENCF,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION)
+(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,FECHA_VENCE_ENCF,TIPO_NCF,ENCF,ENCF_REFERENCIA,DOC_REFERENCIA,FECHA_DOC_REFERENCIA,COD_MODIFICACION,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION)
 VALUES
-(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@FECHA_VENCE_ENCF,@TIPO_NCF,@ENCF,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,DATEADD(hour,-4,GETDATE()),@Indicador_NotaCredito,@DIRECCION)"
+(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@FECHA_VENCE_ENCF,@TIPO_NCF,@ENCF,@ENCF_REFERENCIA,@DOC_REFERENCIA,@FECHA_DOC_REFERENCIA,@COD_MODIFICACION,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,DATEADD(hour,-4,GETDATE()),@Indicador_NotaCredito,@DIRECCION)"
                     : @"
 INSERT INTO dbo.PIVOT_FACTURAS_ENC
-(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,FECHA_VENCE_ENCF,TIPO_NCF,ENCF,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION,ESTATUS)
+(COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,NUM_RNC,NUM_CLIENTE,NOMBRE_CLIENTE,TIPO_INGRESO,FORMA_PAGO,MONEDA,FECHA_FACTURA,FECHA_VENCE_ENCF,TIPO_NCF,ENCF,ENCF_REFERENCIA,DOC_REFERENCIA,FECHA_DOC_REFERENCIA,COD_MODIFICACION,SUB_TOTAL,DESCUENTO,IMPUESTO,TOTAL,USUARIO_CREA,FECHA_REGISTRO,Indicador_NotaCredito,DIRECCION,ESTATUS)
 VALUES
-(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@FECHA_VENCE_ENCF,@TIPO_NCF,@ENCF,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,DATEADD(hour,-4,GETDATE()),@Indicador_NotaCredito,@DIRECCION,@ESTATUS)";
+(@COMPANIA,@SUCURSAL,@TIPO_DOCUMENTO_COMPANIA,@COD_EMPRESA,@COD_SUCURSAL,@TIPO_DOCUMENTO,@NUM_DOCUMENTO,@RNC_EMISOR,@NUM_RNC,@NUM_CLIENTE,@NOMBRE_CLIENTE,@TIPO_INGRESO,@FORMA_PAGO,@MONEDA,@FECHA_FACTURA,@FECHA_VENCE_ENCF,@TIPO_NCF,@ENCF,@ENCF_REFERENCIA,@DOC_REFERENCIA,@FECHA_DOC_REFERENCIA,@COD_MODIFICACION,@SUB_TOTAL,@DESCUENTO,@IMPUESTO,@TOTAL,@USUARIO_CREA,DATEADD(hour,-4,GETDATE()),@Indicador_NotaCredito,@DIRECCION,@ESTATUS)";
 
                 await using var cmdEnc = new SqlCommand(sqlInsertEnc, connection, tx);
 
@@ -3271,7 +3354,7 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@TIPO_DOCUMENTO_COMPANIA", 1);
                 cmdEnc.Parameters.AddWithValue("@COD_EMPRESA", int.TryParse(factura.IdEmpresa, out var codEmp) ? codEmp : 1);
                 cmdEnc.Parameters.AddWithValue("@COD_SUCURSAL", int.TryParse(factura.IdSucursal, out var codSuc) ? codSuc : (object)DBNull.Value);
-                cmdEnc.Parameters.AddWithValue("@TIPO_DOCUMENTO", "FT");
+                cmdEnc.Parameters.AddWithValue("@TIPO_DOCUMENTO", notaCreditoInfo != null ? "NC" : "FT");
                 cmdEnc.Parameters.AddWithValue("@NUM_DOCUMENTO", factura.NumeroFactura.ToString());
                 cmdEnc.Parameters.AddWithValue("@RNC_EMISOR", rncEmisor);
                 cmdEnc.Parameters.AddWithValue("@NUM_RNC", string.IsNullOrWhiteSpace(factura.RNC) ? (object)DBNull.Value : factura.RNC);
@@ -3284,6 +3367,10 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@FECHA_VENCE_ENCF", (object)(fechaVenceEncf?.Date) ?? DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@TIPO_NCF", factura.NcfTipoNumero);
                 cmdEnc.Parameters.AddWithValue("@ENCF", factura.NcfNumero);
+                cmdEnc.Parameters.AddWithValue("@ENCF_REFERENCIA", (object)notaCreditoInfo?.EncfReferencia ?? DBNull.Value);
+                cmdEnc.Parameters.AddWithValue("@DOC_REFERENCIA", (object)notaCreditoInfo?.DocReferencia ?? DBNull.Value);
+                cmdEnc.Parameters.AddWithValue("@FECHA_DOC_REFERENCIA", notaCreditoInfo != null ? (object)notaCreditoInfo.FechaDocReferencia : DBNull.Value);
+                cmdEnc.Parameters.AddWithValue("@COD_MODIFICACION", notaCreditoInfo != null ? (object)notaCreditoInfo.CodModificacion : DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@SUB_TOTAL", factura.SubTotal);
                 cmdEnc.Parameters.AddWithValue("@DESCUENTO", factura.Descuento);
                 cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.Itbis);
@@ -3307,8 +3394,7 @@ VALUES
         }
 
         private async Task<DateTime?> GetFechaVenceEncfTipoNfc(int ncfTipoNumero)
-        {
-            try
+        {            try
             {
                 await using var cnTipoNfc = new SqlConnection(_connectionStrings);
                 await cnTipoNfc.OpenAsync();

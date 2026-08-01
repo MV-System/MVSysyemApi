@@ -142,6 +142,20 @@ namespace MVSystemApi.Model
         public string Usuario { get; set; }
         public string IDsucursal { get; set; }
     }
+    public class NotaCreditoInfo
+    {
+        public string DocReferencia { get; set; }
+        public DateTime FechaDocReferencia { get; set; }
+        public string EncfReferencia { get; set; }
+        public int CodModificacion { get; set; } = 1;
+    }
+    public class NotaCreditoProveedor2Request
+    {
+        public int NumeroFacturaOrigen { get; set; }
+        public string IDsucursal { get; set; }
+        public string Usuario { get; set; }
+        public string Motivo { get; set; }
+    }
     public class EditaDetalleFactura
     {
         public int NumeroFactura { get; set; }

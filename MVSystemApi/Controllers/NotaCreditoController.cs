@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -24,14 +23,12 @@ namespace MVSystemApi.Controllers
         private readonly Facturas_Negocio AD;
         private readonly IAccesoDatos _accesoDatos;
         private readonly SeguridadService _seguridadService;
-        private readonly ILogger<NotaCreditoController> _logger;
 
-        public NotaCreditoController(Facturas_Negocio _en, IAccesoDatos accesoDatos, SeguridadService seguridadService, ILogger<NotaCreditoController> logger)
+        public NotaCreditoController(Facturas_Negocio _en, IAccesoDatos accesoDatos, SeguridadService seguridadService)
         {
             AD = _en;
             _accesoDatos = accesoDatos;
             _seguridadService = seguridadService;
-            _logger = logger;
         }
 
         [HttpPost]
@@ -112,7 +109,6 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al generar Nota de Crédito Proveedor 2");
                 return BadRequest(new { error = ex.Message });
             }
         }

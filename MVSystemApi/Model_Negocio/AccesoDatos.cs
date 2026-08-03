@@ -3724,8 +3724,9 @@ WHERE ENCF = @encf", connection);
 
                 await InsertLogFacturaElectronica(log);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                throw ex;
             }
         }
 

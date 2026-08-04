@@ -6,24 +6,28 @@ using System.Data.SqlClient;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using MVSystemApi.Model_Negocio.Seguridad;
 using MVSystemApi.Interfaz;
 using DTO;
+using Rotativa.AspNetCore;
 
 namespace MVSystemApi.Controllers
 {
     [Route("PreFacturas")]
     [ApiController]
-    public class PreFacturasController : ControllerBase
+    public class PreFacturasController : Controller
     {
         private readonly PreFacturas_Negocio AD;
         private readonly IAccesoDatos _accesoDatos;
         private readonly IFacEDGIService _facEDGIService;
+        private readonly SeguridadService _seguridadService;
 
-        public PreFacturasController(PreFacturas_Negocio _en, IAccesoDatos accesoDatos, IFacEDGIService facEDGIService)
+        public PreFacturasController(PreFacturas_Negocio _en, IAccesoDatos accesoDatos, IFacEDGIService facEDGIService, SeguridadService seguridadService)
         {
             AD = _en;
             _accesoDatos = accesoDatos;
             _facEDGIService = facEDGIService;
+            _seguridadService = seguridadService;
         }
 
         // POST /PreFacturas
@@ -98,6 +102,93 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        // POST /PreFacturas/reporte - Imprime el PDF de la pre-factura reutilizando la vista de Factura (8.5x11)
+        [HttpPost]
+        [Route("reporte")]
+        public IActionResult ReportePreFactura(FacturaFilter consulta)
+        {
+            var data = ArmarDataReportePreFactura(consulta);
+            if (data == null) return NotFound();
+
+            return new ViewAsPdf("~/Views/FacturacionReporte/ReportFactura.cshtml", data);
+        }
+
+        // POST /PreFacturas/reporte-mini - Imprime el PDF de la pre-factura reutilizando la vista mini (80mm)
+        [HttpPost]
+        [Route("reporte-mini")]
+        public IActionResult ReportePreFacturaMini(FacturaFilter consulta)
+        {
+            var data = ArmarDataReportePreFactura(consulta);
+            if (data == null) return NotFound();
+
+            return new ViewAsPdf("~/Views/FacturacionReporte/ReportFacturaMini.cshtml", data);
+        }
+
+        /// <summary>
+        /// Arma el modelo de reporte de Factura a partir de una Pre-Factura (Estado 'P'), para reutilizar
+        /// las mismas vistas Razor de Factura. Retorna null si la pre-factura no existe o ya no está pendiente.
+        /// </summary>
+        private Facturas ArmarDataReportePreFactura(FacturaFilter consulta)
+        {
+            var preFactura = AD.ObtenerPreFacturaPorId(consulta.NumeroFactura);
+            if (preFactura == null) return null;
+
+            var preDetalles = AD.ObtenerDetallePreFactura(consulta.NumeroFactura);
+
+            var factura = new FacturaConsulta
+            {
+                NumeroFactura = preFactura.Numero_PreFactura,
+                ClienteId = preFactura.ID_Cliente,
+                Telefono = preFactura.Numero_Telefono,
+                Ncf = preFactura.NCF_NUMERO,
+                Rnc = preFactura.RNC,
+                Nombres = preFactura.Nombres,
+                Apellidos = preFactura.Apellidos,
+                Vendedor = preFactura.Vendedor_Nombres,
+                TipoFactura = preFactura.Tipo_Factura,
+                TipoPago = preFactura.Tipo_Pago,
+                Nota = preFactura.Nota,
+                SubTotal = preFactura.SubTotal,
+                Descuento = preFactura.Descuento ?? 0,
+                Itbis = preFactura.Itbis ?? 0,
+                Total = preFactura.Total,
+                Abono = preFactura.Abono ?? 0,
+                FechaFacturacion = preFactura.Fecha_Registro ?? DateTime.Now,
+                FacturaTitulo = "Pre-Factura No.",
+                FacturaTituloTipo = "Tipo de Pre-Factura",
+                VerNCF = ""
+            };
+
+            var detalleFactura = preDetalles.Select(d => new DetalleFactura
+            {
+                NumeroFactura = d.Numero_PreFactura,
+                IdEquipo = d.ID_Equipo,
+                IdTipo = d.ID_Tipo,
+                IdGarantia = d.ID_Garantia,
+                Cantidad = d.cantidad ?? 0,
+                Precio = d.precio ?? 0,
+                SubTotal = d.SubTotal,
+                Descuento = d.Descuento ?? 0,
+                Itbis = d.Itbis ?? 0,
+                Total = d.Total,
+                Usuario = d.Usuario,
+                FechaRegistro = d.Fecha_registro,
+                Descripcion = d.Descripcion
+            }).ToList();
+
+            DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
+            string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+            DatosEmpresaFactura.Logo = baseUrl + "/assets/" + DatosEmpresaFactura.Logo + ".png";
+            factura.logo = DatosEmpresaFactura.Logo;
+
+            return new Facturas
+            {
+                Factura = factura,
+                DetalleFacturaList = detalleFactura,
+                DatosEmpresaFactura = DatosEmpresaFactura,
+            };
         }
 
         public class ProcesarPreFacturaRequest

@@ -74,6 +74,13 @@ namespace MVSystemApi.Model_Negocio
             return _accesoDatos.AnularPreFactura(numeroPreFactura);
         }
 
+        public PreFactura ActualizarTipoPagoPreFactura(int numeroPreFactura, int idTipoPagos)
+        {
+            var dt = _accesoDatos.ActualizarTipoPagoPreFactura(numeroPreFactura, idTipoPagos);
+            var lista = AccesoDatos.BindList<PreFactura>(dt);
+            return lista.Count > 0 ? lista[0] : null;
+        }
+
         public PreFactura CrearPreFactura(PreFactura prefactura)
         {
             var dt = _accesoDatos.InsertarPreFactura(prefactura);

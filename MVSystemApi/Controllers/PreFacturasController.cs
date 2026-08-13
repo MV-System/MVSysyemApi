@@ -246,6 +246,28 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        public class ActualizarTipoPagoRequest
+        {
+            public int ID_Tipo_Pagos { get; set; }
+        }
+
+        // PUT /PreFacturas/{id}
+        [HttpPut]
+        [Route("{id}")]
+        public IActionResult ActualizarTipoPagoPreFactura(int id, [FromBody] ActualizarTipoPagoRequest request)
+        {
+            try
+            {
+                var result = AD.ActualizarTipoPagoPreFactura(id, request.ID_Tipo_Pagos);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         public class RebajarItemPreFacturaRequest
         {
             public int NumeroPreFactura { get; set; }

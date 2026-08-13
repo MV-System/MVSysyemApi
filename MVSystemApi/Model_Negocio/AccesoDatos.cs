@@ -440,10 +440,10 @@ namespace MVSystemApi.Model
                         ISNULL(fv.Descuento, 0) AS Descuento,
                         ISNULL(fv.Itbis, 0) AS Itbis,
                         ISNULL(fv.TotalFacturado, 0) AS TotalFacturado,
-                        CASE 
-                            WHEN ISNULL(fv.ID_Tipo_Pagos, ab.ID_Tipo_Pagos) = 1 
+                        CASE
+                            WHEN ISNULL(fv.ID_Tipo_Pagos, ab.ID_Tipo_Pagos) = 1
                             THEN ISNULL(fv.TotalFacturado, 0) + ISNULL(ab.MontoAbonos, 0)
-                            ELSE 0 
+                            ELSE 0
                         END AS EfectivoReal,
                         ISNULL(fv.SaldoPendiente, 0) AS SaldoPendiente,
                         0 AS IsAbono
@@ -2917,6 +2917,35 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
+        public DataTable ActualizarTipoPagoPreFactura(int numeroPreFactura, int idTipoPagos)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = @"
+                    UPDATE PreFacturas
+                    SET ID_Tipo_Pagos = @ID_Tipo_Pagos
+                    WHERE Numero_PreFactura = @Numero_PreFactura;
+
+                    SELECT * FROM PreFacturas
+                    WHERE Numero_PreFactura = @Numero_PreFactura;
+                ";
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", idTipoPagos);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public DataTable InsertarPreFactura(PreFactura prefactura)
         {
             cn.Open();
@@ -3387,7 +3416,7 @@ VALUES
                 DateTime? fechaVenceEncf = null;
                 if (factura.NcfTipoNumero == 31)
                     fechaVenceEncf = await GetFechaVenceEncfTipoNfc(factura.NcfTipoNumero);
-                
+
 
                 var esConexionRemotaProveedor2 = connectionString.Contains("hstgr.cloud", StringComparison.OrdinalIgnoreCase);
                 var sqlInsertEnc = esConexionRemotaProveedor2
@@ -3665,7 +3694,7 @@ WHERE ENCF = @encf", connection);
 
             // Normalizar: trim, uppercase, remover espacios extras
             var normalized = estatus.Trim().ToUpper().Replace("  ", " ");
-            
+
             // Mapeo de variaciones conocidas
             if (normalized == "ACEPTADA" || normalized == "ACEPTADO")
                 return "ACEPTADO";
@@ -3673,7 +3702,7 @@ WHERE ENCF = @encf", connection);
                 return "RECHAZADO_DGII";
             if (normalized.StartsWith("RECHAZAD"))
                 return "RECHAZADO";
-            
+
             return normalized;
         }
 

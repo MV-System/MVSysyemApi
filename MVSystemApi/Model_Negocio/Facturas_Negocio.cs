@@ -45,7 +45,7 @@ namespace MVSystemApi.Model_Negocio
                               IdTipo = Convert.ToInt32(dt["ID_Tipo"]),
                           }).ToList();
             return result;
-        }    
+        }
         internal object GetFacturas(FacturaFilter consulta)
         {
 
@@ -88,7 +88,7 @@ namespace MVSystemApi.Model_Negocio
 
             decimal totalItbis;
             decimal totalSinItbis;
-            
+
             if (pageTable.Columns.Contains("TotalItbis"))
             {
                 totalItbis = Convert.ToDecimal(pageTable.Rows[0]["TotalItbis"]);
@@ -200,7 +200,7 @@ namespace MVSystemApi.Model_Negocio
             var result = (from dt in Ac.GetFacturaNumeroUltimo().AsEnumerable()
                           select Numero_Factura = Convert.ToInt32(dt["Numero_Factura"]) + 1).FirstOrDefault();
 
-                        
+
 
             return result;
         }
@@ -296,7 +296,7 @@ namespace MVSystemApi.Model_Negocio
 
                 // Obtener datos de la base de datos
                 var dt = Ac.GetCierreCajaReport(filtro);
-                
+
                 if (dt == null || dt.Rows.Count == 0)
                 {
                     return new CierreCajaReporteResumen
@@ -315,7 +315,7 @@ namespace MVSystemApi.Model_Negocio
                 // Obtener tipos de pagos para tener las descripciones
                 var tiposPagosData = Ac.Tipos_Pagos_Cata_Consulta_Combo();
                 var tiposPagos = new Dictionary<int, Tipos_Pagos>();
-                
+
                 foreach (DataRow row in tiposPagosData.Rows)
                 {
                     var idTipo = Convert.ToInt32(row["ID_Tipo_Pagos"]);
@@ -333,8 +333,8 @@ namespace MVSystemApi.Model_Negocio
                 foreach (DataRow row in dt.Rows)
                 {
                     var idTipoPago = Convert.ToInt32(row["ID_Tipo_Pagos"]);
-                    var tipoPagoDesc = tiposPagos.ContainsKey(idTipoPago) 
-                        ? tiposPagos[idTipoPago].Descripcion_Tipo_Pagos 
+                    var tipoPagoDesc = tiposPagos.ContainsKey(idTipoPago)
+                        ? tiposPagos[idTipoPago].Descripcion_Tipo_Pagos
                         : "Desconocido";
 
                     var efectivoReal = Convert.ToDecimal(row["EfectivoReal"]);
@@ -346,14 +346,15 @@ namespace MVSystemApi.Model_Negocio
                         TipoPago = tipoPagoDesc,
                         CantidadFacturas = Convert.ToInt32(row["CantidadFacturas"]),
                         CantidadAbonosRecibidos = Convert.ToInt32(row["CantidadAbonosRecibidos"] ?? 0),
-                        MontoAbonos = efectivoReal,
+                        MontoAbonos = Convert.ToDecimal(row["MontoAbonos"] ?? 0),
                         SubTotal = Convert.ToDecimal(row["SubTotal"]),
                         Descuento = Convert.ToDecimal(row["Descuento"]),
                         Itbis = Convert.ToDecimal(row["Itbis"]),
                         TotalFacturado = rowTotalFacturado,
                         EfectivoReal = efectivoReal,
                         SaldoPendiente = saldoPendiente,
-                        PorcentajeDelTotal = 0
+                        PorcentajeDelTotal = 0,
+                        IsAbono = Convert.ToInt32(row["IsAbono"]) == 1
                     };
 
                     detallesPorTipo[idTipoPago] = detalle;
@@ -367,10 +368,10 @@ namespace MVSystemApi.Model_Negocio
                 if (detallesPorTipo.ContainsKey(ID_TIPO_PAGO_MIXTO))
                 {
                     var detalleMixto = detallesPorTipo[ID_TIPO_PAGO_MIXTO];
-                    
+
                     // Obtener todas las facturas MIXTO en el período
                     var facturasMixto = Ac.GetFacturasMixtoEnPeriodo(filtro);
-                    
+
                     if (facturasMixto != null && facturasMixto.Rows.Count > 0)
                     {
                         // Para cada factura MIXTO, obtener sus desglose
@@ -382,25 +383,25 @@ namespace MVSystemApi.Model_Negocio
                         {
                             int numeroFactura = Convert.ToInt32(facturaRow["Numero_Factura"]);
                             decimal totalFacturaMixto = Convert.ToDecimal(facturaRow["Total"]);
-                            
+
                             // Obtener el desglose de pagos para esta factura
                             var desgloses = Ac.GetDetallesPagoFactura(numeroFactura);
-                            
+
                             if (desgloses != null && desgloses.Count > 0)
                             {
                                 foreach (var desglose in desgloses)
                                 {
                                     int tipoPagoDesglose = desglose.ID_Tipo_Pago;
                                     decimal montoDesglose = desglose.Monto_Pago;
-                                    string descDesglose = tiposPagos.ContainsKey(tipoPagoDesglose) 
-                                        ? tiposPagos[tipoPagoDesglose].Descripcion_Tipo_Pagos 
+                                    string descDesglose = tiposPagos.ContainsKey(tipoPagoDesglose)
+                                        ? tiposPagos[tipoPagoDesglose].Descripcion_Tipo_Pagos
                                         : $"Tipo {tipoPagoDesglose}";
-                                    
+
                                     // Si el desglose es CONTADO, extraerlo del MIXTO y sumarlo a CONTADO
                                     if (tipoPagoDesglose == ID_TIPO_PAGO_CONTADO)
                                     {
                                         totalEfectivoExtraido += montoDesglose;
-                                        
+
                                         // Registrar el ajuste
                                         if (!ajustesPorTipo.ContainsKey(ID_TIPO_PAGO_CONTADO))
                                         {
@@ -425,7 +426,7 @@ namespace MVSystemApi.Model_Negocio
                             {
                                 // Sin desglose disponible
                             }
-                            
+
                             totalMixtoAjustado += totalFacturaMixto;
                         }
 
@@ -441,8 +442,8 @@ namespace MVSystemApi.Model_Negocio
                             // Si no existe CONTADO, crearlo
                             detallesPorTipo[ID_TIPO_PAGO_CONTADO] = new CierreCajaDetalleReporte
                             {
-                                TipoPago = tiposPagos.ContainsKey(ID_TIPO_PAGO_CONTADO) 
-                                    ? tiposPagos[ID_TIPO_PAGO_CONTADO].Descripcion_Tipo_Pagos 
+                                TipoPago = tiposPagos.ContainsKey(ID_TIPO_PAGO_CONTADO)
+                                    ? tiposPagos[ID_TIPO_PAGO_CONTADO].Descripcion_Tipo_Pagos
                                     : "Contado",
                                 CantidadFacturas = 0,
                                 MontoAbonos = 0,
@@ -462,7 +463,7 @@ namespace MVSystemApi.Model_Negocio
                             detalleContado.EfectivoReal += ajuste.MontoEfectivoAnadido;
                             detalleContado.TotalFacturado += ajuste.MontoEfectivoAnadido;
                             detalleContado.CantidadFacturas += ajuste.CantidadFacturasAnadidas;
-                            
+
                             // Registrar que vino del desglose MIXTO
                             detalleContado.MontoDesdeDesgloseMixto = ajuste.MontoEfectivoAnadido;
                             detalleContado.CantidadFacturasDesdeMixto = ajuste.CantidadFacturasAnadidas;
@@ -474,13 +475,13 @@ namespace MVSystemApi.Model_Negocio
                             if (ajuste.Key != ID_TIPO_PAGO_CONTADO) // Ya lo procesamos arriba
                             {
                                 bool esNuevaLinea = !detallesPorTipo.ContainsKey(ajuste.Key);
-                                
+
                                 if (esNuevaLinea)
                                 {
                                     detallesPorTipo[ajuste.Key] = new CierreCajaDetalleReporte
                                     {
-                                        TipoPago = tiposPagos.ContainsKey(ajuste.Key) 
-                                            ? tiposPagos[ajuste.Key].Descripcion_Tipo_Pagos 
+                                        TipoPago = tiposPagos.ContainsKey(ajuste.Key)
+                                            ? tiposPagos[ajuste.Key].Descripcion_Tipo_Pagos
                                             : $"Tipo {ajuste.Key}",
                                         CantidadFacturas = 0,
                                         MontoAbonos = 0,
@@ -502,13 +503,13 @@ namespace MVSystemApi.Model_Negocio
                                     detalleOtro.EfectivoReal = 0;
                                 }
                                 detalleOtro.CantidadFacturas += ajuste.Value.CantidadFacturasAnadidas;
-                                
+
                                 // Registrar que vino del desglose MIXTO
                                 detalleOtro.MontoDesdeDesgloseMixto = ajuste.Value.MontoAnadido;
                                 detalleOtro.CantidadFacturasDesdeMixto = ajuste.Value.CantidadFacturasAnadidas;
                             }
                         }
-                        
+
                         // IMPORTANTE: Eliminar MIXTO del reporte final porque fue completamente desglosado
                         // MIXTO es solo un contenedor temporal; en el reporte se muestra la composición real
                         if (detallesPorTipo.ContainsKey(ID_TIPO_PAGO_MIXTO))

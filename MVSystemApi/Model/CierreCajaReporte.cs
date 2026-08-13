@@ -76,6 +76,13 @@ namespace MVSystemApi.Model
         /// Cantidad de facturas MIXTO que contribuyeron a este tipo de pago
         /// </summary>
         public int CantidadFacturasDesdeMixto { get; set; } = 0;
+
+        /// <summary>
+        /// Indicador de si esta fila representa un abono (pago) vs una venta
+        /// true = es un abono (pago realizado a factura de crédito)
+        /// false = es una venta
+        /// </summary>
+        public bool IsAbono { get; set; } = false;
     }
 
     /// <summary>

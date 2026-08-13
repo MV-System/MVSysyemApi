@@ -400,25 +400,15 @@ namespace MVSystemApi.Model
             {
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = @"
-                    ;WITH FacturasPeriodo AS (
+                    ;WITH FacturasVentas AS (
                         SELECT
                             F.ID_Tipo_Pagos,
                             COUNT(DISTINCT F.Numero_Factura) AS CantidadFacturas,
-                            COUNT(DISTINCT CASE
-                                WHEN F.Abono > 0 THEN F.Numero_Factura
-                            END) AS CantidadAbonosRecibidosBase,
                             SUM(F.SubTotal) AS SubTotal,
                             SUM(F.Descuento) AS Descuento,
                             SUM(F.Itbis) AS Itbis,
                             SUM(F.Total) AS TotalFacturado,
-                            SUM(CASE
-                                WHEN F.ID_Tipo_Pagos = 1 THEN F.Total
-                                ELSE ISNULL(F.Abono, 0)
-                            END) AS EfectivoRealBase,
-                            SUM(CASE
-                                WHEN F.ID_Tipo_Pagos = 2 THEN F.Total - ISNULL(F.Abono, 0)
-                                ELSE 0
-                            END) AS SaldoPendiente
+                            SUM(CASE WHEN F.ID_Tipo_Pagos = 2 THEN F.Total - ISNULL(F.Abono, 0) ELSE 0 END) AS SaldoPendiente
                         FROM Facturas F
                         WHERE CAST(F.Fecha_Registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
                             AND F.ID_Sucursal = @Almacen
@@ -426,59 +416,40 @@ namespace MVSystemApi.Model
                             AND (@IdVendedor = 0 OR F.ID_Vendedor = @IdVendedor)
                         GROUP BY F.ID_Tipo_Pagos
                     ),
-                    AbonosPeriodo AS (
+                    AbonosPorTipo AS (
                         SELECT
+                            hp.ID_Tipo_Pagos,
                             COUNT(DISTINCT TRY_CONVERT(INT, hp.Numero_factura)) AS CantidadAbonosRecibidos,
-                            SUM(ISNULL(TRY_CONVERT(DECIMAL(18, 2), hp.Total_Abono), 0)) AS TotalAbonos
+                            SUM(ISNULL(TRY_CONVERT(DECIMAL(18, 2), hp.Total_Abono), 0)) AS MontoAbonos
                         FROM Historio_Pagos hp
                         INNER JOIN Facturas fRel
                             ON fRel.ID_Sucursal = hp.Id_Sucursal
                             AND fRel.Numero_Factura = TRY_CONVERT(INT, hp.Numero_factura)
                         WHERE CAST(hp.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)
                             AND hp.Id_Sucursal = @Almacen
-                            AND (@IdVendedor = 0 OR fRel.ID_Vendedor = @IdVendedor)
                             AND fRel.ID_Tipo_Pagos = 2
+                            AND hp.Total_Abono > 0
+                        GROUP BY hp.ID_Tipo_Pagos
                     )
                     SELECT
-                        fp.ID_Tipo_Pagos,
-                        fp.CantidadFacturas,
-                        CASE
-                            WHEN fp.ID_Tipo_Pagos = 2 THEN ISNULL(ap.CantidadAbonosRecibidos, 0)
-                            ELSE fp.CantidadAbonosRecibidosBase
-                        END AS CantidadAbonosRecibidos,
-                        fp.SubTotal,
-                        fp.Descuento,
-                        fp.Itbis,
-                        fp.TotalFacturado,
-                        CASE
-                            WHEN fp.ID_Tipo_Pagos = 2 THEN ISNULL(ap.TotalAbonos, 0)
-                            ELSE fp.EfectivoRealBase
+                        ISNULL(fv.ID_Tipo_Pagos, ab.ID_Tipo_Pagos) AS ID_Tipo_Pagos,
+                        ISNULL(fv.CantidadFacturas, 0) AS CantidadFacturas,
+                        ISNULL(ab.CantidadAbonosRecibidos, 0) AS CantidadAbonosRecibidos,
+                        ISNULL(ab.MontoAbonos, 0) AS MontoAbonos,
+                        ISNULL(fv.SubTotal, 0) AS SubTotal,
+                        ISNULL(fv.Descuento, 0) AS Descuento,
+                        ISNULL(fv.Itbis, 0) AS Itbis,
+                        ISNULL(fv.TotalFacturado, 0) AS TotalFacturado,
+                        CASE 
+                            WHEN ISNULL(fv.ID_Tipo_Pagos, ab.ID_Tipo_Pagos) = 1 
+                            THEN ISNULL(fv.TotalFacturado, 0) + ISNULL(ab.MontoAbonos, 0)
+                            ELSE 0 
                         END AS EfectivoReal,
-                        fp.SaldoPendiente
-                    FROM FacturasPeriodo fp
-                    CROSS JOIN AbonosPeriodo ap
-
-                    UNION ALL
-
-                    SELECT
-                        2 AS ID_Tipo_Pagos,
-                        0 AS CantidadFacturas,
-                        ISNULL(ap.CantidadAbonosRecibidos, 0) AS CantidadAbonosRecibidos,
-                        CAST(0 AS DECIMAL(18, 2)) AS SubTotal,
-                        CAST(0 AS DECIMAL(18, 2)) AS Descuento,
-                        CAST(0 AS DECIMAL(18, 2)) AS Itbis,
-                        CAST(0 AS DECIMAL(18, 2)) AS TotalFacturado,
-                        ISNULL(ap.TotalAbonos, 0) AS EfectivoReal,
-                        CAST(0 AS DECIMAL(18, 2)) AS SaldoPendiente
-                    FROM AbonosPeriodo ap
-                    WHERE ISNULL(ap.TotalAbonos, 0) > 0
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM FacturasPeriodo fp
-                            WHERE fp.ID_Tipo_Pagos = 2
-                        )
-
-                    ORDER BY TotalFacturado DESC";
+                        ISNULL(fv.SaldoPendiente, 0) AS SaldoPendiente,
+                        0 AS IsAbono
+                    FROM FacturasVentas fv
+                    FULL OUTER JOIN AbonosPorTipo ab ON fv.ID_Tipo_Pagos = ab.ID_Tipo_Pagos
+                    ORDER BY ISNULL(fv.ID_Tipo_Pagos, ab.ID_Tipo_Pagos) DESC";
 
                 cmd.CommandType = CommandType.Text;
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", filtro.FechaInicio);

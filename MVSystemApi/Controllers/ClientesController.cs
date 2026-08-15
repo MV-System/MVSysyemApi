@@ -167,5 +167,25 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet()]
+        [Route("GetHistorialAbonos")]
+        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        public ActionResult GetHistorialAbonos([FromQuery] int idCliente, [FromQuery] string fechaInicio = null, [FromQuery] string fechaFinal = null)
+        {
+            try
+            {
+                var lista = AD.ObtenerHistorialAbonos(idCliente, fechaInicio, fechaFinal);
+                if (lista == null || lista.Count == 0)
+                {
+                    return NotFound("No se encontró historial de abonos para este cliente");
+                }
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

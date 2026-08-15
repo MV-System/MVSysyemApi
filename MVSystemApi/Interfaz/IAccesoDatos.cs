@@ -66,6 +66,7 @@ namespace MVSystemApi.Interfaz
         DataTable Cliente_Consulta(string criterio);
         DataTable Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio);
         DataTable Cliente_FacturasPendientesDetalle(int cliente);
+        DataTable ObtenerHistorialAbonos(int idCliente, string fechaInicio = null, string fechaFinal = null);
         
         #endregion
 

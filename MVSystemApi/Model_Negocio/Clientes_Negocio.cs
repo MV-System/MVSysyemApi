@@ -208,5 +208,41 @@ namespace MVSystemApi.Model
             }
         }
 
+        /// <summary>
+        /// Obtiene el historial de abonos/pagos de un cliente
+        /// </summary>
+        internal List<DTO.HistorialAbonoDTO> ObtenerHistorialAbonos(int idCliente, string fechaInicio = null, string fechaFinal = null)
+        {
+            try
+            {
+                var solicitud = (from dt in AA.ObtenerHistorialAbonos(idCliente, fechaInicio, fechaFinal).AsEnumerable()
+                                select new DTO.HistorialAbonoDTO
+                                {
+                                    Id = dt["Id"] == DBNull.Value ? 0 : Convert.ToInt32(dt["Id"]),
+                                    IdCliente = dt["IdCliente"] == DBNull.Value ? 0 : Convert.ToInt32(dt["IdCliente"]),
+                                    NumeroFactura = dt["NumeroFactura"] == DBNull.Value ? 0 : Convert.ToInt32(dt["NumeroFactura"]),
+                                    TotalFactura = dt["TotalFactura"] == DBNull.Value ? 0m : Convert.ToDecimal(dt["TotalFactura"]),
+                                    TotalAbono = dt["TotalAbono"] == DBNull.Value ? 0m : Convert.ToDecimal(dt["TotalAbono"]),
+                                    MontoPendiente = dt["MontoPendiente"] == DBNull.Value ? 0m : Convert.ToDecimal(dt["MontoPendiente"]),
+                                    IdTipoFactura = dt.Table.Columns.Contains("IdTipoFactura") && dt["IdTipoFactura"] != DBNull.Value ? Convert.ToInt32(dt["IdTipoFactura"]) : 0,
+                                    TipoFactura = dt.Table.Columns.Contains("TipoFactura") && dt["TipoFactura"] != DBNull.Value ? Convert.ToString(dt["TipoFactura"]) : "",
+                                    FechaVencimiento = dt.Table.Columns.Contains("FechaVencimiento") && dt["FechaVencimiento"] != DBNull.Value ? Convert.ToDateTime(dt["FechaVencimiento"]) : DateTime.Now,
+                                    Estado = dt.Table.Columns.Contains("Estado") && dt["Estado"] != DBNull.Value ? Convert.ToString(dt["Estado"]) : "",
+                                    Usuario = dt.Table.Columns.Contains("Usuario") && dt["Usuario"] != DBNull.Value ? Convert.ToString(dt["Usuario"]) : "",
+                                    FechaRegistro = dt.Table.Columns.Contains("FechaRegistro") && dt["FechaRegistro"] != DBNull.Value ? Convert.ToDateTime(dt["FechaRegistro"]) : DateTime.Now,
+                                    IdTipoPago = dt.Table.Columns.Contains("IdTipoPago") && dt["IdTipoPago"] != DBNull.Value ? Convert.ToInt32(dt["IdTipoPago"]) : 0,
+                                    TipoPago = dt.Table.Columns.Contains("TipoPago") && dt["TipoPago"] != DBNull.Value ? Convert.ToString(dt["TipoPago"]) : "",
+                                    Nota = dt.Table.Columns.Contains("Nota") && dt["Nota"] != DBNull.Value ? Convert.ToString(dt["Nota"]) : "",
+                                    IdLoteAbono = dt.Table.Columns.Contains("IdLoteAbono") && dt["IdLoteAbono"] != DBNull.Value ? (Guid)dt["IdLoteAbono"] : (Guid?)null
+                                }).ToList();
+
+                return solicitud;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
     }
 }

@@ -1087,6 +1087,50 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 throw;
             }
         }
+
+        /// <summary>
+        /// Obtiene el historial de abonos/pagos de un cliente
+        /// </summary>
+        public DataTable ObtenerHistorialAbonos(int idCliente, string fechaInicio = null, string fechaFinal = null)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "sp_ObtenerHistorialAbonosCliente";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdCliente", idCliente);
+                
+                if (!string.IsNullOrEmpty(fechaInicio) && DateTime.TryParse(fechaInicio, out DateTime fechaInicioDate))
+                {
+                    cmd.Parameters.AddWithValue("@FechaInicio", fechaInicioDate);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@FechaInicio", DBNull.Value);
+                }
+
+                if (!string.IsNullOrEmpty(fechaFinal) && DateTime.TryParse(fechaFinal, out DateTime fechaFinalDate))
+                {
+                    cmd.Parameters.AddWithValue("@FechaFinal", fechaFinalDate);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@FechaFinal", DBNull.Value);
+                }
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public DataTable GetTipo_Telefono_Lista()
         {
 

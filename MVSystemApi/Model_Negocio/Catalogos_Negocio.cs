@@ -53,6 +53,41 @@ namespace MVSystemApi.Model
                 throw ex;
             }
         }
+        internal object GetGrupos_Lista()
+        {
+            try
+            {
+                var Lista = (from dt in Ac.GetGrupos_Combo().AsEnumerable()
+                             select new Grupos
+                             {
+                                 ID_Grupo = Convert.ToInt32(dt["ID_Grupo"]),
+                                 Descripcion = Convert.ToString(dt["Descripcion"]),
+                             }).ToList();
+                return Lista;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        internal object Grupo_Insert(Grupos Grupo)
+        {
+            try
+            {
+                var solicit = (from dt in Ac.Grupo_Insert(Grupo).AsEnumerable()
+                               select new Grupos
+                               {
+                                   ID_Grupo = Convert.ToInt32(dt["ID_Grupo"]),
+                                   Descripcion = Convert.ToString(dt["Descripcion"]),
+                                   Mensaje = Convert.ToString(dt["Mensaje"]),
+                               }).ToList().FirstOrDefault();
+                return solicit;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
         internal object GetTipos_Factura_Lista()
         {
 

@@ -88,7 +88,9 @@ namespace MVSystemApi.Model
                               LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
                               Line = Convert.ToInt32(dt["Linea"]),
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
-                              TotalInventario = Convert.ToDecimal(dt["TotalInventario"])
+                              TotalInventario = Convert.ToDecimal(dt["TotalInventario"]),
+                              IdGrupo = dt.Table.Columns.Contains("ID_Grupo") && dt["ID_Grupo"] != DBNull.Value ? Convert.ToInt32(dt["ID_Grupo"]) : 0,
+                              Grupo = dt.Table.Columns.Contains("Grupo") && dt["Grupo"] != DBNull.Value ? Convert.ToString(dt["Grupo"]) : ""
                           }).ToList();
             return result;
         }

@@ -1494,6 +1494,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 cmd.Parameters.AddWithValue("@Suplidor", equipoDisponibleFilterDTO.Suplidor);
                 cmd.Parameters.AddWithValue("@Imei", equipoDisponibleFilterDTO.Imei);
                 cmd.Parameters.AddWithValue("@ID_Modelo", equipoDisponibleFilterDTO.Modelo);
+                cmd.Parameters.AddWithValue("@Grupo", (object)equipoDisponibleFilterDTO.Grupo ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoDisponibleFilterDTO.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoDisponibleFilterDTO.PageSize);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoDisponibleFilterDTO.FechaInicio);
@@ -2567,6 +2568,46 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 throw;
             }
         }
+        public DataTable Grupo_Insert(Grupos Grupo)
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Grupos_Insert";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Descripcion", Grupo.Descripcion);
+                cmd.Parameters.AddWithValue("@Usuario", Grupo.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        public DataTable GetGrupos_Combo()
+        {
+            cn.Open();
+            try
+            {
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Grupos_Consulta_Combo";
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         public DataTable Modelo_Insert(Modelos Modelo)
         {
             cn.Open();
@@ -2582,6 +2623,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 cmd.Parameters.AddWithValue("@Descripcion", Modelo.Descripcion);
                 cmd.Parameters.AddWithValue("@Estado", Modelo.Estado ?? "A");
                 cmd.Parameters.AddWithValue("@Usuario", Modelo.Usuario);
+                cmd.Parameters.AddWithValue("@ID_Grupo", Modelo.ID_Grupo > 0 ? (object)Modelo.ID_Grupo : 1);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);

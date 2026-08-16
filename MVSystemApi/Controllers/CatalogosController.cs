@@ -437,6 +437,38 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("Grupos_Combo")]
+        public ActionResult GetGrupos_Combo()
+        {
+            try
+            {
+                var lista = AD.GetGrupos_Lista();
+                if (lista == null) return NotFound();
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("Grupo_Insert")]
+        public ActionResult Grupo_Insert([FromBody] MVSystemApi.Model.Grupos Grupo)
+        {
+            try
+            {
+                var lista = AD.Grupo_Insert(Grupo);
+                if (lista == null) return NotFound();
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 
     public class ActualizarAsumeITBISRequest

@@ -32,6 +32,8 @@ namespace DTO
         public string Fecharegistro { get; set; }
         public string logo { get; set; }
         public decimal TotalInventario { get; set; }
+        public int IdGrupo { get; set; }
+        public string Grupo { get; set; }
 
     }
     public class EquipoDisponibleFilterDTO : RangeDatePaging
@@ -44,6 +46,7 @@ namespace DTO
         public string Suplidor { get; set; }
         public string Imei { get; set; }
         public int? Modelo { get; set; }
+        public int? Grupo { get; set; }
         public string Empresa { get; set; }
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }

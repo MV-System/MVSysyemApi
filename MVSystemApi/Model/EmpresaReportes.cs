@@ -12,6 +12,7 @@ namespace MVSystemApi.Model
         public List<EquipoRegistrado> EquiposRegistrados { get; set; }
         public List<ReciboAbonoDTO> ReciboAbono { get; set; }
         public List<ReciboAbonoGeneralDTO> ReciboAbonoGeneral { get; set; }
-
+        public List<HistorialAbonoDTO> HistorialAbonos { get; set; }
+        public Clientes_consulta Cliente { get; set; }
     }
 }

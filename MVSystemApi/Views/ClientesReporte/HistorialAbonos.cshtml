@@ -1,0 +1,257 @@
+@using MVSystemApi.Model
+@using DTO
+@model EmpresaReportes
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
+
+    <title>Histórico de Abonos</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-size: 10pt;
+            background: #fff;
+        }
+
+        .container {
+            width: 100%;
+            padding: 15px;
+        }
+
+        .container.header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .container.header p {
+            margin: 2px 0;
+        }
+
+        .row {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        .row > [class^="col-"],
+        .row > [class*=" col-"] {
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+        }
+
+        table {
+            width: 100% !important;
+            max-width: 100%;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            padding: 6px;
+            border: 1px solid #343a40;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 8px auto;
+            max-width: 150px;
+        }
+
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 12px 0 8px 0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .info-section {
+            margin-bottom: 8px;
+            padding: 5px;
+            border: 1px solid #343a40;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 150px;
+            display: inline-block;
+        }
+
+        .info-value {
+            display: inline-block;
+        }
+
+        .info-row {
+            margin-bottom: 4px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .total-row td {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+
+        .resumen-box {
+            margin-top: 10px;
+            padding: 8px;
+            border: 2px solid #343a40;
+            text-align: center;
+        }
+
+        .resumen-box p {
+            margin: 4px 0;
+            font-size: 12pt;
+        }
+
+        .resumen-box strong {
+            font-size: 13pt;
+        }
+
+        @@media print {
+            html, body { margin: 0; }
+            .no-print { display: none; }
+        }
+
+        body, table, th, td, p, span, b {
+            color: #000 !important;
+            opacity: 1 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        @@media print {
+            body, table, th, td, p, span, b {
+                color: #000 !important;
+                opacity: 1 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container header">
+        <img src="@Model.DatosEmpresaFactura.Logo" alt="Logo" class="logo" />
+        <p><strong>@Model.DatosEmpresaFactura.Encabezado</strong></p>
+        <p>@Model.DatosEmpresaFactura.Direccion</p>
+        <p>@Model.DatosEmpresaFactura.Telefonos</p>
+        <p><strong>RNC: @Model.DatosEmpresaFactura.RNC</strong></p>
+    </div>
+
+    <div class="section-title">*** HISTÓRICO DE ABONOS ***</div>
+
+    <div class="container">
+        <div class="info-section">
+            <div class="info-row">
+                <span class="info-label">Cliente:</span>
+                <span class="info-value"><strong>@Model.Cliente.Nombres @Model.Cliente.Apellidos</strong></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Teléfono:</span>
+                <span class="info-value">@Model.Cliente.Numero_de_telefono</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Fecha de Reporte:</span>
+                <span class="info-value">@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</span>
+            </div>
+        </div>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th style="width: 12%">Factura #</th>
+                    <th style="width: 14%">Monto Original</th>
+                    <th style="width: 14%">Monto Abonado</th>
+                    <th style="width: 14%">Saldo Pendiente</th>
+                    <th style="width: 14%">Fecha Abono</th>
+                    <th style="width: 14%">Tipo Pago</th>
+                    <th style="width: 18%">Nota</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.HistorialAbonos != null && Model.HistorialAbonos.Count > 0)
+                {
+                    decimal totalAbonado = 0;
+                    decimal totalPendiente = 0;
+
+                    @foreach (var abono in Model.HistorialAbonos)
+                    {
+                        totalAbonado += abono.TotalAbono;
+                        totalPendiente += abono.MontoPendiente;
+
+                        <tr>
+                            <td class="text-center">@abono.NumeroFactura</td>
+                            <td class="text-right">@(abono.TotalFactura.ToString("C"))</td>
+                            <td class="text-right">@(abono.TotalAbono.ToString("C"))</td>
+                            <td class="text-right">@(abono.MontoPendiente.ToString("C"))</td>
+                            <td class="text-center">@(abono.FechaRegistro.ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td>@(abono.TipoPago ?? "N/A")</td>
+                            <td>@(abono.Nota ?? "-")</td>
+                        </tr>
+                    }
+
+                    <tr class="total-row">
+                        <td colspan="2" class="text-right"><strong>TOTALES:</strong></td>
+                        <td class="text-right"><strong>@totalAbonado.ToString("C")</strong></td>
+                        <td class="text-right"><strong>@totalPendiente.ToString("C")</strong></td>
+                        <td colspan="3"></td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center">No hay registros de abonos para este cliente</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="resumen-box">
+            <p><strong>Resumen del Cliente</strong></p>
+            @if (Model.HistorialAbonos != null && Model.HistorialAbonos.Count > 0)
+            {
+                decimal totalMontoPendiente = Model.HistorialAbonos.Sum(x => x.MontoPendiente);
+                decimal totalMontosAbonados = Model.HistorialAbonos.Sum(x => x.TotalAbono);
+
+                <p>Total de Facturas en Historial: <strong>@Model.HistorialAbonos.GroupBy(x => x.NumeroFactura).Count()</strong></p>
+                <p>Total Abonado: <strong>@totalMontosAbonados.ToString("C")</strong></p>
+                <p>Total Saldo Pendiente: <strong style="@(totalMontoPendiente > 0 ? "color: red;" : "color: green;")">@totalMontoPendiente.ToString("C")</strong></p>
+            }
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center; font-size: 9pt; color: #666;">
+        <p>Reporte generado automáticamente por MVSystem</p>
+        <p>Fecha: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</p>
+    </div>
+</body>
+</html>

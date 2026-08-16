@@ -22,5 +22,6 @@ namespace DTO
         public string TipoPago { get; set; }
         public string Nota { get; set; }
         public Guid? IdLoteAbono { get; set; }
+        public int TieneActualmentePendiente { get; set; }
     }
 }

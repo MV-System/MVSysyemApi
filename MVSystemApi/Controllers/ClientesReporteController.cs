@@ -104,7 +104,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("HistorialAbonos")]
-        public IActionResult HistorialAbonos(int idCliente, int idSucursal, int idEmpresa, string fechaInicio = null, string fechaFinal = null)
+        public IActionResult HistorialAbonos(int idCliente, int idSucursal, int idEmpresa, string fechaInicio = null, string fechaFinal = null, bool soloConPendiente = false)
         {
             try
             {
@@ -113,6 +113,17 @@ namespace MVSystemApi.Controllers
                 if (historial == null || historial.Count == 0)
                 {
                     return NotFound("No se encontró historial de abonos para el cliente.");
+                }
+
+                // Filtrar solo facturas con saldo pendiente si se solicita
+                if (soloConPendiente)
+                {
+                    historial = historial.Where(h => h.TieneActualmentePendiente == 1).ToList();
+                    
+                    if (historial.Count == 0)
+                    {
+                        return NotFound("No hay facturas con saldo pendiente para este cliente.");
+                    }
                 }
 
                 // Obtener los datos del cliente

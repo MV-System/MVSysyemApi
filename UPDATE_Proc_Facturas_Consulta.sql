@@ -8,7 +8,7 @@ ALTER   PROCEDURE [dbo].[Proc_Facturas_Consulta]
     @Almacen INT = 0,
     @Vendedor INT = 0,
     @Comprobante INT = 1,
-    @Fecha_Inicio DATETIME = NULL, 
+    @Fecha_Inicio DATETIME = NULL,
     @Fecha_Final DATETIME = NULL,
     @EstadoFactura CHAR(1) = NULL
 AS
@@ -24,7 +24,7 @@ BEGIN
     DECLARE @TotalFacturado MONEY;
     DECLARE @TotalItbis MONEY;
     DECLARE @TotalSinItbis MONEY;
-    
+
     SELECT @TotalFacturado = SUM(F.Total),
            @TotalItbis = SUM(F.Itbis),
            @TotalSinItbis = SUM(F.SubTotal)
@@ -35,6 +35,7 @@ BEGIN
     INNER JOIN Tipos_Facturas_Cata TF ON F.ID_Tipo_Factura = TF.ID_Tipo_Factura
     INNER JOIN Tipos_Pagos_Cata TP ON F.ID_Tipo_Pagos = TP.ID_Tipo_Pagos
     INNER JOIN Sucursales_cata SC ON SC.id_sucursal = F.id_sucursal
+    LEFT JOIN TIPO_NFC TN ON TN.NFCTipoNumero = F.NFCTipoNumero
     LEFT JOIN Vendedores v ON v.ID_Vendedor = F.ID_Vendedor
     LEFT JOIN Contactos CS ON CS.ID_Contacto = v.ID_Contacto
     WHERE
@@ -44,7 +45,7 @@ BEGIN
             OR TF.Descripcion_Factura_Tipo = @Criterio)
         AND (@Almacen = 0 OR F.id_sucursal = @Almacen)
         AND (@Vendedor = 0 OR F.ID_Vendedor = @Vendedor)
-        AND f.Fecha_Registro >= @Fecha_Inicio 
+        AND f.Fecha_Registro >= @Fecha_Inicio
         AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)
         AND (@EstadoFactura IS NULL OR F.Estado = @EstadoFactura)
         AND (@Comprobante <> 2 OR F.NFCTipoNumero <> 0);
@@ -64,6 +65,8 @@ BEGIN
             F.SubTotal,
             F.Descuento,
             F.NCF_NUMERO AS NCF,
+            F.NFCTipoNumero,
+            TN.NFCTipoDescripcion AS TipoComprobante,
             F.RNC,
             F.Total,
             F.Itbis,
@@ -82,6 +85,7 @@ BEGIN
         INNER JOIN Tipos_Facturas_Cata TF ON F.ID_Tipo_Factura = TF.ID_Tipo_Factura
         INNER JOIN Tipos_Pagos_Cata TP ON F.ID_Tipo_Pagos = TP.ID_Tipo_Pagos
         INNER JOIN Sucursales_cata SC ON SC.id_sucursal = F.id_sucursal
+        LEFT JOIN TIPO_NFC TN ON TN.NFCTipoNumero = F.NFCTipoNumero
         LEFT JOIN Vendedores v ON v.ID_Vendedor = F.ID_Vendedor
         LEFT JOIN Contactos CS ON CS.ID_Contacto = v.ID_Contacto
         WHERE
@@ -91,15 +95,15 @@ BEGIN
                 OR TF.Descripcion_Factura_Tipo = @Criterio)
             AND (@Almacen = 0 OR F.id_sucursal = @Almacen)
             AND (@Vendedor = 0 OR F.ID_Vendedor = @Vendedor)
-            AND f.Fecha_Registro >= @Fecha_Inicio 
+            AND f.Fecha_Registro >= @Fecha_Inicio
             AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)
             AND (@EstadoFactura IS NULL OR F.Estado = @EstadoFactura)
             AND (@Comprobante <> 2 OR F.NFCTipoNumero <> 0)
     )
     SELECT *,
-        CASE 
-            WHEN Cantidad_Registros < (@PageIndex * @PageSize) 
-                THEN Cantidad_Registros 
+        CASE
+            WHEN Cantidad_Registros < (@PageIndex * @PageSize)
+                THEN Cantidad_Registros
             ELSE (@PageIndex * @PageSize)
         END AS Ultima_Linea
     FROM FacturasCTE

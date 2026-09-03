@@ -50,6 +50,8 @@ namespace MVSystemApi.Model
         public int ClienteId { get; set; }
         public long Telefono { get; set; }
         public string Ncf { get; set; }
+        public int NcfTipoNumero { get; set; }
+        public string TipoComprobante { get; set; }
         public string Rnc { get; set; }
         public string Nombres { get; set; }
         public string Apellidos { get; set; }

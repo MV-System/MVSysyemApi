@@ -167,11 +167,11 @@ namespace MVSystemApi.Controllers
         [HttpGet]
         [Route("GetDesglosePagos/{numeroFactura}")]
         //[Authorize(Roles = "MNU_CONS_FACTURAS")]
-        public IActionResult GetDesglosePagos([FromRoute] int numeroFactura)
+        public IActionResult GetDesglosePagos([FromRoute] int numeroFactura, [FromQuery] string tipoDocumento = "F")
         {
             try
             {
-                var result = _accesoDatos.GetDetallesPagoFactura(numeroFactura);
+            var result = _accesoDatos.GetDetallesPagoFactura(numeroFactura, tipoDocumento);
                 if (result == null)
                     return NotFound(new { error = "No se encontraron detalles de pago" });
 

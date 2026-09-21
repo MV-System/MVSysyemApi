@@ -387,7 +387,7 @@ namespace MVSystemApi.Model_Negocio
                             decimal totalFacturaMixto = Convert.ToDecimal(facturaRow["Total"]);
 
                             // Obtener el desglose de pagos para esta factura
-                            var desgloses = Ac.GetDetallesPagoFactura(numeroFactura);
+                            var desgloses = Ac.GetDetallesPagoFactura(numeroFactura, "F");
 
                             if (desgloses != null && desgloses.Count > 0)
                             {

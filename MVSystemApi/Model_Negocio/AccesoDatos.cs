@@ -2039,6 +2039,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                         cmdPago.Parameters.AddWithValue("@Monto_Pago", item.Monto_Pago);
                         cmdPago.Parameters.AddWithValue("@Numero_Referencia", item.Numero_Referencia ?? "");
                         cmdPago.Parameters.AddWithValue("@Observacion", item.Observacion ?? "");
+                        cmdPago.Parameters.AddWithValue("@Tipo_Documento", "F");
                         cmdPago.ExecuteNonQuery();
                     }
                 }
@@ -3077,7 +3078,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
-        public object RebajarItemPreFactura(int numeroPreFactura, int idEquipo)
+        public object RebajarItemPreFactura(int numeroPreFactura, string idEquipo)
         {
             cn.Open();
             try
@@ -3102,36 +3103,51 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
-        public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos)
+        public void PostDetallesPagoFactura(int numeroFactura, List<DetallePagoDTO> detallesPagos, string tipoDocumento)
         {
             using var connection = new SqlConnection(_connectionStrings);
-            using var cmd = new SqlCommand("InsertDetallesPagoFactura", connection);
-            cmd.CommandType = CommandType.StoredProcedure;
-
             connection.Open();
+            using var transaction = connection.BeginTransaction();
 
-            foreach (var item in detallesPagos)
+            try
             {
-                cmd.Parameters.Clear();
-
-                cmd.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
-                cmd.Parameters.AddWithValue("@ID_Tipo_Pago", item.ID_Tipo_Pago);
-                cmd.Parameters.AddWithValue("@Monto_Pago", item.Monto_Pago);
-                cmd.Parameters.AddWithValue("@Numero_Referencia", item.Numero_Referencia ?? "");
-                cmd.Parameters.AddWithValue("@Observacion", item.Observacion ?? "");
-
-                try
+                using (var deleteCommand = new SqlCommand(
+                    "DELETE FROM DetallesPagos_Factura WHERE Numero_Factura = @Numero_Factura AND Tipo_Documento = @Tipo_Documento",
+                    connection,
+                    transaction))
                 {
-                    cmd.ExecuteNonQuery();
+                    deleteCommand.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+                    deleteCommand.Parameters.AddWithValue("@Tipo_Documento", tipoDocumento);
+                    deleteCommand.ExecuteNonQuery();
                 }
-                catch (Exception ex)
+
+                using var command = new SqlCommand("InsertDetallesPagoFactura", connection, transaction)
                 {
-                    throw;
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                foreach (var item in detallesPagos)
+                {
+                    command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+                    command.Parameters.AddWithValue("@ID_Tipo_Pago", item.ID_Tipo_Pago);
+                    command.Parameters.AddWithValue("@Monto_Pago", item.Monto_Pago);
+                    command.Parameters.AddWithValue("@Numero_Referencia", item.Numero_Referencia ?? "");
+                    command.Parameters.AddWithValue("@Observacion", item.Observacion ?? "");
+                    command.Parameters.AddWithValue("@Tipo_Documento", tipoDocumento);
+                    command.ExecuteNonQuery();
                 }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
             }
         }
 
-        public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura)
+        public List<DetallePagoDTO> GetDetallesPagoFactura(int numeroFactura, string tipoDocumento)
         {
             var lista = new List<DetallePagoDTO>();
 
@@ -3140,6 +3156,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.Parameters.AddWithValue("@NumeroFactura", numeroFactura);
+            cmd.Parameters.AddWithValue("@Tipo_Documento", tipoDocumento);
 
             connection.Open();
             using var reader = cmd.ExecuteReader();
@@ -3338,19 +3355,6 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             await connection.OpenAsync();
             var result = await command.ExecuteScalarAsync();
             return result == null || result == DBNull.Value ? default(T) : (T)Convert.ChangeType(result, typeof(T));
-        }
-
-        public void ActualizarNumeroFacturaEnDetallesPago(int numeroPreFactura, int nuevoNumeroFactura)
-        {
-            using var connection = new SqlConnection(_connectionStrings);
-            using var cmd = new SqlCommand("UpdateDetallesPagoFactura", connection);
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            cmd.Parameters.AddWithValue("@Numero_Factura_Anterior", numeroPreFactura);
-            cmd.Parameters.AddWithValue("@Numero_Factura_Nueva", nuevoNumeroFactura);
-
-            connection.Open();
-            cmd.ExecuteNonQuery();
         }
 
         public async Task<DataTable> ExecuteDataTableAsync(string query, params SqlParameter[] parameters)

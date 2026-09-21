@@ -43,29 +43,21 @@ namespace MVSystemApi.Model_Negocio
 
         public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)
         {
-            var resultado = _accesoDatos.ProcesarPreFactura(numeroPreFactura, usuarioProcesamiento);
-            
-            // Si el procesamiento fue exitoso, actualizar número de factura en detalles de pago
-            if (resultado != null)
+            var preFactura = ObtenerPreFacturaPorId(numeroPreFactura);
+            if (preFactura?.ID_Tipo_Pagos == 6)
             {
-                try
+                var pagos = _accesoDatos.GetDetallesPagoFactura(numeroPreFactura, "P");
+                var pagoMixto = new PagoMixto_Negocio();
+                if (!pagoMixto.ValidarPagoMixto(preFactura.Total, pagos) ||
+                    !pagoMixto.ValidarMontosPositivos(pagos) ||
+                    !pagoMixto.ValidarSinTiposDuplicados(pagos))
                 {
-                    var codFacturaProperty = resultado.GetType().GetProperty("Cod_Factura");
-                    if (codFacturaProperty != null)
-                    {
-                        int nuevoNumeroFactura = Convert.ToInt32(codFacturaProperty.GetValue(resultado));
-                        if (nuevoNumeroFactura > 0)
-                        {
-                            _accesoDatos.ActualizarNumeroFacturaEnDetallesPago(numeroPreFactura, nuevoNumeroFactura);
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // No lanzar excepción. La pre-factura ya se procesó correctamente.
+                    throw new InvalidOperationException("La prefactura Mixta requiere pagos válidos que coincidan con el total");
                 }
             }
-            
+
+            var resultado = _accesoDatos.ProcesarPreFactura(numeroPreFactura, usuarioProcesamiento);
+
             return resultado;
         }
 
@@ -88,7 +80,7 @@ namespace MVSystemApi.Model_Negocio
             return lista.Count > 0 ? lista[0] : null;
         }
 
-        public object RebajarItemPreFactura(int numeroPreFactura, int idEquipo)
+        public object RebajarItemPreFactura(int numeroPreFactura, string idEquipo)
         {
             return _accesoDatos.RebajarItemPreFactura(numeroPreFactura, idEquipo);
         }

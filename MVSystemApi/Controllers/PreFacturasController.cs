@@ -271,7 +271,7 @@ namespace MVSystemApi.Controllers
         public class RebajarItemPreFacturaRequest
         {
             public int NumeroPreFactura { get; set; }
-            public int IdEquipo { get; set; }
+            public string IdEquipo { get; set; }
         }
 
         // POST /PreFacturas/rebajar-item
@@ -301,7 +301,7 @@ namespace MVSystemApi.Controllers
                 if (detallesPagos == null || detallesPagos.Count == 0)
                     return BadRequest(new { error = "Debe proporcionar detalles de pago" });
 
-                _accesoDatos.PostDetallesPagoFactura(id, detallesPagos);
+                _accesoDatos.PostDetallesPagoFactura(id, detallesPagos, "P");
                 return Ok(new { mensaje = "Detalles de pago guardados correctamente" });
             }
             catch (Exception ex)
@@ -370,7 +370,7 @@ namespace MVSystemApi.Controllers
             }).ToList() ?? new List<DetalleFactura>();
 
             // Obtener pagos
-            var pagosDTO = _accesoDatos.GetDetallesPagoFactura(numeroFactura);
+            var pagosDTO = _accesoDatos.GetDetallesPagoFactura(numeroFactura, "F");
             var pagosCapturados = pagosDTO?.Select(p => new DetallesPagos_Factura
             {
                 Numero_Factura = numeroFactura,

@@ -113,6 +113,7 @@ namespace MVSystemApi.Model_Negocio
                         EstadoFactura = consulta.EstadoFactura,
                         ComprobanteCheck = consulta.ComprobanteCheck,
                         IdVendedor = consulta.IdVendedor,
+                        IdTipoPago = consulta.IdTipoPago,
                         Usuario = consulta.Usuario,
                         FechaInicio = consulta.FechaInicio,
                         FechaFinal = consulta.FechaFinal,

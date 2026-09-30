@@ -357,6 +357,7 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@PageIndex", consulta.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", consulta.PageSize);
                 cmd.Parameters.AddWithValue("@EstadoFactura", consulta.EstadoFactura);
+                cmd.Parameters.Add("@IdTipoPago", SqlDbType.Int).Value = consulta.IdTipoPago;
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);

@@ -37,6 +37,7 @@ namespace MVSystemApi.Model
         public string EstadoFactura { get; set; }
         public int ComprobanteCheck { get; set; }
         public int IdVendedor { get; set; }
+        public int IdTipoPago { get; set; }
         public string Usuario { get; set; }
         public string FechaInicio { get; set; }
         public string FechaFinal { get; set; }

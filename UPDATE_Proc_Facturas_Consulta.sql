@@ -10,7 +10,8 @@ ALTER   PROCEDURE [dbo].[Proc_Facturas_Consulta]
     @Comprobante INT = 1,
     @Fecha_Inicio DATETIME = NULL,
     @Fecha_Final DATETIME = NULL,
-    @EstadoFactura CHAR(1) = NULL
+    @EstadoFactura CHAR(1) = NULL,
+    @IdTipoPago INT = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -45,6 +46,7 @@ BEGIN
             OR TF.Descripcion_Factura_Tipo = @Criterio)
         AND (@Almacen = 0 OR F.id_sucursal = @Almacen)
         AND (@Vendedor = 0 OR F.ID_Vendedor = @Vendedor)
+        AND (@IdTipoPago = 0 OR F.ID_Tipo_Pagos = @IdTipoPago)
         AND f.Fecha_Registro >= @Fecha_Inicio
         AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)
         AND (@EstadoFactura IS NULL OR F.Estado = @EstadoFactura)
@@ -95,6 +97,7 @@ BEGIN
                 OR TF.Descripcion_Factura_Tipo = @Criterio)
             AND (@Almacen = 0 OR F.id_sucursal = @Almacen)
             AND (@Vendedor = 0 OR F.ID_Vendedor = @Vendedor)
+            AND (@IdTipoPago = 0 OR F.ID_Tipo_Pagos = @IdTipoPago)
             AND f.Fecha_Registro >= @Fecha_Inicio
             AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)
             AND (@EstadoFactura IS NULL OR F.Estado = @EstadoFactura)

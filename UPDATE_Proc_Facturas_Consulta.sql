@@ -21,6 +21,12 @@ BEGIN
     IF @Fecha_Inicio IS NULL OR @Fecha_Inicio = '' SET @Fecha_Inicio = CAST(GETDATE() AS DATE);
     IF @Fecha_Final IS NULL OR @Fecha_Final = '' SET @Fecha_Final = CAST(GETDATE() AS DATE);
 
+    DECLARE @BusquedaGlobal BIT = CASE
+        WHEN NULLIF(LTRIM(RTRIM(@Criterio)), '') IS NULL THEN 0
+        ELSE 1
+    END;
+    SET @Criterio = NULLIF(LTRIM(RTRIM(@Criterio)), '');
+
     -- Calcular totales agregados
     DECLARE @TotalFacturado MONEY;
     DECLARE @TotalItbis MONEY;
@@ -44,11 +50,11 @@ BEGIN
             OR F.Numero_Factura LIKE @Criterio
             OR te.Numero_Telefono LIKE @Criterio
             OR TF.Descripcion_Factura_Tipo = @Criterio)
-        AND (@Almacen = 0 OR F.id_sucursal = @Almacen)
+        AND (@BusquedaGlobal = 1 OR @Almacen = 0 OR F.id_sucursal = @Almacen)
         AND (@Vendedor = 0 OR F.ID_Vendedor = @Vendedor)
         AND (@IdTipoPago = 0 OR F.ID_Tipo_Pagos = @IdTipoPago)
-        AND f.Fecha_Registro >= @Fecha_Inicio
-        AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)
+        AND (@BusquedaGlobal = 1 OR (f.Fecha_Registro >= @Fecha_Inicio
+            AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)))
         AND (@EstadoFactura IS NULL OR F.Estado = @EstadoFactura)
         AND (@Comprobante <> 2 OR F.NFCTipoNumero <> 0);
 
@@ -63,6 +69,7 @@ BEGIN
             ISNULL(CS.Nombres, '') AS [Vendedor],
             TP.Descripcion_Tipo_Pagos AS [Tipo de Pago],
             SC.Sucursal_Descripcion AS Almacen,
+			F.ID_Sucursal AS IdSucursal,
 			F.Abono,
             F.SubTotal,
             F.Descuento,
@@ -95,11 +102,11 @@ BEGIN
                 OR F.Numero_Factura LIKE @Criterio
                 OR te.Numero_Telefono LIKE @Criterio
                 OR TF.Descripcion_Factura_Tipo = @Criterio)
-            AND (@Almacen = 0 OR F.id_sucursal = @Almacen)
+            AND (@BusquedaGlobal = 1 OR @Almacen = 0 OR F.id_sucursal = @Almacen)
             AND (@Vendedor = 0 OR F.ID_Vendedor = @Vendedor)
             AND (@IdTipoPago = 0 OR F.ID_Tipo_Pagos = @IdTipoPago)
-            AND f.Fecha_Registro >= @Fecha_Inicio
-            AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)
+            AND (@BusquedaGlobal = 1 OR (f.Fecha_Registro >= @Fecha_Inicio
+                AND f.Fecha_Registro < DATEADD(DAY, 1, @Fecha_Final)))
             AND (@EstadoFactura IS NULL OR F.Estado = @EstadoFactura)
             AND (@Comprobante <> 2 OR F.NFCTipoNumero <> 0)
     )

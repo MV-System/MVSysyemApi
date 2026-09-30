@@ -60,6 +60,7 @@ namespace MVSystemApi.Model_Negocio
                               TipoFactura = Convert.ToString(dt["Tipo De Factura"]),
                               Vendedor = Convert.ToString(dt["Vendedor"]),
                               Almacen = Convert.ToString(dt["Almacen"]),
+                              IdSucursal = dt.Table.Columns.Contains("IdSucursal") ? Convert.ToInt32(dt["IdSucursal"]) : 0,
                               Rnc = Convert.ToString(dt["RNC"]),
                               Ncf = Convert.ToString(dt["NCF"]),
                               NcfTipoNumero = dt.Table.Columns.Contains("NFCTipoNumero") ? Convert.ToInt32(dt["NFCTipoNumero"]) : 0,

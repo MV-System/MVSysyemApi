@@ -17,7 +17,7 @@ namespace MVSystemApi.Model
 
     public class FacturaReporte
     {
-      
+
         public string PRODUCTO { get; set; }
         public int CANTIDAD_PROD { get; set; }
         public decimal PRECIO_PROD { get; set; }
@@ -59,6 +59,7 @@ namespace MVSystemApi.Model
         public string Vendedor { get; set; }
         public string TipoFactura { get; set; }
         public string Almacen { get; set; }
+        public int IdSucursal { get; set; }
         public string Nota { get; set; }
         public string TipoPago { get; set; }
         public decimal SubTotal { get; set; }
@@ -70,15 +71,15 @@ namespace MVSystemApi.Model
         public decimal TotalSinItbis { get; set; }
         public DateTime FechaFacturacion { get; set; }
         public string empresa { get; set; }
-        
+
         // Valores por defecto para factura normal
         public string FacturaTitulo { get; set; } = "Factura No.";
         public string FacturaTituloTipo { get; set; } = "Tipo de factura";
         public string VerNCF { get; set; } = "NCF:";
-        
+
         public decimal Abono { get; internal set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }
-       
+
     }
     public class Facturas
     {
@@ -112,7 +113,7 @@ namespace MVSystemApi.Model
         public Clientes Cliente { get; set; }
         public FacturaConsulta Factura { get; internal set; }
         public string empresa { get; set; }
-        public string FacturaTitulo { get; set; } 
+        public string FacturaTitulo { get; set; }
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }
         public DatosEmpresa DatosEmpresaFactura { get; internal set; }
@@ -203,7 +204,7 @@ namespace MVSystemApi.Model
     public class RebajaEquipoModel
     {
         public int NumeroFactura { get; set; }
-        public string imei { get; set; }    
+        public string imei { get; set; }
         public string IDsucursal { get; set; }
         public string Usuario { get; set; }
         public string mensaje { get; set; }

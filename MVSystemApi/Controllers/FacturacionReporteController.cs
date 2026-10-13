@@ -17,18 +17,20 @@ namespace MVSystemApi.Controllers
         private readonly Clientes_Negocio _clientsNegocio;
         private readonly Catalogos_Negocio _catalogosNegocio;
         private readonly Facturas_Negocio _facturasNegocio;
+        private readonly Cotizacion_Negocio _cotizacionNegocio;
         private readonly IAccesoDatos _accesoDatos;
         private readonly SeguridadService _seguridadService;
         private readonly FacturacionSettings _facturacionSettings;
         private readonly ILogger<FacturacionReporteController> _logger;
 
-        public FacturacionReporteController(ILogger<FacturacionReporteController> logger, SeguridadService seguridadService,IAccesoDatos accesoDatos, Clientes_Negocio clientsNegocio, Catalogos_Negocio catalogosNegocio,Facturas_Negocio facturasNegocio, IOptions<FacturacionSettings> facturacionSettings)
+        public FacturacionReporteController(ILogger<FacturacionReporteController> logger, SeguridadService seguridadService,IAccesoDatos accesoDatos, Clientes_Negocio clientsNegocio, Catalogos_Negocio catalogosNegocio,Facturas_Negocio facturasNegocio, Cotizacion_Negocio cotizacionNegocio, IOptions<FacturacionSettings> facturacionSettings)
         {
             _logger = logger;
             _accesoDatos = accesoDatos;
             _catalogosNegocio = catalogosNegocio;
             _clientsNegocio = clientsNegocio;
             _facturasNegocio = facturasNegocio;
+            _cotizacionNegocio = cotizacionNegocio;
             _seguridadService = seguridadService;
             _facturacionSettings = facturacionSettings.Value;
         }
@@ -205,12 +207,19 @@ namespace MVSystemApi.Controllers
             try
             {
                 int numeroCotizacion = _accesoDatos.GuardarCotizacion(model);
+                if (numeroCotizacion <= 0)
+                {
+                    _logger.LogError("[Cotizacion] Guardado sin número válido");
+                    return StatusCode(500, "No fue posible guardar la cotización.");
+                }
+
                 model.NumeroFactura = numeroCotizacion;
                 _logger.LogInformation("[Cotizacion] Guardada #{Num}", numeroCotizacion);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[Cotizacion] Error al guardar cotización en BD");
+                return StatusCode(500, "Ocurrió un error al guardar la cotización.");
             }
 
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
@@ -225,6 +234,29 @@ namespace MVSystemApi.Controllers
             model.DatosEmpresaCotizacion = datosEmpresa;
             
             return new ViewAsPdf(model);
+        }
+
+        [HttpGet("FacturacionReporte/ReportCotizacionConsulta/{codigo}/{idEmpresa}")]
+        public IActionResult ReportCotizacionConsulta(int codigo, int idEmpresa)
+        {
+            try
+            {
+                var cotizacion = _cotizacionNegocio.GetCotizacionPorCodigo(codigo);
+                if (cotizacion == null) return NotFound();
+
+                cotizacion.IdEmpresa = idEmpresa.ToString();
+                DatosEmpresa datosEmpresa = _seguridadService.GetDatosEmpresa(idEmpresa, Convert.ToInt32(cotizacion.IdSucursal));
+                string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+                datosEmpresa.Logo = baseUrl + "/assets/" + datosEmpresa.Logo + ".png";
+                cotizacion.DatosEmpresaCotizacion = datosEmpresa;
+
+                return new ViewAsPdf("ReportCotizacion", cotizacion);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Cotizacion] Error al reimprimir cotización #{Codigo}", codigo);
+                return StatusCode(500, "No fue posible reimprimir la cotización.");
+            }
         }
 
         [HttpPost("FacturacionReporte/CierreCajaReport")]

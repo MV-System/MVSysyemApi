@@ -12,9 +12,40 @@ namespace MVSystemApi.Controllers
     public class CotizacionController : Controller
     {
         private readonly IAccesoDatos _accesoDatos;
-        public CotizacionController(IAccesoDatos accesoDatos)
+        private readonly Cotizacion_Negocio _cotizacionNegocio;
+        public CotizacionController(IAccesoDatos accesoDatos, Cotizacion_Negocio cotizacionNegocio)
         {
             _accesoDatos = accesoDatos;
+            _cotizacionNegocio = cotizacionNegocio;
+        }
+
+        [HttpGet("Consulta")]
+        public IActionResult GetCotizaciones([FromQuery] CotizacionConsultaFiltro filtro)
+        {
+            try
+            {
+                var result = _cotizacionNegocio.GetCotizaciones(filtro);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("Detalle/{codigo}")]
+        public IActionResult GetDetalleCotizacion(int codigo)
+        {
+            try
+            {
+                var cotizacion = _cotizacionNegocio.GetCotizacionPorCodigo(codigo);
+                if (cotizacion == null) return NotFound();
+                return Ok(cotizacion.Articulos);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("GetCotizacionFacturaConsulta/{telefono}")]

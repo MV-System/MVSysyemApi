@@ -158,6 +158,82 @@ namespace MVSystemApi.Model
                 throw;
             }
         }
+
+        public DataTable GetCotizaciones(CotizacionConsultaFiltro filtro)
+        {
+            cn.Open();
+            try
+            {
+                using SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Cotizacion_Consulta";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@PageIndex", SqlDbType.Int).Value = filtro.PageIndex;
+                cmd.Parameters.Add("@PageSize", SqlDbType.Int).Value = filtro.PageSize;
+                cmd.Parameters.Add("@Criterio", SqlDbType.VarChar, 100).Value =
+                    string.IsNullOrWhiteSpace(filtro.Criterio) ? DBNull.Value : filtro.Criterio.Trim();
+                cmd.Parameters.Add("@Sucursal", SqlDbType.Int).Value = filtro.Sucursal;
+                cmd.Parameters.Add("@Vendedor", SqlDbType.Int).Value = filtro.Vendedor;
+                cmd.Parameters.Add("@IdTipoPago", SqlDbType.Int).Value = filtro.IdTipoPago;
+                cmd.Parameters.Add("@Fecha_Inicio", SqlDbType.Date).Value =
+                    string.IsNullOrWhiteSpace(filtro.FechaInicio) ? DBNull.Value : DateTime.Parse(filtro.FechaInicio).Date;
+                cmd.Parameters.Add("@Fecha_Final", SqlDbType.Date).Value =
+                    string.IsNullOrWhiteSpace(filtro.FechaFinal) ? DBNull.Value : DateTime.Parse(filtro.FechaFinal).Date;
+                cmd.Parameters.Add("@Estado", SqlDbType.Char, 1).Value =
+                    string.IsNullOrWhiteSpace(filtro.Estado) ? DBNull.Value : filtro.Estado;
+
+                using SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
+
+        public DataTable GetCotizacionPorCodigo(int codigo)
+        {
+            cn.Open();
+            try
+            {
+                using SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Cotizacion_Consulta_PorCodigo";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@Codigo", SqlDbType.Int).Value = codigo;
+
+                using SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
+
+        public DataTable GetDetalleCotizacionPorCodigo(int codigo)
+        {
+            cn.Open();
+            try
+            {
+                using SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Detalle_Cotizacion_Consulta_PorCodigo";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@Codigo", SqlDbType.Int).Value = codigo;
+
+                using SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
+
         /// <summary>
         /// Author: Xavier Mejia
         /// Date: 21.FEB.2023
@@ -198,12 +274,15 @@ namespace MVSystemApi.Model
                 using (SqlCommand cmd = new SqlCommand("Cotizacion_Insert", cn, tran))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@Numero_factura", 0);
+                    var numeroCotizacionParam = cmd.Parameters.Add("@Numero_factura", SqlDbType.Int);
+                    numeroCotizacionParam.Direction = ParameterDirection.InputOutput;
+                    numeroCotizacionParam.Value = 0;
                     cmd.Parameters.AddWithValue("@ID_Cliente", model.IdCliente);
                     cmd.Parameters.AddWithValue("@ID_Tipo_Factura", model.IdTipoFactura);
                     cmd.Parameters.AddWithValue("@ID_Vendedor", model.IdVendedor);
                     cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", model.IdTipoPago);
-                    cmd.Parameters.AddWithValue("@ID_Almacen", model.IdAlmacen);
+                    // Cotizacion_Insert usa este parámetro como ID_Sucursal para resolver el Literal.
+                    cmd.Parameters.AddWithValue("@ID_Almacen", Convert.ToInt32(model.IdSucursal));
                     cmd.Parameters.AddWithValue("@SubTotal", model.SubTotal);
                     cmd.Parameters.AddWithValue("@Descuento", model.Descuento);
                     cmd.Parameters.AddWithValue("@Itbis", model.Itbis);
@@ -218,13 +297,11 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@Usuario", model.Usuario ?? "");
                     cmd.Parameters.AddWithValue("@fecha_registro", DateTime.Now);
 
-                    var da = new SqlDataAdapter(cmd);
-                    var dt = new DataTable();
-                    da.Fill(dt);
+                    cmd.ExecuteNonQuery();
 
-                    int numeroCotizacion = 0;
-                    if (dt.Rows.Count > 0)
-                        numeroCotizacion = Convert.ToInt32(dt.Rows[0][0]);
+                    int numeroCotizacion = numeroCotizacionParam.Value == DBNull.Value
+                        ? 0
+                        : Convert.ToInt32(numeroCotizacionParam.Value);
 
                     if (numeroCotizacion == 0)
                     {
@@ -238,6 +315,7 @@ namespace MVSystemApi.Model
                         {
                             cmdDet.CommandType = CommandType.StoredProcedure;
                             cmdDet.Parameters.AddWithValue("@Numero_Factura", numeroCotizacion);
+                            cmdDet.Parameters.AddWithValue("@ID_Sucursal", Convert.ToInt32(model.IdSucursal));
                             cmdDet.Parameters.AddWithValue("@ID_Equipo", art.IdEquipo.ToString());
                             cmdDet.Parameters.AddWithValue("@Descripcion", art.Descripcion ?? "");
                             cmdDet.Parameters.AddWithValue("@ID_Tipo", art.IdTipo);

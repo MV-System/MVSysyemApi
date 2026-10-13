@@ -124,6 +124,9 @@ namespace MVSystemApi.Interfaz
         #endregion
 
         #region // ------------ Cotizacion -------------------------
+        public DataTable GetCotizaciones(CotizacionConsultaFiltro filtro);
+        public DataTable GetCotizacionPorCodigo(int codigo);
+        public DataTable GetDetalleCotizacionPorCodigo(int codigo);
         public DataTable GetCotizacionFacturaConsulta(string telefono);
         public DataTable GetDetalleCotizacionConsulta(int numeroFactura, int sucursal);
         public int GuardarCotizacion(CotizacionModel model);

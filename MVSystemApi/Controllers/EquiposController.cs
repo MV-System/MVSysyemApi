@@ -301,6 +301,50 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet]
+        [Route("ValidarEliminacionEquipo")]
+        public ActionResult<EquipoValidacionEliminacion> ValidarEliminacionEquipo([FromQuery] string imei)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(imei))
+                {
+                    return BadRequest("Debe indicar un IMEI.");
+                }
+
+                var result = AD.ValidarEliminacionEquipo(imei);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("GestionarEquipo/ConsultaSql")]
+        public ActionResult<ConsultaSqlResultado> EjecutarConsultaSqlGestionarEquipo([FromBody] ConsultaSqlRequest request)
+        {
+            try
+            {
+                if (request == null || string.IsNullOrWhiteSpace(request.Consulta))
+                {
+                    return BadRequest("Escribe una consulta SELECT, UPDATE o DELETE para ejecutar.");
+                }
+
+                return Ok(AD.EjecutarConsultaSql(request.Consulta, 200));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error SQL: {ex.GetBaseException().Message}");
+            }
+        }
+
         [HttpPost]
         [Route("PostEquipo_Delete")]
         // [Authorize(Roles = "MNTransfiereEquipos")]
@@ -314,6 +358,26 @@ namespace MVSystemApi.Controllers
                     return NotFound();
                 }
                 return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("GestionarEquipo_EliminarRegistro")]
+        public ActionResult<EquipoEliminado> EliminarRegistroEquipoDeTabla([FromQuery] string imei, [FromQuery] string tabla)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(imei) || string.IsNullOrWhiteSpace(tabla))
+                {
+                    return BadRequest("Debe indicar el IMEI y la tabla que desea eliminar.");
+                }
+
+                var usuario = User?.Identity?.Name ?? string.Empty;
+                return Ok(AD.EliminarRegistroEquipoDeTabla(imei, tabla, usuario));
             }
             catch (Exception ex)
             {

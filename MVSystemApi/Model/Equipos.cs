@@ -240,6 +240,31 @@ namespace MVSystemApi.Model
     {
         public string mensaje { get; set; }
     }
+    public class EquipoValidacionEliminacion
+    {
+        public bool Existe { get; set; }
+        public string ServidorConsultado { get; set; }
+        public string BaseDatosConsultada { get; set; }
+        public List<string> Tablas { get; set; } = new List<string>();
+        public Dictionary<string, bool> Detalle { get; set; } = new Dictionary<string, bool>();
+        public Dictionary<string, List<Dictionary<string, object>>> Registros { get; set; } = new Dictionary<string, List<Dictionary<string, object>>>();
+        public string Mensaje { get; set; }
+    }
+    public class ConsultaSqlRequest
+    {
+        public string Consulta { get; set; }
+    }
+    public class ConsultaSqlResultado
+    {
+        public string TipoOperacion { get; set; }
+        public string ServidorConsultado { get; set; }
+        public string BaseDatosConsultada { get; set; }
+        public List<string> Columnas { get; set; } = new List<string>();
+        public List<List<object>> Filas { get; set; } = new List<List<object>>();
+        public bool ResultadosLimitados { get; set; }
+        public int? FilasAfectadas { get; set; }
+        public string Mensaje { get; set; }
+    }
     public class ReparacionesInsert
     {
         public string IMEI { get; set; }

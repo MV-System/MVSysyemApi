@@ -154,7 +154,10 @@ namespace MVSystemApi.Interfaz
         DataTable Cliente_Consulta_Por_Id_Cliente(int id_Cliente);
         DataTable AsumeITBIS();
         int UpdateAsumeITBIS(string asumeITBIS, string usuario);
+        DataSet ValidarEliminacionEquipo(string imei);
+        ConsultaSqlResultado EjecutarConsultaSql(string consulta, int maxFilas);
         string Equipo_Delete(string imei, string Usuario);
+        string EliminarRegistrosEquipoDeTabla(string imei, string tabla, string usuario);
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
         string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono);
         string AbonoGeneral(AbonoFacturaParam param, out Guid idLoteAbono);

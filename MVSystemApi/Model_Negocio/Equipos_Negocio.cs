@@ -254,6 +254,83 @@ namespace MVSystemApi.Model
                           }).ToList().FirstOrDefault();
             return result;
         }
+        internal object ValidarEliminacionEquipo(string imei)
+        {
+            var criterio = imei?.Trim();
+            var resultado = new EquipoValidacionEliminacion
+            {
+                Existe = false,
+                Tablas = new List<string>(),
+                Detalle = new Dictionary<string, bool>()
+            };
+
+            if (string.IsNullOrWhiteSpace(criterio))
+            {
+                resultado.Mensaje = "Debe indicar un IMEI válido.";
+                return resultado;
+            }
+
+            var data = Ac.ValidarEliminacionEquipo(criterio);
+            if (data == null || data.Tables.Count == 0)
+            {
+                resultado.Mensaje = "No se pudo validar el IMEI.";
+                return resultado;
+            }
+
+            resultado.ServidorConsultado = Convert.ToString(data.ExtendedProperties["ServidorConsultado"]);
+            resultado.BaseDatosConsultada = Convert.ToString(data.ExtendedProperties["BaseDatosConsultada"]);
+
+            var nombresTablas = new[] { "Equipos", "InventarioEquipo", "Detalle_Facturas", "Equipos_Historico" };
+            foreach (var nombreTabla in nombresTablas)
+            {
+                resultado.Registros[nombreTabla] = new List<Dictionary<string, object>>();
+                var tabla = data.Tables.Contains(nombreTabla) ? data.Tables[nombreTabla] : null;
+                if (tabla == null)
+                {
+                    resultado.Detalle[nombreTabla] = false;
+                    continue;
+                }
+
+                foreach (DataRow fila in tabla.Rows)
+                {
+                    var registro = new Dictionary<string, object>();
+                    foreach (DataColumn columna in tabla.Columns)
+                    {
+                        registro[columna.ColumnName] = fila.IsNull(columna) ? null : fila[columna];
+                    }
+                    resultado.Registros[nombreTabla].Add(registro);
+                }
+
+                resultado.Detalle[nombreTabla] = resultado.Registros[nombreTabla].Count > 0;
+            }
+
+            var tieneEquipos = resultado.Detalle["Equipos"];
+            var tieneInventario = resultado.Detalle["InventarioEquipo"];
+            var tieneDetalleFactura = resultado.Detalle["Detalle_Facturas"];
+            var tieneEquiposHistorico = resultado.Detalle["Equipos_Historico"];
+
+            if (tieneEquipos) resultado.Tablas.Add("Equipos");
+            if (tieneInventario) resultado.Tablas.Add("InventarioEquipo");
+            if (tieneDetalleFactura) resultado.Tablas.Add("Detalle_Facturas");
+            if (tieneEquiposHistorico) resultado.Tablas.Add("Equipos_Historico");
+
+            resultado.Existe = tieneEquipos || tieneInventario || tieneDetalleFactura || tieneEquiposHistorico;
+
+            if (resultado.Existe)
+            {
+                resultado.Mensaje = $"El IMEI '{criterio}' existe en: {string.Join(", ", resultado.Tablas)}.";
+            }
+            else
+            {
+                resultado.Mensaje = $"No existe ningún registro con el IMEI '{criterio}'.";
+            }
+
+            return resultado;
+        }
+        internal ConsultaSqlResultado EjecutarConsultaSql(string consulta, int maxFilas)
+        {
+            return Ac.EjecutarConsultaSql(consulta, maxFilas);
+        }
         internal object Equipo_Delete(string imei, string Usuario)
         {
             try
@@ -271,9 +348,28 @@ namespace MVSystemApi.Model
             }
             catch (Exception ex)
             {
-                // Manejo de excepciones
-                throw new Exception("Error al intentar eliminar el equipo.", ex);
+                throw new Exception(
+                    $"Error al intentar eliminar el equipo: {ex.GetBaseException().Message}",
+                    ex);
             }
+        }
+        internal EquipoEliminado EliminarRegistroEquipoDeTabla(string imei, string tabla, string usuario)
+        {
+            if (string.IsNullOrWhiteSpace(imei))
+            {
+                throw new ArgumentException("Debe indicar un IMEI válido.", nameof(imei));
+            }
+
+            if (string.Equals(tabla?.Trim(), "Equipos_Historico", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Equipos_Historico es de solo lectura; no se permite eliminar su contenido.", nameof(tabla));
+            }
+
+            string mensaje = string.Equals(tabla?.Trim(), "Equipos", StringComparison.OrdinalIgnoreCase)
+                ? Ac.Equipo_Delete(imei.Trim(), usuario ?? string.Empty)
+                : Ac.EliminarRegistrosEquipoDeTabla(imei.Trim(), tabla, usuario);
+
+            return new EquipoEliminado { mensaje = mensaje };
         }
         internal object ActualizarCostoPrecioReparacion(ReparacionPendienteUpdateDTO data)
         {

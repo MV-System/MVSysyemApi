@@ -16,9 +16,11 @@ using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Globalization;
+using Microsoft.SqlServer.TransactSql.ScriptDom;
 
 namespace MVSystemApi.Model
 {
@@ -2325,43 +2327,471 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 throw;
             }
         }
+        public DataSet ValidarEliminacionEquipo(string imei)
+        {
+            var dataSet = new DataSet();
+
+            var query = @"
+                SELECT * FROM dbo.Equipos
+                WHERE LTRIM(RTRIM(Imei)) = @imei;
+
+                SELECT * FROM dbo.InventarioEquipo
+                WHERE LTRIM(RTRIM(IMEI)) = @imei;
+
+                SELECT * FROM dbo.Detalle_Facturas
+                WHERE LTRIM(RTRIM(ID_Equipo)) = @imei;
+
+                SELECT * FROM dbo.Equipos_Historico
+                WHERE LTRIM(RTRIM(Imei)) = @imei;
+            ";
+
+            try
+            {
+                var connectionWasOpen = cn.State == ConnectionState.Open;
+                if (!connectionWasOpen)
+                {
+                    cn.Open();
+                }
+
+                try
+                {
+                    using (var metadataCommand = new SqlCommand(
+                        "SELECT CONVERT(nvarchar(128), SERVERPROPERTY('ServerName')) AS Servidor, DB_NAME() AS BaseDatos;",
+                        cn))
+                    {
+                        using (var reader = metadataCommand.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                dataSet.ExtendedProperties["ServidorConsultado"] = reader["Servidor"] == DBNull.Value
+                                    ? cn.DataSource
+                                    : Convert.ToString(reader["Servidor"]);
+                                dataSet.ExtendedProperties["BaseDatosConsultada"] = Convert.ToString(reader["BaseDatos"]);
+                            }
+                        }
+                    }
+
+                    using (var cmd = new SqlCommand(query, cn))
+                    {
+                        cmd.Parameters.Add("@imei", SqlDbType.VarChar, 30).Value = imei?.Trim() ?? string.Empty;
+                        using (var adapter = new SqlDataAdapter(cmd))
+                        {
+                            adapter.Fill(dataSet);
+                        }
+                    }
+                }
+                finally
+                {
+                    if (!connectionWasOpen && cn.State == ConnectionState.Open)
+                    {
+                        cn.Close();
+                    }
+                }
+
+                var tableNames = new[] { "Equipos", "InventarioEquipo", "Detalle_Facturas", "Equipos_Historico" };
+                for (var i = 0; i < dataSet.Tables.Count && i < tableNames.Length; i++)
+                {
+                    dataSet.Tables[i].TableName = tableNames[i];
+                }
+
+                _logger.LogInformation(
+                    "ValidarEliminacionEquipo consultó DB {Database}; coincidencias: Equipos={Equipos}, InventarioEquipo={InventarioEquipo}, Detalle_Facturas={DetalleFacturas}, Equipos_Historico={EquiposHistorico}",
+                    dataSet.ExtendedProperties["BaseDatosConsultada"],
+                    dataSet.Tables.Contains("Equipos") ? dataSet.Tables["Equipos"].Rows.Count : 0,
+                    dataSet.Tables.Contains("InventarioEquipo") ? dataSet.Tables["InventarioEquipo"].Rows.Count : 0,
+                    dataSet.Tables.Contains("Detalle_Facturas") ? dataSet.Tables["Detalle_Facturas"].Rows.Count : 0,
+                    dataSet.Tables.Contains("Equipos_Historico") ? dataSet.Tables["Equipos_Historico"].Rows.Count : 0);
+
+                return dataSet;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public ConsultaSqlResultado EjecutarConsultaSql(string consulta, int maxFilas)
+        {
+            var tipoOperacion = ValidarConsultaSqlPermitida(consulta);
+
+            maxFilas = Math.Max(1, Math.Min(maxFilas, 200));
+            var resultado = new ConsultaSqlResultado { TipoOperacion = tipoOperacion };
+
+            using var connection = new SqlConnection(_connectionStrings);
+            connection.Open();
+
+            using (var metadataCommand = new SqlCommand(
+                "SELECT CONVERT(nvarchar(128), SERVERPROPERTY('ServerName')) AS Servidor, DB_NAME() AS BaseDatos;",
+                connection))
+            using (var metadataReader = metadataCommand.ExecuteReader())
+            {
+                if (metadataReader.Read())
+                {
+                    resultado.ServidorConsultado = metadataReader["Servidor"] == DBNull.Value
+                        ? connection.DataSource
+                        : Convert.ToString(metadataReader["Servidor"]);
+                    resultado.BaseDatosConsultada = Convert.ToString(metadataReader["BaseDatos"]);
+                }
+            }
+
+            if (tipoOperacion == "SELECT")
+            {
+                using (var limitarFilas = new SqlCommand($"SET NOCOUNT ON; SET ROWCOUNT {maxFilas + 1};", connection))
+                {
+                    limitarFilas.ExecuteNonQuery();
+                }
+
+                try
+                {
+                    using var command = new SqlCommand(consulta, connection)
+                    {
+                        CommandType = CommandType.Text,
+                        CommandTimeout = 0
+                    };
+
+                    using var reader = command.ExecuteReader();
+                    for (var columna = 0; columna < reader.FieldCount; columna++)
+                    {
+                        resultado.Columnas.Add(reader.GetName(columna));
+                    }
+
+                    while (reader.Read())
+                    {
+                        if (resultado.Filas.Count >= maxFilas)
+                        {
+                            resultado.ResultadosLimitados = true;
+                            break;
+                        }
+
+                        var fila = new List<object>();
+                        for (var columna = 0; columna < reader.FieldCount; columna++)
+                        {
+                            fila.Add(reader.IsDBNull(columna) ? null : reader.GetValue(columna));
+                        }
+                        resultado.Filas.Add(fila);
+                    }
+                }
+                finally
+                {
+                    using var restablecerLimite = new SqlCommand("SET ROWCOUNT 0;", connection);
+                    restablecerLimite.ExecuteNonQuery();
+                }
+
+                resultado.Mensaje = resultado.Filas.Count == 0
+                    ? "Consulta ejecutada correctamente. No devolvió filas."
+                    : $"Consulta ejecutada correctamente. {resultado.Filas.Count} fila(s) devuelta(s).";
+                return resultado;
+            }
+
+            using (var transaction = connection.BeginTransaction())
+            {
+                try
+                {
+                    var commandText = $@"
+                        SET NOCOUNT ON;
+                        SET ROWCOUNT 11;
+                        {consulta};
+                        DECLARE @FilasAfectadas int = @@ROWCOUNT;
+                        SET ROWCOUNT 0;
+                        SELECT @FilasAfectadas;";
+
+                    using var command = new SqlCommand(commandText, connection, transaction)
+                    {
+                        CommandType = CommandType.Text,
+                        CommandTimeout = 0
+                    };
+
+                    var filasAfectadas = Convert.ToInt32(command.ExecuteScalar());
+                    resultado.FilasAfectadas = filasAfectadas;
+
+                    if (filasAfectadas > 10)
+                    {
+                        transaction.Rollback();
+                        resultado.Mensaje = $"Operación cancelada: afectaría más de 10 filas ({filasAfectadas} o más). No se guardaron cambios.";
+                        return resultado;
+                    }
+
+                    transaction.Commit();
+                    resultado.Mensaje = $"{tipoOperacion} ejecutado correctamente. Filas afectadas: {filasAfectadas}.";
+                    return resultado;
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+        }
+
+        private static string ValidarConsultaSqlPermitida(string consulta)
+        {
+            if (string.IsNullOrWhiteSpace(consulta) || consulta.Length > 10000)
+            {
+                throw new ArgumentException("La consulta está vacía o excede el máximo de 10,000 caracteres.", nameof(consulta));
+            }
+
+            var parser = new TSql160Parser(initialQuotedIdentifiers: true);
+            var fragment = parser.Parse(new StringReader(consulta), out IList<ParseError> errores);
+            if (errores.Count > 0)
+            {
+                throw new ArgumentException($"Error de sintaxis SQL: {errores[0].Message}", nameof(consulta));
+            }
+
+            if (fragment is not TSqlScript script ||
+                script.Batches.Count != 1 ||
+                script.Batches[0].Statements.Count != 1)
+            {
+                throw new ArgumentException("Solo se permite una sentencia SELECT, UPDATE o DELETE por solicitud.", nameof(consulta));
+            }
+
+            var statement = script.Batches[0].Statements[0];
+            string tipoOperacion;
+            if (statement is SelectStatement)
+            {
+                tipoOperacion = "SELECT";
+            }
+            else if (statement is UpdateStatement update)
+            {
+                if (update.UpdateSpecification?.WhereClause == null)
+                {
+                    throw new ArgumentException("UPDATE requiere una cláusula WHERE para limitar las filas objetivo.", nameof(consulta));
+                }
+                tipoOperacion = "UPDATE";
+            }
+            else if (statement is DeleteStatement delete)
+            {
+                if (delete.DeleteSpecification?.WhereClause == null)
+                {
+                    throw new ArgumentException("DELETE requiere una cláusula WHERE para limitar las filas objetivo.", nameof(consulta));
+                }
+                tipoOperacion = "DELETE";
+            }
+            else
+            {
+                throw new ArgumentException("Solo se permite una sentencia SELECT, UPDATE o DELETE por solicitud.", nameof(consulta));
+            }
+
+            var validator = new ConsultaSqlSoloLecturaVisitor();
+            statement.Accept(validator);
+            if (validator.ContieneFuncionRestringida)
+            {
+                throw new ArgumentException("La consulta contiene una operación SQL no permitida.", nameof(consulta));
+            }
+
+            var tokens = fragment.ScriptTokenStream;
+            for (var i = 0; i < tokens.Count; i++)
+            {
+                var tokenActual = tokens[i];
+                if (tokenActual == null || string.IsNullOrWhiteSpace(tokenActual.Text))
+                {
+                    continue;
+                }
+
+                var tipoToken = tokenActual.TokenType.ToString();
+                if (tipoToken.IndexOf("String", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    tipoToken.IndexOf("Comment", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    continue;
+                }
+
+                var token = tokenActual.Text.Trim('[', ']', '"');
+                if (token.Equals("OPENROWSET", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("OPENQUERY", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("OPENDATASOURCE", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("OPENXML", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("INTO", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("OUTPUT", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("EXEC", StringComparison.OrdinalIgnoreCase) ||
+                    token.Equals("EXECUTE", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException("La consulta contiene una operación SQL no permitida.", nameof(consulta));
+                }
+
+            }
+
+            return tipoOperacion;
+        }
+
+        private sealed class ConsultaSqlSoloLecturaVisitor : TSqlFragmentVisitor
+        {
+            public bool ContieneFuncionRestringida { get; private set; }
+
+            public override void ExplicitVisit(FunctionCall node)
+            {
+                var nombreFuncion = node.FunctionName?.Value;
+                if (string.Equals(nombreFuncion, "NEXT VALUE FOR", StringComparison.OrdinalIgnoreCase))
+                {
+                    ContieneFuncionRestringida = true;
+                }
+                base.ExplicitVisit(node);
+            }
+
+            public override void ExplicitVisit(NextValueForExpression node)
+            {
+                ContieneFuncionRestringida = true;
+                base.ExplicitVisit(node);
+            }
+        }
+
         public string Equipo_Delete(string imei, string Usuario)
         {
             try
             {
-                // Crear comando SQL
                 using (SqlCommand cmd = new SqlCommand("Equipo_Delete", cn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@imei", SqlDbType.VarChar, 30).Value = imei?.Trim() ?? string.Empty;
+                    cmd.Parameters.Add("@Usuario", SqlDbType.VarChar, 60).Value = Usuario ?? string.Empty;
 
-                    // Agregar solo el par�metro de entrada @imei
-                    cmd.Parameters.AddWithValue("@imei", imei);
-                    cmd.Parameters.AddWithValue("@Usuario", Usuario);
-
-                    // Crear el par�metro de salida para el mensaje
-                    SqlParameter mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 255)
+                    var mensajeParam = new SqlParameter("@mensaje", SqlDbType.VarChar, 500)
                     {
-                        Direction = ParameterDirection.Output  // Definir como par�metro de salida
+                        Direction = ParameterDirection.Output
                     };
-                    cmd.Parameters.Add(mensajeParam);  // Solo agregar el par�metro de salida
+                    cmd.Parameters.Add(mensajeParam);
 
-                    // Abrir la conexi�n
-                    cn.Open();
-                    cmd.ExecuteNonQuery();  // Ejecutar el procedimiento almacenado
-                    cn.Close();
+                    if (cn.State != ConnectionState.Open)
+                    {
+                        cn.Open();
+                    }
 
-                    // Obtener el valor del mensaje de salida
-                    string mensaje = mensajeParam.Value.ToString();
+                    cmd.ExecuteNonQuery();
+                    var mensaje = Convert.ToString(mensajeParam.Value) ?? string.Empty;
 
-                    _sync.Ejecutar("Equipo_Delete", cmd.Parameters);
+                    if (mensaje.Contains("eliminado correctamente", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            _sync.Ejecutar("Equipo_Delete", cmd.Parameters);
+                        }
+                        catch (Exception syncException)
+                        {
+                            _logger.LogError(syncException, "El equipo {Imei} se eliminó en la base principal, pero falló la sincronización.", imei);
+                        }
+                    }
 
-                    return mensaje;  // Retornar el mensaje que devuelve el procedimiento
+                    return mensaje;
                 }
             }
             catch (Exception ex)
             {
-                // Manejo de excepciones
-                throw new Exception("Error al intentar eliminar el equipo", ex);
+                throw new Exception(
+                    $"Error SQL al eliminar el equipo: {ex.GetBaseException().Message}",
+                    ex);
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open)
+                {
+                    cn.Close();
+                }
+            }
+        }
+        public string EliminarRegistrosEquipoDeTabla(string imei, string tabla, string usuario)
+        {
+            var tablaNormalizada = tabla?.Trim().ToLowerInvariant();
+            var nombreTabla = tablaNormalizada switch
+            {
+                "inventarioequipo" => "InventarioEquipo",
+                "detalle_facturas" => "Detalle_Facturas",
+                _ => throw new ArgumentException("Solo se permite eliminar de InventarioEquipo o Detalle_Facturas. Equipos_Historico es de solo lectura.", nameof(tabla))
+            };
+
+            try
+            {
+                using var connection = new SqlConnection(_connectionStrings);
+                connection.Open();
+
+                if (tablaNormalizada == "inventarioequipo")
+                {
+                    const string eliminarInventarioSql = "DELETE [dbo].[InventarioEquipo] WHERE IMEI = @imei;";
+                    using var deleteInventarioCommand = new SqlCommand(eliminarInventarioSql, connection);
+                    deleteInventarioCommand.Parameters.Add("@imei", SqlDbType.VarChar, 30).Value = imei?.Trim() ?? string.Empty;
+                    var filasInventarioEliminadas = deleteInventarioCommand.ExecuteNonQuery();
+                    return $"SQL: Se eliminaron {filasInventarioEliminadas} registro(s) de dbo.InventarioEquipo.";
+                }
+
+                using var transaction = connection.BeginTransaction();
+
+                try
+                {
+                    const string facturaExistsSql = "SELECT COUNT(1) FROM [dbo].[Detalle_Facturas] WHERE [ID_Equipo] = @imei;";
+
+                    using (var existsCommand = new SqlCommand(facturaExistsSql, connection, transaction))
+                    {
+                        existsCommand.Parameters.Add("@imei", SqlDbType.VarChar, 30).Value = imei?.Trim() ?? string.Empty;
+                        if (Convert.ToInt32(existsCommand.ExecuteScalar()) == 0)
+                        {
+                            transaction.Commit();
+                            return $"SQL: No se encontraron registros para eliminar en dbo.{nombreTabla}.";
+                        }
+                    }
+
+                    var usuarioHistorico = string.IsNullOrWhiteSpace(usuario)
+                        ? "Usuario no identificado"
+                        : usuario.Trim();
+                    if (usuarioHistorico.Length > 50)
+                    {
+                        usuarioHistorico = usuarioHistorico.Substring(0, 50);
+                    }
+
+                    const string guardarHistoricoSql = @"
+                        INSERT INTO [dbo].[Equipos_Historico]
+                        (
+                            [Imei], [ID_Modelo], [ID_Tecnologia], [ID_Garantia], [ID_Condicion],
+                            [ID_Estado_Bloqueo], [ID_Almacen], [ID_Suplidor], [Numero_de_Factura],
+                            [Precio_Por_Mayor], [Precio_Detalle], [Costo_Equipo], [Desbloqueado],
+                            [Disponible], [Nota_Adicional], [Nota_Historico], [Usuario], [Fecha_registro],
+                            [Numero_Invetario], [Numero_Registro], [Usuario_Historico], [Fecha_registro_Historico],
+                            [Comision_Detalle], [Comision_Por_Mayor]
+                        )
+                        SELECT
+                            [Imei], [ID_Modelo], [ID_Tecnologia], [ID_Garantia], [ID_Condicion],
+                            [ID_Estado_Bloqueo], [ID_Almacen], [ID_Suplidor], [Numero_de_Factura],
+                            [Precio_Por_Mayor], [Precio_Detalle], [Costo_Equipo], [Desbloqueado],
+                            [Disponible], [Nota_Adicional], @notaHistorico, [Usuario], [Fecha_registro],
+                            [Numero_Invetario], [Numero_Registro], @usuarioHistorico, DATEADD(hour, -4, GETDATE()),
+                            [Comision_Detalle], [Comision_Por_Mayor]
+                        FROM [dbo].[Equipos]
+                        WHERE [Imei] = @imei;
+                    ";
+
+                    int filasRespaldadas;
+                    using (var historyCommand = new SqlCommand(guardarHistoricoSql, connection, transaction))
+                    {
+                        historyCommand.Parameters.Add("@imei", SqlDbType.VarChar, 30).Value = imei?.Trim() ?? string.Empty;
+                        historyCommand.Parameters.Add("@notaHistorico", SqlDbType.VarChar, 500).Value =
+                            $"Eliminado por Gestión de Equipos por el usuario {usuarioHistorico}";
+                        historyCommand.Parameters.Add("@usuarioHistorico", SqlDbType.VarChar, 50).Value = usuarioHistorico;
+                        filasRespaldadas = historyCommand.ExecuteNonQuery();
+                    }
+
+                    const string eliminarDetalleFacturaSql = "DELETE FROM [dbo].[Detalle_Facturas] WHERE [ID_Equipo] = @imei;";
+
+                    int filasEliminadas;
+                    using (var deleteCommand = new SqlCommand(eliminarDetalleFacturaSql, connection, transaction))
+                    {
+                        deleteCommand.Parameters.Add("@imei", SqlDbType.VarChar, 30).Value = imei?.Trim() ?? string.Empty;
+                        filasEliminadas = deleteCommand.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit();
+
+                    var respaldo = filasRespaldadas > 0
+                        ? "Respaldo guardado en Equipos_Historico."
+                        : "No había un registro en Equipos para respaldar.";
+                    return $"SQL: Se eliminaron {filasEliminadas} registro(s) de dbo.{nombreTabla}. {respaldo}";
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    $"Error al eliminar registros de la tabla {nombreTabla}: {ex.GetBaseException().Message}",
+                    ex);
             }
         }
         public String Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data)

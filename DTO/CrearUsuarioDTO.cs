@@ -18,15 +18,21 @@ namespace DTO
         public string Password { get; set; }
 
         [Required(ErrorMessage = "El departamento es requerido")]
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione un departamento válido")]
         public int Departamento { get; set; }
 
         [StringLength(200)]
         public string Descripcion { get; set; }
 
+        [Required(ErrorMessage = "El perfil es requerido")]
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione un perfil válido")]
         public int? Perfil { get; set; }
 
+        [Required(ErrorMessage = "La sucursal es requerida")]
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione una sucursal válida")]
         public int? Id_Sucursal { get; set; }
 
+        [Range(0, 1, ErrorMessage = "El estado debe ser activo o inactivo")]
         public int? Estado { get; set; } = 1; // Activo por defecto
     }
 
@@ -35,18 +41,26 @@ namespace DTO
         [Required(ErrorMessage = "El código de usuario es requerido")]
         public int Codigo { get; set; }
 
+        [Required(ErrorMessage = "El nombre es requerido")]
         [StringLength(50)]
         public string Nombre { get; set; }
 
         [StringLength(200)]
         public string Descripcion { get; set; }
 
+        [Required(ErrorMessage = "El perfil es requerido")]
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione un perfil válido")]
         public int? Perfil { get; set; }
 
+        [Required(ErrorMessage = "El departamento es requerido")]
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione un departamento válido")]
         public int? Departamento { get; set; }
 
+        [Required(ErrorMessage = "La sucursal es requerida")]
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccione una sucursal válida")]
         public int? Id_Sucursal { get; set; }
 
+        [Range(0, 1, ErrorMessage = "El estado debe ser activo o inactivo")]
         public int? Estado { get; set; }
     }
 

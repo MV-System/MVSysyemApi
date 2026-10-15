@@ -18,19 +18,36 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             _httpContextAccessor = httpContextAccessor;
         }
 
+        private int ObtenerIdEmpresaActual()
+        {
+            var idEmpresaClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("IdEmpresa")?.Value;
+
+            if (!int.TryParse(idEmpresaClaim, out var idEmpresa) || idEmpresa <= 0)
+                throw new InvalidOperationException("No se encontró un IdEmpresa válido en el token");
+
+            return idEmpresa;
+        }
+
+        private int ObtenerIdEmpresaEspejoActual()
+        {
+            var idEmpresaClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("IdEmpresaE")?.Value;
+
+            if (!int.TryParse(idEmpresaClaim, out var idEmpresa) || idEmpresa < 0)
+                throw new InvalidOperationException("No se encontró un IdEmpresaE válido en el token");
+
+            return idEmpresa;
+        }
+
         private async Task<string> ObtenerConnectionStringEmpresa()
         {
-            var idEmpresa = _httpContextAccessor.HttpContext?.User?.FindFirst("IdEmpresa")?.Value;
-
-            if (string.IsNullOrEmpty(idEmpresa))
-                throw new Exception("No se encontró IdEmpresa en el token");
+            var idEmpresa = ObtenerIdEmpresaActual();
 
             using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(@"
                 SELECT StringCon FROM dbo.Empresas WHERE ID_Empresa = @IdEmpresa", conn);
-            cmd.Parameters.AddWithValue("@IdEmpresa", int.Parse(idEmpresa));
+            cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
 
             var result = await cmd.ExecuteScalarAsync();
             if (result == null)
@@ -48,10 +65,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             var usuarios = new List<UsuarioResponseDTO>();
             
             // Obtener IdEmpresa del token
-            var idEmpresa = _httpContextAccessor.HttpContext?.User?.FindFirst("IdEmpresa")?.Value;
-            
-            if (string.IsNullOrEmpty(idEmpresa))
-                throw new Exception("No se encontró IdEmpresa en el token");
+            var idEmpresa = ObtenerIdEmpresaActual();
 
             using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
@@ -66,7 +80,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 WHERE u.Id_Empresa = @IdEmpresa
                 ORDER BY u.Nombre", conn);
             
-            cmd.Parameters.AddWithValue("@IdEmpresa", int.Parse(idEmpresa));
+            cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -143,20 +157,21 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<int> CrearUsuario(CrearUsuarioDTO usuarioDTO)
         {
+            var idEmpresa = ObtenerIdEmpresaActual();
+            var idEmpresaEspejo = ObtenerIdEmpresaEspejoActual();
+
             // Validar que el login no exista
             if (await LoginExiste(usuarioDTO.Login))
                 throw new Exception($"El login '{usuarioDTO.Login}' ya existe en el sistema");
 
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             var passwordEncriptada = AES.Encrypt(usuarioDTO.Password);
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO [Usuarios] (Nombre, Login, Password, Departamento, Descripcion, Perfil, Id_Sucursal, Estado, FechaRegistro)
-                VALUES (@Nombre, @Login, @Password, @Departamento, @Descripcion, @Perfil, @Id_Sucursal, @Estado, GETDATE());
+                INSERT INTO [Usuarios] (Nombre, Login, Password, Departamento, Descripcion, Perfil, Id_Sucursal, Id_Empresa, IdEmpresaE, Estado, FechaRegistro)
+                VALUES (@Nombre, @Login, @Password, @Departamento, @Descripcion, @Perfil, @Id_Sucursal, @Id_Empresa, @IdEmpresaE, @Estado, GETDATE());
                 SELECT SCOPE_IDENTITY();", conn);
 
             cmd.Parameters.AddWithValue("@Nombre", usuarioDTO.Nombre);
@@ -166,6 +181,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             cmd.Parameters.AddWithValue("@Descripcion", usuarioDTO.Descripcion ?? "");
             cmd.Parameters.AddWithValue("@Perfil", usuarioDTO.Perfil ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@Id_Sucursal", usuarioDTO.Id_Sucursal ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("@Id_Empresa", idEmpresa);
+            cmd.Parameters.AddWithValue("@IdEmpresaE", idEmpresaEspejo);
             cmd.Parameters.AddWithValue("@Estado", usuarioDTO.Estado ?? 1);
 
             var resultado = await cmd.ExecuteScalarAsync();
@@ -177,12 +194,12 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> ActualizarUsuario(ActualizarUsuarioDTO usuarioDTO)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
+            var idEmpresa = ObtenerIdEmpresaActual();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
-            // Si Estado no viene o viene como null/0, no lo actualizamos
+            // Si Estado no viene, conserva el valor actual; 0 es un estado válido (inactivo).
             string updateStatement = @"
                 UPDATE [Usuarios]
                 SET Nombre = @Nombre,
@@ -191,23 +208,24 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                     Departamento = @Departamento,
                     Id_Sucursal = @Id_Sucursal";
 
-            if (usuarioDTO.Estado.HasValue && usuarioDTO.Estado > 0)
+            if (usuarioDTO.Estado.HasValue)
             {
                 updateStatement += ", Estado = @Estado";
             }
 
-            updateStatement += ", FechaModificado = GETDATE() WHERE Codigo = @Codigo";
+            updateStatement += ", FechaModificado = GETDATE() WHERE Codigo = @Codigo AND Id_Empresa = @IdEmpresa";
 
             using var cmd = new SqlCommand(updateStatement, conn);
 
             cmd.Parameters.AddWithValue("@Codigo", usuarioDTO.Codigo);
+            cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
             cmd.Parameters.AddWithValue("@Nombre", usuarioDTO.Nombre ?? "");
             cmd.Parameters.AddWithValue("@Descripcion", usuarioDTO.Descripcion ?? "");
             cmd.Parameters.AddWithValue("@Perfil", usuarioDTO.Perfil ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@Departamento", usuarioDTO.Departamento ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@Id_Sucursal", usuarioDTO.Id_Sucursal ?? (object)DBNull.Value);
 
-            if (usuarioDTO.Estado.HasValue && usuarioDTO.Estado > 0)
+            if (usuarioDTO.Estado.HasValue)
             {
                 cmd.Parameters.AddWithValue("@Estado", usuarioDTO.Estado);
             }
@@ -379,9 +397,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
 
         private async Task<bool> LoginExiste(string login)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
-
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand("SELECT COUNT(*) FROM [Usuarios] WHERE Login = @Login", conn);

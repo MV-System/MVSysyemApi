@@ -1,24 +1,9 @@
 using DTO;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
 using MVSystemApi.Interfaz;
-using MVSystemApi.Model.Seguridad;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.Data;
 using System.Data.SqlClient;
-using DTO;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
-using MVSystemApi.Interfaz;
-using MVSystemApi.Model.Seguridad;
-using MVSystemApi.Model_Negocio.Seguridad;
-using System.Data;
-using System.Data.SqlClient;
-using System.IO;
-using System.Drawing;
-using System.Drawing.Printing;
 using System.Globalization;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 

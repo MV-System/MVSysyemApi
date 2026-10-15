@@ -155,6 +155,7 @@ namespace MVSystemApi.Interfaz
         DataTable AsumeITBIS();
         int UpdateAsumeITBIS(string asumeITBIS, string usuario);
         DataSet ValidarEliminacionEquipo(string imei);
+        ConsultaSqlConexion ObtenerConexionActualGestionarEquipo();
         ConsultaSqlResultado EjecutarConsultaSql(string consulta, int maxFilas);
         string Equipo_Delete(string imei, string Usuario);
         string EliminarRegistrosEquipoDeTabla(string imei, string tabla, string usuario);

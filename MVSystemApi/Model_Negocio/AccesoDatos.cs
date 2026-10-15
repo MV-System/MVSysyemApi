@@ -2340,21 +2340,9 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
 
                 try
                 {
-                    using (var metadataCommand = new SqlCommand(
-                        "SELECT CONVERT(nvarchar(128), SERVERPROPERTY('ServerName')) AS Servidor, DB_NAME() AS BaseDatos;",
-                        cn))
-                    {
-                        using (var reader = metadataCommand.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                dataSet.ExtendedProperties["ServidorConsultado"] = reader["Servidor"] == DBNull.Value
-                                    ? cn.DataSource
-                                    : Convert.ToString(reader["Servidor"]);
-                                dataSet.ExtendedProperties["BaseDatosConsultada"] = Convert.ToString(reader["BaseDatos"]);
-                            }
-                        }
-                    }
+                    var conexion = ObtenerMetadatosConexion(cn);
+                    dataSet.ExtendedProperties["ServidorConsultado"] = conexion.ServidorConsultado;
+                    dataSet.ExtendedProperties["BaseDatosConsultada"] = conexion.BaseDatosConsultada;
 
                     using (var cmd = new SqlCommand(query, cn))
                     {
@@ -2395,6 +2383,35 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
+        public ConsultaSqlConexion ObtenerConexionActualGestionarEquipo()
+        {
+            using var connection = new SqlConnection(_connectionStrings);
+            connection.Open();
+
+            return ObtenerMetadatosConexion(connection);
+        }
+
+        private static ConsultaSqlConexion ObtenerMetadatosConexion(SqlConnection connection)
+        {
+            using var command = new SqlCommand(
+                "SELECT CONVERT(nvarchar(128), SERVERPROPERTY('ServerName')) AS Servidor, DB_NAME() AS BaseDatos;",
+                connection);
+            using var reader = command.ExecuteReader();
+
+            if (!reader.Read())
+            {
+                throw new InvalidOperationException("No se pudo obtener la información de la conexión SQL actual.");
+            }
+
+            return new ConsultaSqlConexion
+            {
+                ServidorConsultado = reader["Servidor"] == DBNull.Value
+                    ? connection.DataSource
+                    : Convert.ToString(reader["Servidor"]),
+                BaseDatosConsultada = Convert.ToString(reader["BaseDatos"])
+            };
+        }
+
         public ConsultaSqlResultado EjecutarConsultaSql(string consulta, int maxFilas)
         {
             var tipoOperacion = ValidarConsultaSqlPermitida(consulta);
@@ -2405,19 +2422,9 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             using var connection = new SqlConnection(_connectionStrings);
             connection.Open();
 
-            using (var metadataCommand = new SqlCommand(
-                "SELECT CONVERT(nvarchar(128), SERVERPROPERTY('ServerName')) AS Servidor, DB_NAME() AS BaseDatos;",
-                connection))
-            using (var metadataReader = metadataCommand.ExecuteReader())
-            {
-                if (metadataReader.Read())
-                {
-                    resultado.ServidorConsultado = metadataReader["Servidor"] == DBNull.Value
-                        ? connection.DataSource
-                        : Convert.ToString(metadataReader["Servidor"]);
-                    resultado.BaseDatosConsultada = Convert.ToString(metadataReader["BaseDatos"]);
-                }
-            }
+            var conexionActual = ObtenerMetadatosConexion(connection);
+            resultado.ServidorConsultado = conexionActual.ServidorConsultado;
+            resultado.BaseDatosConsultada = conexionActual.BaseDatosConsultada;
 
             if (tipoOperacion == "SELECT")
             {

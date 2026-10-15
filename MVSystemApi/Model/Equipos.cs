@@ -254,6 +254,11 @@ namespace MVSystemApi.Model
     {
         public string Consulta { get; set; }
     }
+    public class ConsultaSqlConexion
+    {
+        public string ServidorConsultado { get; set; }
+        public string BaseDatosConsultada { get; set; }
+    }
     public class ConsultaSqlResultado
     {
         public string TipoOperacion { get; set; }

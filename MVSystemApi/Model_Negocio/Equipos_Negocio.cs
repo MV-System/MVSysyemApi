@@ -331,6 +331,12 @@ namespace MVSystemApi.Model
         {
             return Ac.EjecutarConsultaSql(consulta, maxFilas);
         }
+
+        internal ConsultaSqlConexion ObtenerConexionActualGestionarEquipo()
+        {
+            return Ac.ObtenerConexionActualGestionarEquipo();
+        }
+
         internal object Equipo_Delete(string imei, string Usuario)
         {
             try

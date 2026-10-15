@@ -322,12 +322,37 @@ namespace MVSystemApi.Controllers
         }
 
         [Authorize]
+        [HttpGet]
+        [Route("GestionarEquipo/ConexionActual")]
+        public ActionResult<ConsultaSqlConexion> ObtenerConexionActualGestionarEquipo()
+        {
+            if (!TienePermisoModoDesarrollador())
+            {
+                return Forbid();
+            }
+
+            try
+            {
+                return Ok(AD.ObtenerConexionActualGestionarEquipo());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"No se pudo obtener la conexión SQL actual: {ex.GetBaseException().Message}");
+            }
+        }
+
+        [Authorize]
         [HttpPost]
         [Route("GestionarEquipo/ConsultaSql")]
         public ActionResult<ConsultaSqlResultado> EjecutarConsultaSqlGestionarEquipo([FromBody] ConsultaSqlRequest request)
         {
             try
             {
+                if (!TienePermisoModoDesarrollador())
+                {
+                    return Forbid();
+                }
+
                 if (request == null || string.IsNullOrWhiteSpace(request.Consulta))
                 {
                     return BadRequest("Escribe una consulta SELECT, UPDATE o DELETE para ejecutar.");
@@ -343,6 +368,13 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest($"Error SQL: {ex.GetBaseException().Message}");
             }
+        }
+
+        private bool TienePermisoModoDesarrollador()
+        {
+            return User.Claims.Any(claim =>
+                (claim.Type == "role" || claim.Type == System.Security.Claims.ClaimTypes.Role) &&
+                claim.Value == "ModoDesarrollador");
         }
 
         [HttpPost]

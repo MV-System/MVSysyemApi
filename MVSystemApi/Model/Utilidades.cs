@@ -18,6 +18,7 @@
         public int Venta_Desbloqueos;
         public int Itbis_Desbloqueos;
         public int Ganancia_Desbloqueos;
+        public decimal Abonos_Credito;
         public int valida = 1;
     }
 }

@@ -52,5 +52,19 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet]
+        [Route("GetDetalleAbonos")]
+        public ActionResult<List<DTO.UtilidadAbonoDetalleDTO>> GetDetalleAbonos(int? sucursal, DateTime FI, DateTime FF)
+        {
+            try
+            {
+                return Ok(AD.GetDetalleAbonos(sucursal, FI, FF));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

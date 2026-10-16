@@ -37,6 +37,7 @@ namespace MVSystemApi.Model_Negocio
                                  Venta_Desbloqueos = Convert.ToInt32(dt["Venta_Desbloqueos"]),
                                  Itbis_Desbloqueos = Convert.ToInt32(dt["Itbis_Desbloqueos"]),
                                  Ganancia_Desbloqueos = Convert.ToInt32(dt["Ganancia_Desbloqueos"]),
+                                 Abonos_Credito = Convert.ToDecimal(dt["Abonos_Credito"]),
 
                                  // ID_Tipo_Pagos = Convert.ToInt32(dt["ID_Tipo_Pagos"]),
                                  // Descripcion_Tipo_Pagos = Convert.ToString(dt["Descripcion_Tipo_Pagos"]),
@@ -49,6 +50,22 @@ namespace MVSystemApi.Model_Negocio
             {
                 throw ex;
             }
+        }
+
+        internal List<DTO.UtilidadAbonoDetalleDTO> GetDetalleAbonos(int? sucursal, DateTime FI, DateTime FF)
+        {
+            var tabla = Ac.GetDetalleAbonosUtilidades(sucursal, FI, FF);
+            return tabla.AsEnumerable().Select(fila => new DTO.UtilidadAbonoDetalleDTO
+            {
+                Id = Convert.ToInt32(fila["Id"]),
+                IdCliente = fila["IdCliente"] == DBNull.Value ? 0 : Convert.ToInt32(fila["IdCliente"]),
+                Cliente = Convert.ToString(fila["Cliente"]),
+                NumeroFactura = Convert.ToInt32(fila["NumeroFactura"]),
+                FechaAbono = Convert.ToDateTime(fila["FechaAbono"]),
+                MontoAbono = Convert.ToDecimal(fila["MontoAbono"]),
+                Usuario = Convert.ToString(fila["Usuario"]),
+                Nota = Convert.ToString(fila["Nota"])
+            }).ToList();
         }
         internal async Task<object> GetUtilidadesAsync(int? sucursal, DateTime FI, DateTime FF)
         {
@@ -75,6 +92,7 @@ namespace MVSystemApi.Model_Negocio
                                  Venta_Desbloqueos = Convert.ToInt32(dt["Venta_Desbloqueos"]),
                                  Itbis_Desbloqueos = Convert.ToInt32(dt["Itbis_Desbloqueos"]),
                                  Ganancia_Desbloqueos = Convert.ToInt32(dt["Ganancia_Desbloqueos"]),
+                                 Abonos_Credito = Convert.ToDecimal(dt["Abonos_Credito"]),
                              }).FirstOrDefault();
 
                 return lista;

@@ -3203,6 +3203,35 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
+        public DataTable GetDetalleAbonosUtilidades(int? sucursal, DateTime FI, DateTime FF)
+        {
+            try
+            {
+                using var cn = new SqlConnection(_connectionStrings);
+                if (sucursal == 4)
+                {
+                    sucursal = null;
+                }
+
+                using var comando = new SqlCommand("dbo.Ver_Utilidades_Abonos_Credito_Detalle", cn)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                comando.Parameters.AddWithValue("@Sucursal", sucursal ?? (object)DBNull.Value);
+                comando.Parameters.AddWithValue("@Fecha_Inicio", FI);
+                comando.Parameters.AddWithValue("@Fecha_Final", FF);
+
+                using var da = new SqlDataAdapter(comando);
+                var dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         public DataTable PostEquipoTransferencia(EquipoTransferencia tranferencia)
         {
             try

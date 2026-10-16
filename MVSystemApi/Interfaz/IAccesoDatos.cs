@@ -19,6 +19,7 @@ namespace MVSystemApi.Interfaz
 
         // --------------- Utilidades ------------------------//
         DataTable Vendedor_Consulta_Combo();
+        DataTable GetDetalleAbonosUtilidades(int? sucursal, DateTime FI, DateTime FF);
 
         #region  // ------------- equipos ---------------------//
         DataTable Equipo_Busca_Disponible(string Equipo, int Id_Almacen);

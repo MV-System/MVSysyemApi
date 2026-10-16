@@ -25,8 +25,9 @@ Set DateFormat MDY
     where 
         ft.estado = 'A'
         and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal) 
-        and id_tipo in (1)
-        and ID_Tipo_Factura <> 3
+		and ft.ID_Tipo_Pagos <> 2
+		and df.id_tipo in (1)
+		and ft.ID_Tipo_Factura <> 3
 		and eq.Disponible = 'N'
         and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
         and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final  
@@ -44,8 +45,9 @@ Set DateFormat MDY
 		 inner join Accesorios ac on df.id_equipo = ac.id_accesorio
 		 where df.estado = 'A'
 		     and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal) 
-		   and id_tipo = 2
-		   and ID_Tipo_Factura <> 3
+		   and ft.ID_Tipo_Pagos <> 2
+		   and df.id_tipo = 2
+		   and ft.ID_Tipo_Factura <> 3
 		   and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
 		   and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final 														  
 		   and df.Estado = 'A') as ACCESORIOS
@@ -60,7 +62,8 @@ Set DateFormat MDY
 		 inner join dbo.Reparaciones r on r.numero_factura = ft.numero_factura	  		 
 		 where df.estado = 'A'
 		   and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)  
-		   and id_tipo in(3,4)
+		   and ft.ID_Tipo_Pagos <> 2
+		   and df.id_tipo in(3,4)
 		   and ft.id_tipo_factura = 4
 		   and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
 		   and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final 	
@@ -76,8 +79,27 @@ Set DateFormat MDY
 		 inner join dbo.Desbloqueos d on df.id_equipo = d.ID_Desbloqueos and d.numero_factura = ft.numero_factura
 		 where df.estado = 'A'
 		     and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal) 
-		   and id_tipo = 5
+		   and ft.ID_Tipo_Pagos <> 2
+		   and df.id_tipo = 5
+		   and ft.ID_Tipo_Factura <> 3
 		   and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
 		   and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final 	
 		   and df.Estado = 'A' And d.Estado = 'A') as DESBLOQUEOS
+	, (
+		-- Abonos recibidos durante el período en facturas a crédito.
+		-- Se presentan por separado; no se suman las ventas completas ni se atribuyen a una categoría.
+		select coalesce(sum(try_convert(decimal(18, 2), hp.Total_Abono)), 0) as Abonos_Credito
+		  from dbo.Historio_Pagos hp
+		 inner join dbo.Facturas ft
+		    on ft.Numero_Factura = try_convert(int, hp.Numero_factura)
+		   and ft.ID_Sucursal = hp.Id_Sucursal
+		   and ft.ID_Cliente = hp.id_Cliente_Suplidor
+		 where ft.Estado = 'A'
+		   and ft.ID_Tipo_Pagos = 2
+		   and ft.ID_Tipo_Factura <> 3
+		   and hp.Tipo_Factura = 1
+		   and hp.Id_Sucursal = coalesce(@Sucursal, hp.Id_Sucursal)
+		   and hp.Total_Abono > 0
+		   and cast(hp.Fecha_registro as date) between @Fecha_Inicio and @Fecha_Final
+	) as ABONOS_CREDITO
 end

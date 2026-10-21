@@ -89,6 +89,7 @@ namespace MVSystemApi.Model
         public int IdTipoFactura { get; set; }
         public string TipoFactura { get; set; }
         public int IdVendedor { get; set; }
+        public int IdGarantia { get; set; }
         public int IdTipoPago { get; set; }
         public string TipoPago { get; set; }
         public int NcfTipoNumero { get; set; }

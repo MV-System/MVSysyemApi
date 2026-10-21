@@ -2036,6 +2036,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@ID_Cliente", factura.IdCliente);
                     cmd.Parameters.AddWithValue("@ID_Vendedor", factura.IdVendedor);
+                    cmd.Parameters.AddWithValue("@ID_Garantia", factura.IdGarantia);
                     cmd.Parameters.AddWithValue("@ID_Tipo_Factura", factura.IdTipoFactura);
                     cmd.Parameters.AddWithValue("@ID_Tipo_Pagos", factura.IdTipoPago);
                     cmd.Parameters.AddWithValue("@ID_Almacen", factura.IdAlmacen);

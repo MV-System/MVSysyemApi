@@ -67,6 +67,7 @@ namespace MVSystemApi.Controllers
                     NumeroFactura = request.NumeroFactura,
                     IdCliente = request.IdCliente,
                     IdVendedor = request.IdVendedor,
+                    IdGarantia =Convert.ToInt32(request.Garantia),
                     IdTipoFactura = request.IdTipoFactura,
                     IdTipoPago = request.IdTipoPago,
                     NcfTipoNumero = request.NcfTipoNumero,

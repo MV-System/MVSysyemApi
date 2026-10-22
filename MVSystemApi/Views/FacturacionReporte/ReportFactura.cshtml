@@ -81,7 +81,7 @@
                             <b>@Model.Factura?.FacturaTitulo: @Model.Factura?.NumeroFactura</b><br>
                             <b>@Model.Factura?.FacturaTituloTipo:</b> @Model.Factura?.TipoFactura<br>
                             <b>Tipo de pago: </b> @Model.Factura?.TipoPago<br>
-                            <b>Fecha: </b> @Model.Factura?.FechaFacturacion<br>
+                            <b>Fecha: </b> @Model.Factura?.FechaFacturacion.ToString("dd/MM/yyyy")<br>
                             <b>@Model.Factura?.VerNCF</b> @Model.Factura?.Ncf<br>
                         </td>
                     </tr>
@@ -201,7 +201,7 @@
 
         <div class="container">
             <div class="text-right">
-                Fecha de Impresión: @DateTime.Now
+                Fecha de Impresión: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
             </div>
         </div>
     </div>

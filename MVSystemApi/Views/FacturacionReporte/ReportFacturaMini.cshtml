@@ -127,7 +127,7 @@
                 <b>FT:@Model.Factura.NumeroFactura</b><br>
                 <b>TF: </b>@Model.Factura.TipoFactura<br>
                 <b>TP: </b>@Model.Factura.TipoPago<br>
-                <b>Fecha: </b>@Model.Factura.FechaFacturacion<br>
+                <b>Fecha: </b>@Model.Factura.FechaFacturacion.ToString("dd/MM/yyyy")<br>
                 <b>NCF: </b>@Model.Factura.Ncf
             </div>
         </div>
@@ -239,7 +239,7 @@
     }
 
     <div class="container text-right">
-        Fecha de Impresión: @DateTime.Now
+        Fecha de Impresión: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
     </div>
 </body>
 

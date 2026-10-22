@@ -2,7 +2,15 @@
 
 @{
     Layout = null;
-   
+    // Cada registro representa un equipo; agrupar por descripción y contar
+    // equivale a sumar la cantidad de cada producto en el PDF de factura.
+    var resumenPorModelo = Model.EquiposDTO
+        .GroupBy(x => x.Descripcion)
+        .Select(g => new
+        {
+            Modelo = g.Key,
+            TotalCantidad = g.Count()
+        }).ToList();
 }
 
 <!DOCTYPE html>
@@ -18,7 +26,7 @@
     <style>
         .p0 p {
             padding: 0%;
-            margin: 0%;                       
+            margin: 0%;
         }
     </style>
 </head>
@@ -39,13 +47,13 @@
     </div>
 
     <div class="container mt-5">
- 
+
         <hr />
         <div class="row">
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        
+
                         <th scope="col">IMEI</th>
                         <th scope="col">DESCRIPCIÓN</th>
                         <th scope="col">P POR MAYOR</th>
@@ -59,11 +67,11 @@
                 </thead>
 
                 <tbody>
-                                   
+
                     @{
                         foreach (var item in Model.EquiposDTO)
                         {
-         
+
                                     <tr>
                                         <td>@item.Imei</td>
                                         <td>@item.Descripcion</td>
@@ -75,7 +83,7 @@
                                         <td>@item.ComisionDetalle</td>
                                         <td>@item.ComisionPorMayor</td>
                                     </tr>
-                    
+
                         }
                     }
                 </tbody>
@@ -83,8 +91,22 @@
         </div>
     </div>
 
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <b>Resumen por modelo:</b>
+                <ul>
+                    @foreach (var item in resumenPorModelo)
+                    {
+                        <li>@item.Modelo: @item.TotalCantidad</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <div class="container text-right">
- 
+
         <div><b>TOTAL EQUIPOS: @Model.EquiposDTO.Count()</b></div>
     </div>
 

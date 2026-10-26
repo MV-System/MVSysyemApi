@@ -16,10 +16,11 @@ BEGIN
         ft.Numero_Factura AS NumeroFactura,
         hp.Fecha_registro AS FechaAbono,
         TRY_CONVERT(DECIMAL(18, 2), hp.Total_Abono) AS MontoAbono,
+        CASE WHEN hp.Pendiente <= 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS EsAbonoQueSaldaFactura,
         costo.CostoFactura,
         CONVERT(DECIMAL(18, 2), ft.Total) AS TotalFactura,
         CONVERT(DECIMAL(18, 2), CASE
-            WHEN ft.Total > 0 THEN hp.Total_Abono * (ft.Total - ft.Itbis - costo.CostoFactura) / ft.Total
+            WHEN hp.Pendiente <= 0 THEN ft.Total - ft.Itbis - costo.CostoFactura
             ELSE 0
         END) AS GananciaAbono,
         hp.Usuario,
@@ -43,7 +44,6 @@ BEGIN
     WHERE ft.Estado = 'A'
       AND ft.ID_Tipo_Pagos = 2
       AND ft.ID_Tipo_Factura <> 3
-      AND hp.Tipo_Factura = 1
       AND hp.Id_Sucursal = COALESCE(@Sucursal, hp.Id_Sucursal)
       AND hp.Total_Abono > 0
       AND hp.Fecha_registro >= CONVERT(DATE, @Fecha_Inicio)

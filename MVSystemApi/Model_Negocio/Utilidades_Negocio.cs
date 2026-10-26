@@ -63,6 +63,7 @@ namespace MVSystemApi.Model_Negocio
                 NumeroFactura = Convert.ToInt32(fila["NumeroFactura"]),
                 FechaAbono = Convert.ToDateTime(fila["FechaAbono"]),
                 MontoAbono = Convert.ToDecimal(fila["MontoAbono"]),
+                EsAbonoQueSaldaFactura = Convert.ToBoolean(fila["EsAbonoQueSaldaFactura"]),
                 CostoFactura = fila["CostoFactura"] == DBNull.Value ? 0m : Convert.ToDecimal(fila["CostoFactura"]),
                 TotalFactura = fila["TotalFactura"] == DBNull.Value ? 0m : Convert.ToDecimal(fila["TotalFactura"]),
                 GananciaAbono = fila["GananciaAbono"] == DBNull.Value ? 0m : Convert.ToDecimal(fila["GananciaAbono"]),

@@ -97,7 +97,6 @@ Set DateFormat MDY
 		 where ft.Estado = 'A'
 		   and ft.ID_Tipo_Pagos = 2
 		   and ft.ID_Tipo_Factura <> 3
-		   and hp.Tipo_Factura = 1
 		   and hp.Id_Sucursal = coalesce(@Sucursal, hp.Id_Sucursal)
 		   and hp.Total_Abono > 0
 		   and cast(hp.Fecha_registro as date) between @Fecha_Inicio and @Fecha_Final

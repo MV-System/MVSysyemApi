@@ -3976,6 +3976,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             {
                 foreach (var det in detalles)
                 {
+                    var esRegimenEspecial = factura.NcfTipoNumero == 44;
                     await using var cmdDet = new SqlCommand(@"
 INSERT INTO dbo.PIVOT_FACTURAS_DET
 (COMPANIA,SUCURSAL,TIPO_DOCUMENTO_COMPANIA,COD_EMPRESA,COD_SUCURSAL,TIPO_DOCUMENTO,NUM_DOCUMENTO,RNC_EMISOR,ENCF,COD_PRODUCTO,TIPO_PRODUCTO,UND_MEDIDA,DESCRIPCION,CANTIDAD,PRECIO,IND_IMP,IND_EXENTO,TASA_IMPUESTO,PORC_DESCUENTO,MONTO_DESCUENTO,SUB_TOTAL,IMPUESTO,TOTAL)
@@ -3997,13 +3998,13 @@ VALUES
                     cmdDet.Parameters.AddWithValue("@DESCRIPCION", det.Descripcion ?? det.IdEquipo ?? "ITEM");
                     cmdDet.Parameters.AddWithValue("@CANTIDAD", det.Cantidad);
                     cmdDet.Parameters.AddWithValue("@PRECIO", det.SubTotal);
-                    cmdDet.Parameters.AddWithValue("@IND_IMP", det.Itbis > 0 ? "S" : "N");
-                    cmdDet.Parameters.AddWithValue("@IND_EXENTO", det.Itbis > 0 ? "N" : "S");
-                    cmdDet.Parameters.AddWithValue("@TASA_IMPUESTO", det.Itbis > 0 ? 18 : 0);
+                    cmdDet.Parameters.AddWithValue("@IND_IMP", esRegimenEspecial ? "N" : det.Itbis > 0 ? "S" : "N");
+                    cmdDet.Parameters.AddWithValue("@IND_EXENTO", esRegimenEspecial ? "S" : det.Itbis > 0 ? "N" : "S");
+                    cmdDet.Parameters.AddWithValue("@TASA_IMPUESTO", esRegimenEspecial ? 0 : det.Itbis > 0 ? 18 : 0);
                     cmdDet.Parameters.AddWithValue("@PORC_DESCUENTO", 0);
                     cmdDet.Parameters.AddWithValue("@MONTO_DESCUENTO", det.Descuento);
                     cmdDet.Parameters.AddWithValue("@SUB_TOTAL", det.SubTotal);
-                    cmdDet.Parameters.AddWithValue("@IMPUESTO", det.Itbis);
+                    cmdDet.Parameters.AddWithValue("@IMPUESTO", esRegimenEspecial ? 0 : det.Itbis);
                     cmdDet.Parameters.AddWithValue("@TOTAL", det.Total);
 
                     await cmdDet.ExecuteNonQueryAsync();
@@ -4078,7 +4079,7 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@COD_MODIFICACION", notaCreditoInfo != null ? (object)notaCreditoInfo.CodModificacion : DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@SUB_TOTAL", factura.SubTotal);
                 cmdEnc.Parameters.AddWithValue("@DESCUENTO", factura.Descuento);
-                cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.Itbis);
+                cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.NcfTipoNumero == 44 ? 0 : factura.Itbis);
                 cmdEnc.Parameters.AddWithValue("@TOTAL", factura.Total);
                 cmdEnc.Parameters.AddWithValue("@USUARIO_CREA", string.IsNullOrWhiteSpace(usuario) ? "Sistema" : usuario);
                 cmdEnc.Parameters.AddWithValue("@Indicador_NotaCredito", factura.NcfTipoNumero == 34 ? 1 : 0);

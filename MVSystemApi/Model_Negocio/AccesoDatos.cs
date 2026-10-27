@@ -4036,7 +4036,7 @@ VALUES
                 }
 
                 DateTime? fechaVenceEncf = null;
-                if (factura.NcfTipoNumero == 31)
+                if (factura.NcfTipoNumero == 31 || factura.NcfTipoNumero == 44 || factura.NcfTipoNumero == 45)
                     fechaVenceEncf = await GetFechaVenceEncfTipoNfc(factura.NcfTipoNumero);
 
 

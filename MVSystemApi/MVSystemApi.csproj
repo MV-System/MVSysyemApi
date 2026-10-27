@@ -3,6 +3,7 @@
  
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
+		<UserSecretsId>mvsystem-api-local-development</UserSecretsId>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RazorCompileOnPublish>false</RazorCompileOnPublish>
 	</PropertyGroup>

@@ -16,6 +16,7 @@ BEGIN
         ft.Numero_Factura AS NumeroFactura,
         hp.Fecha_registro AS FechaAbono,
         TRY_CONVERT(DECIMAL(18, 2), hp.Total_Abono) AS MontoAbono,
+        CASE WHEN COALESCE(saldoActual.Pendiente, hp.Pendiente, 0) <= 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS FacturaSaldada,
         CASE WHEN hp.Pendiente <= 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS EsAbonoQueSaldaFactura,
         costo.CostoFactura,
         CONVERT(DECIMAL(18, 2), ft.Total) AS TotalFactura,
@@ -41,6 +42,15 @@ BEGIN
           AND df.LiteralF = ft.literal + CONVERT(VARCHAR(10), ft.Numero_Factura)
           AND df.Estado = 'A'
     ) costo
+        OUTER APPLY (
+                SELECT TOP (1) hpActual.Pendiente
+                FROM dbo.Historio_Pagos hpActual
+                WHERE TRY_CONVERT(INT, hpActual.Numero_factura) = ft.Numero_Factura
+                    AND hpActual.Id_Sucursal = ft.ID_Sucursal
+                    AND hpActual.id_Cliente_Suplidor = ft.ID_Cliente
+                    AND hpActual.Estado = 'A'
+                ORDER BY hpActual.Fecha_registro DESC, hpActual.Id DESC
+        ) saldoActual
     WHERE ft.Estado = 'A'
       AND ft.ID_Tipo_Pagos = 2
       AND ft.ID_Tipo_Factura <> 3

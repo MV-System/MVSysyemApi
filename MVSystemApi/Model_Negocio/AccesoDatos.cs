@@ -21,6 +21,8 @@ namespace MVSystemApi.Model
         private readonly string _proveedor2ConnectionString;
         private readonly string _dgiQrBaseUrl;
         private readonly string _dgiQrBaseUrlFiscal;
+        private readonly int _laptopsHorasMaxCustodia;
+        private readonly bool _laptopsBloquearVencidos;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
@@ -35,6 +37,8 @@ namespace MVSystemApi.Model
             _proveedor2ConnectionString = configuration.GetConnectionString("Proveedor2MicroStar") ?? string.Empty;
             _dgiQrBaseUrl = configuration["Dgi:QrBaseUrl"] ?? string.Empty;
             _dgiQrBaseUrlFiscal = configuration["Dgi:QrBaseUrlFiscal"] ?? string.Empty;
+            _laptopsHorasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
+            _laptopsBloquearVencidos = configuration.GetValue("Laptops:BloquearTecnicoConPendientesVencidos", false);
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -4451,6 +4455,252 @@ WHERE ENCF = @encf", connection);
                 throw;
             }
         }
+
+        #region -------------- Laptops --------------------------
+        public DataTable Equipo_Configuracion_Guardar(EquipoConfiguracion configuracion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Guardar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", configuracion.Imei);
+                cmd.Parameters.AddWithValue("@Ram_GB", (object)configuracion.Ram_GB ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Ram_Tipo", (object)configuracion.Ram_Tipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Almacenamiento_GB", (object)configuracion.Almacenamiento_GB ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Almacenamiento_Tipo", (object)configuracion.Almacenamiento_Tipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Notas", (object)configuracion.Notas ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", configuracion.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Configuracion_Guardar", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Configuracion_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Registra el cambio de pieza de una laptop. El SP es transaccional (todo o nada);
+        /// solo si termina bien se replica a la BD espejo.
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_Registrar(EquipoCambioPieza cambio)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Registrar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", cambio.Imei);
+                cmd.Parameters.AddWithValue("@Tipo_Pieza", cambio.Tipo_Pieza);
+                cmd.Parameters.AddWithValue("@ID_Accesorio_Instalado", cambio.ID_Accesorio_Instalado);
+                cmd.Parameters.AddWithValue("@Nueva_Capacidad_GB", cambio.Nueva_Capacidad_GB);
+                cmd.Parameters.AddWithValue("@Nuevo_Tipo", cambio.Nuevo_Tipo);
+                cmd.Parameters.AddWithValue("@ID_Accesorio_Retirado", (object)cambio.ID_Accesorio_Retirado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Destino_Retirada", (object)cambio.Destino_Retirada ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Tecnico", cambio.Tecnico);
+                cmd.Parameters.AddWithValue("@ID_Almacen", cambio.ID_Almacen);
+                cmd.Parameters.AddWithValue("@ID_PreFactura", (object)cambio.ID_PreFactura ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Reparacion", (object)cambio.ID_Reparacion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Detalle", (object)cambio.Nuevo_Precio_Detalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Por_Mayor", (object)cambio.Nuevo_Precio_Por_Mayor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", cambio.Usuario);
+                cmd.Parameters.AddWithValue("@Horas_Max_Custodia", _laptopsHorasMaxCustodia);
+                cmd.Parameters.AddWithValue("@Bloquear_Vencidos", _laptopsBloquearVencidos);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Cambio_Pieza_Registrar", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Confirma la recepción de la pieza retirada que estaba en custodia (suma 1 al inventario).
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_Recibir(EquipoCustodiaAccion accion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Recibir";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", accion.ID_Cambio);
+                cmd.Parameters.AddWithValue("@Usuario", accion.Usuario);
+                cmd.Parameters.AddWithValue("@Nota", (object)accion.Nota ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Cambio_Pieza_Recibir", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// La pieza retirada en custodia se la lleva el cliente: se vuelve a sumar su costo a la laptop (R10).
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_EntregarCliente(EquipoCustodiaAccion accion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_EntregarCliente";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", accion.ID_Cambio);
+                cmd.Parameters.AddWithValue("@Usuario", accion.Usuario);
+                cmd.Parameters.AddWithValue("@Nota", (object)accion.Nota ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Detalle", (object)accion.Nuevo_Precio_Detalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Por_Mayor", (object)accion.Nuevo_Precio_Por_Mayor ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Cambio_Pieza_EntregarCliente", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Pendientes(string tecnico, int? idAlmacen, int horasMax)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Pendientes";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Tecnico", string.IsNullOrWhiteSpace(tecnico) ? DBNull.Value : (object)tecnico);
+                cmd.Parameters.AddWithValue("@ID_Almacen", (object)idAlmacen ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Horas_Max", horasMax);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Equipo_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Equipo_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Accesorios(int idAlmacen, string tipoPieza, string filtro, bool soloConStock)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Accesorios";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Almacen", idAlmacen);
+                cmd.Parameters.AddWithValue("@Tipo_Pieza", string.IsNullOrWhiteSpace(tipoPieza) ? DBNull.Value : (object)tipoPieza);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                cmd.Parameters.AddWithValue("@SoloConStock", soloConStock);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Historial(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Historial";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+        #endregion
     }
 }
 

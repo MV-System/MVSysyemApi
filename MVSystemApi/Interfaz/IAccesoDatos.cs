@@ -190,5 +190,17 @@ namespace MVSystemApi.Interfaz
         /// </summary>
         Tipos_Pagos Tipo_Pagos_GetById(int idTipoPago);
         #endregion
+
+        #region -------------- Laptops --------------------------
+        DataTable Equipo_Configuracion_Guardar(EquipoConfiguracion configuracion);
+        DataTable Equipo_Configuracion_Consultar(string imei);
+        DataTable Equipo_Cambio_Pieza_Registrar(EquipoCambioPieza cambio);
+        DataTable Equipo_Cambio_Pieza_Historial(string imei);
+        DataTable Equipo_Cambio_Pieza_Recibir(EquipoCustodiaAccion accion);
+        DataTable Equipo_Cambio_Pieza_EntregarCliente(EquipoCustodiaAccion accion);
+        DataTable Equipo_Cambio_Pieza_Pendientes(string tecnico, int? idAlmacen, int horasMax);
+        DataTable Equipo_Cambio_Pieza_Equipo_Consultar(string imei);
+        DataTable Equipo_Cambio_Pieza_Accesorios(int idAlmacen, string tipoPieza, string filtro, bool soloConStock);
+        #endregion
     }
 }

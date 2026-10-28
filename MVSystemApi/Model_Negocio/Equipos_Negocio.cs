@@ -51,7 +51,8 @@ namespace MVSystemApi.Model
                               PrecioDetalle = Convert.ToDecimal(dt["PrecioDetalle"]),
                               Disponible = Convert.ToString(dt["Disponible"]),
                               Disponible_Detalle = Convert.ToString(dt["Nota_Adicional"]),
-                              Mensaje = Convert.ToString(dt["Mensaje"])
+                              Mensaje = Convert.ToString(dt["Mensaje"]),
+                              Configuracion = dt.Table.Columns.Contains("Configuracion") && dt["Configuracion"] != DBNull.Value ? Convert.ToString(dt["Configuracion"]) : null
 
                           }).ToList().FirstOrDefault();
 
@@ -90,7 +91,8 @@ namespace MVSystemApi.Model
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
                               TotalInventario = Convert.ToDecimal(dt["TotalInventario"]),
                               IdGrupo = dt.Table.Columns.Contains("ID_Grupo") && dt["ID_Grupo"] != DBNull.Value ? Convert.ToInt32(dt["ID_Grupo"]) : 0,
-                              Grupo = dt.Table.Columns.Contains("Grupo") && dt["Grupo"] != DBNull.Value ? Convert.ToString(dt["Grupo"]) : ""
+                              Grupo = dt.Table.Columns.Contains("Grupo") && dt["Grupo"] != DBNull.Value ? Convert.ToString(dt["Grupo"]) : "",
+                              Configuracion = dt.Table.Columns.Contains("Configuracion") && dt["Configuracion"] != DBNull.Value ? Convert.ToString(dt["Configuracion"]) : null
                           }).ToList();
             return result;
         }
@@ -131,7 +133,8 @@ namespace MVSystemApi.Model
                               TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
                               TotalComisionDetalle = Convert.ToDecimal(dt["TotalComisionDetalle"]),
                               TotalComisionXMayor = Convert.ToDecimal(dt["TotalComisionXMayor"]),
-                              TotalItbis = Convert.ToDecimal(dt["TotalItbis"])
+                              TotalItbis = Convert.ToDecimal(dt["TotalItbis"]),
+                              Configuracion = dt.Table.Columns.Contains("Configuracion") && dt["Configuracion"] != DBNull.Value ? Convert.ToString(dt["Configuracion"]) : null
 
                           }).ToList();
 

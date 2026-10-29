@@ -165,6 +165,7 @@ namespace MVSystemApi.Interfaz
         string EliminarRegistrosEquipoDeTabla(string imei, string tabla, string usuario);
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
         DataTable Reparacion_Cancelar(ReparacionCancelar datos);
+        DataTable Cotizacion_Cancelar(CotizacionCancelar datos);
         string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono);
         string AbonoGeneral(AbonoFacturaParam param, out Guid idLoteAbono);
         ReciboAbonoDTO GetReciboAbono(int idCliente, int numeroFactura, int idSucursal);

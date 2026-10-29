@@ -273,7 +273,8 @@ namespace MVSystemApi.Model
                     cmd.Parameters.AddWithValue("@SubTotal", model.SubTotal);
                     cmd.Parameters.AddWithValue("@Descuento", model.Descuento);
                     cmd.Parameters.AddWithValue("@Itbis", model.Itbis);
-                    cmd.Parameters.AddWithValue("@NFCTipoNumero", model.NcfTipoNumero ?? "");
+                    // Las cotizaciones no llevan comprobante: sin valor se guarda 0 (no requerido)
+                    cmd.Parameters.AddWithValue("@NFCTipoNumero", string.IsNullOrWhiteSpace(model.NcfTipoNumero) ? "0" : model.NcfTipoNumero.Trim());
                     cmd.Parameters.AddWithValue("@RNC", model.Rnc ?? "");
                     cmd.Parameters.AddWithValue("@Abono", model.Abono);
                     cmd.Parameters.AddWithValue("@Tiempo_Credito", string.IsNullOrEmpty(model.FechaLimitePago) ? (object)DBNull.Value : DateTime.Parse(model.FechaLimitePago));
@@ -2932,6 +2933,30 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             {
                 if (cn.State == ConnectionState.Open) cn.Close();
                 throw;
+            }
+        }
+        /// <summary>
+        /// Cancela una cotización activa y no facturada (queda con Estado 'X'; no se borra).
+        /// Las cotizaciones no se replican a la BD espejo.
+        /// </summary>
+        public DataTable Cotizacion_Cancelar(CotizacionCancelar datos)
+        {
+            cn.Open();
+            try
+            {
+                using SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Cotizacion_Cancelar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@Codigo", SqlDbType.Int).Value = datos.Codigo;
+                cmd.Parameters.Add("@Usuario", SqlDbType.VarChar, 50).Value = (object)datos.Usuario ?? DBNull.Value;
+                using SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
             }
         }
         public string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono)

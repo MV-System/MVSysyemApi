@@ -101,14 +101,44 @@ namespace MVSystemApi.Controllers
             return new ViewAsPdf(data);
         }
 
+        /// <summary>
+        /// Busca la factura a reimprimir: primero activa; si no existe, anulada, y en ese caso
+        /// completa Anulada / motivo / usuario / fecha para que la vista lo muestre.
+        /// </summary>
+        private FacturaConsulta ObtenerFacturaParaReimpresion(FacturaFilter consulta)
+        {
+            var results = (List<FacturaConsulta>)_facturasNegocio.GetFacturasReporte(consulta);
+            var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
+            if (factura != null) return factura;
+
+            var anuladas = (List<FacturaConsulta>)_facturasNegocio.GetFacturasReporte(consulta, "X");
+            factura = anuladas.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
+            if (factura == null) return null;
+
+            factura.Anulada = true;
+            var anulacion = _accesoDatos.ObtenerAnulacionFactura(consulta.NumeroFactura, consulta.Almacen);
+            if (anulacion != null)
+            {
+                factura.MotivoAnulacion = anulacion.Motivo;
+                factura.UsuarioAnulacion = anulacion.Usuario;
+                factura.FechaAnulacion = anulacion.Fecha;
+            }
+            return factura;
+        }
+
         [HttpPost("FacturacionReporte/ReportFactura")]// Reimprimir factura 8.5x11
         public async Task<IActionResult> ReportFactura(FacturaFilter consulta)
         {
             var detalleFactura = (List<DetalleFactura>)_facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
             
-            var results = (List<FacturaConsulta>)_facturasNegocio.GetFacturasReporte(consulta);
-            
-            var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
+            // Activa o, si no existe activa, anulada (con su motivo)
+            var factura = ObtenerFacturaParaReimpresion(consulta);
+            if (factura == null)
+                return NotFound("No se encontró la factura.");
+
+            // Una factura anulada no tiene renglones activos: se leen los anulados para el resumen por modelo
+            if (factura.Anulada && detalleFactura.Count == 0)
+                detalleFactura = _accesoDatos.ObtenerDetalleFacturaAnulada(consulta.NumeroFactura, consulta.Almacen);
 
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
             DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));
@@ -164,9 +194,14 @@ namespace MVSystemApi.Controllers
         {
             var detalleFactura = (List<DetalleFactura>)_facturasNegocio.GetDetalleFacturaConsulta(consulta.NumeroFactura, consulta.Almacen);
 
-            var results = (List<FacturaConsulta>)_facturasNegocio.GetFacturasReporte(consulta);
+            // Activa o, si no existe activa, anulada (con su motivo)
+            var factura = ObtenerFacturaParaReimpresion(consulta);
+            if (factura == null)
+                return NotFound("No se encontró la factura.");
 
-            var factura = results.Where(x => x.NumeroFactura == consulta.NumeroFactura).FirstOrDefault();
+            // Una factura anulada no tiene renglones activos: se leen los anulados para el resumen por modelo
+            if (factura.Anulada && detalleFactura.Count == 0)
+                detalleFactura = _accesoDatos.ObtenerDetalleFacturaAnulada(consulta.NumeroFactura, consulta.Almacen);
 
             // Obtener los datos de la empresa (factura) con el IdEmpresa que llega en el request
             DatosEmpresa DatosEmpresaFactura = _seguridadService.GetDatosEmpresa(Convert.ToInt32(consulta.IdEmpresa), Convert.ToInt32(consulta.IdSucursal));

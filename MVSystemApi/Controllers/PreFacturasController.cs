@@ -37,6 +37,12 @@ namespace MVSystemApi.Controllers
         {
             try
             {
+                // Una pre-factura sin cliente (ID en cero o inexistente) llegaría igual a la factura
+                if (prefactura == null || !_accesoDatos.ClienteExiste(prefactura.ID_Cliente))
+                {
+                    return BadRequest("Debe seleccionar un cliente válido para la pre-factura.");
+                }
+
                 var result = AD.CrearPreFactura(prefactura);
                 if (result == null)
                 {

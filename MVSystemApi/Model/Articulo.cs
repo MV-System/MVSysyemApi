@@ -6,7 +6,8 @@
         public string Descripcion { get; set; }
         public decimal Descuento { get; set; }
         public string FechaRegistro { get; set; }
-        public int IdEquipo { get; set; }
+        // IMEI (equipos) o código del accesorio. Es texto porque un IMEI de 15 dígitos no cabe en un int.
+        public string IdEquipo { get; set; }
         public int IdGarantia { get; set; }
         public int IdTipo { get; set; }
         public int NumeroFactura { get; set; }

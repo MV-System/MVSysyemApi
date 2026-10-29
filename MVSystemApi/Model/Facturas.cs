@@ -61,6 +61,14 @@ namespace MVSystemApi.Model
         public string Almacen { get; set; }
         public int IdSucursal { get; set; }
         public string Nota { get; set; }
+        // Datos de la anulación (solo vienen cuando la factura está anulada)
+        public string MotivoAnulacion { get; set; }
+        public string UsuarioAnulacion { get; set; }
+        public DateTime? FechaAnulacion { get; set; }
+        // true cuando la factura que se reimprime está anulada (las vistas muestran el aviso)
+        public bool Anulada { get; set; }
+        // Garantía elegida al crear la factura (descripción), para el encabezado impreso
+        public string Garantia { get; set; }
         public string TipoPago { get; set; }
         public decimal SubTotal { get; set; }
         public decimal Descuento { get; set; }
@@ -141,11 +149,19 @@ namespace MVSystemApi.Model
         public DateTime FechaRegistro { get; set; }
         public string Descripcion { get; set; }
     }
+    public class FacturaAnulacionInfo
+    {
+        public string Motivo { get; set; }
+        public string Usuario { get; set; }
+        public DateTime? Fecha { get; set; }
+    }
     public class FilterAnulaFactura
     {
         public int NumeroFactura { get; set; }
         public string Usuario { get; set; }
         public string IDsucursal { get; set; }
+        // Nota de la anulación. Obligatoria en la anulación manual (se valida en el controlador).
+        public string Motivo { get; set; }
     }
     public class NotaCreditoInfo
     {

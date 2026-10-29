@@ -65,6 +65,7 @@ namespace MVSystemApi.Interfaz
         DataTable Cliente_Insert(Clientes Cliente);
         DataTable Cliente_Update(Clientes Cliente);
         DataTable Cliente_Consulta(string criterio);
+        bool ClienteExiste(int idCliente);
         DataTable Cliente_FacturasPendientes(string FechaInicio, string FechaFin, string Criterio);
         DataTable Cliente_FacturasPendientesDetalle(int cliente);
         DataTable ObtenerHistorialAbonos(int idCliente, string fechaInicio = null, string fechaFinal = null);
@@ -99,7 +100,9 @@ namespace MVSystemApi.Interfaz
         //public EditaDetalleFactura EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura);
         public List<FacturaReporte> ObtenerFacturaReporte(int codigoFactura, int sucursal);
         public DataTable GetFacturas(FacturaFilter consulta);
-        public DataTable GetFacturasReporte(FacturaFilter consulta);
+        public DataTable GetFacturasReporte(FacturaFilter consulta, string estado = "A");
+        public FacturaAnulacionInfo ObtenerAnulacionFactura(int numeroFactura, int idSucursal);
+        public List<DetalleFactura> ObtenerDetalleFacturaAnulada(int numeroFactura, int idSucursal);
         public DataTable GetFacturaNumeroUltimo();
         public DataTable GetCierreCajaReport(FacturaFilter filtro);
         
@@ -161,6 +164,7 @@ namespace MVSystemApi.Interfaz
         string Equipo_Delete(string imei, string Usuario);
         string EliminarRegistrosEquipoDeTabla(string imei, string tabla, string usuario);
         string Actualizar_CostoPrecio_Reparacion(ReparacionPendienteUpdateDTO data);
+        DataTable Reparacion_Cancelar(ReparacionCancelar datos);
         string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono);
         string AbonoGeneral(AbonoFacturaParam param, out Guid idLoteAbono);
         ReciboAbonoDTO GetReciboAbono(int idCliente, int numeroFactura, int idSucursal);

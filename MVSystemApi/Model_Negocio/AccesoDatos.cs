@@ -303,7 +303,7 @@ namespace MVSystemApi.Model
                             cmdDet.CommandType = CommandType.StoredProcedure;
                             cmdDet.Parameters.AddWithValue("@Numero_Factura", numeroCotizacion);
                             cmdDet.Parameters.AddWithValue("@ID_Sucursal", Convert.ToInt32(model.IdSucursal));
-                            cmdDet.Parameters.AddWithValue("@ID_Equipo", art.IdEquipo.ToString());
+                            cmdDet.Parameters.AddWithValue("@ID_Equipo", string.IsNullOrWhiteSpace(art.IdEquipo) ? "0" : art.IdEquipo.Trim());
                             cmdDet.Parameters.AddWithValue("@Descripcion", art.Descripcion ?? "");
                             cmdDet.Parameters.AddWithValue("@ID_Tipo", art.IdTipo);
                             cmdDet.Parameters.AddWithValue("@ID_Garantia", art.IdGarantia);
@@ -434,7 +434,7 @@ namespace MVSystemApi.Model
                 throw;
             }
         }
-        public DataTable GetFacturasReporte(FacturaFilter consulta)
+        public DataTable GetFacturasReporte(FacturaFilter consulta, string estado = "A")
         {
             cn.Open();
             try
@@ -447,6 +447,11 @@ namespace MVSystemApi.Model
                 cmd.Parameters.AddWithValue("@Numero_factura", consulta.NumeroFactura);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", consulta.FechaInicio);
                 cmd.Parameters.AddWithValue("@Fecha_Final", consulta.FechaFinal);
+                // Solo se envía para facturas anuladas ('X'); el caso normal no depende del parámetro nuevo del SP
+                if (!string.IsNullOrEmpty(estado) && estado != "A")
+                {
+                    cmd.Parameters.AddWithValue("@Estado", estado);
+                }
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -457,6 +462,74 @@ namespace MVSystemApi.Model
             {
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Motivo, usuario y fecha con que se anuló una factura (null si no está anulada).
+        /// Se consulta aparte para no cambiar la salida de los SP de reporte.
+        /// </summary>
+        public FacturaAnulacionInfo ObtenerAnulacionFactura(int numeroFactura, int idSucursal)
+        {
+            using var cnAnulacion = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand(@"
+                SELECT Motivo_Anulacion, Usuario_Anulacion, Fecha_Anulacion
+                  FROM dbo.Facturas
+                 WHERE Numero_Factura = @Numero_Factura AND ID_Sucursal = @ID_Sucursal AND Estado = 'X'", cnAnulacion);
+            cmd.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+            cmd.Parameters.AddWithValue("@ID_Sucursal", idSucursal);
+
+            cnAnulacion.Open();
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read()) return null;
+
+            return new FacturaAnulacionInfo
+            {
+                Motivo = reader.IsDBNull(0) ? null : reader.GetString(0),
+                Usuario = reader.IsDBNull(1) ? null : reader.GetString(1),
+                Fecha = reader.IsDBNull(2) ? (DateTime?)null : reader.GetDateTime(2)
+            };
+        }
+
+        /// <summary>
+        /// Renglones de una factura ANULADA (Detalle_Factura_Consulta solo devuelve los activos).
+        /// Se usa para el resumen por modelo de la reimpresión de facturas anuladas.
+        /// </summary>
+        public List<DetalleFactura> ObtenerDetalleFacturaAnulada(int numeroFactura, int idSucursal)
+        {
+            var detalles = new List<DetalleFactura>();
+
+            using var cnDetalle = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand(@"
+                SELECT df.ID_Equipo, df.Numero_Factura, df.Descripcion, df.cantidad, df.precio,
+                       df.SubTotal, df.Itbis, df.Descuento, df.Total, df.ID_Tipo
+                  FROM dbo.Detalle_Facturas df
+                 WHERE df.Numero_Factura = @Numero_Factura
+                   AND df.Estado = 'X'
+                   AND df.LiteralF = (SELECT TOP 1 f.Literal FROM dbo.Facturas f
+                                       WHERE f.Numero_Factura = @Numero_Factura AND f.ID_Sucursal = @ID_Sucursal)
+                                     + CONVERT(VARCHAR(10), @Numero_Factura)", cnDetalle);
+            cmd.Parameters.AddWithValue("@Numero_Factura", numeroFactura);
+            cmd.Parameters.AddWithValue("@ID_Sucursal", idSucursal);
+
+            cnDetalle.Open();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                detalles.Add(new DetalleFactura
+                {
+                    IdEquipo = Convert.ToString(reader["ID_Equipo"]),
+                    NumeroFactura = Convert.ToInt32(reader["Numero_Factura"]),
+                    Descripcion = reader["Descripcion"] == DBNull.Value ? "" : Convert.ToString(reader["Descripcion"]),
+                    Cantidad = reader["cantidad"] == DBNull.Value ? 0 : Convert.ToInt32(reader["cantidad"]),
+                    Precio = reader["precio"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["precio"]),
+                    SubTotal = reader["SubTotal"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["SubTotal"]),
+                    Itbis = reader["Itbis"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Itbis"]),
+                    Descuento = reader["Descuento"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Descuento"]),
+                    Total = reader["Total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["Total"]),
+                    IdTipo = Convert.ToInt32(reader["ID_Tipo"])
+                });
+            }
+            return detalles;
         }
 
         public DataTable GetCierreCajaReport(FacturaFilter filtro)
@@ -1081,6 +1154,21 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             {
                 throw;
             }
+        }
+
+        /// <summary>
+        /// True si el cliente existe. Se usa para no guardar facturas/prefacturas con cliente en cero
+        /// o inexistente (esas facturas no aparecen en la lista porque la consulta une con Clientes).
+        /// </summary>
+        public bool ClienteExiste(int idCliente)
+        {
+            if (idCliente <= 0) return false;
+
+            using var cnCliente = new SqlConnection(_connectionStrings);
+            using var cmd = new SqlCommand("SELECT COUNT(1) FROM dbo.Clientes WHERE ID_Cliente = @ID_Cliente", cnCliente);
+            cmd.Parameters.AddWithValue("@ID_Cliente", idCliente);
+            cnCliente.Open();
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
         }
 
         public DataTable Cliente_Consulta(string criterio)
@@ -2145,6 +2233,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     cmd.Parameters.AddWithValue("@NumeroFactura", Factura.NumeroFactura);
                     cmd.Parameters.AddWithValue("@IdSucursal", Factura.IDsucursal);
                     cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
+                    cmd.Parameters.AddWithValue("@Motivo", (object)Factura.Motivo ?? DBNull.Value);
                     cn.Open();
                     cmd.ExecuteNonQuery();
 
@@ -2818,6 +2907,33 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 throw;
             }
         }
+        /// <summary>
+        /// Cancela una reparación abierta (Pendiente / En Proceso). El SP es transaccional y valida
+        /// estado, factura y prefactura pendiente. Las reparaciones no se replican a la BD espejo.
+        /// </summary>
+        public DataTable Reparacion_Cancelar(ReparacionCancelar datos)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Reparacion_Cancelar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Reparacion", datos.ID_Reparacion);
+                cmd.Parameters.AddWithValue("@Motivo", (object)datos.Motivo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", (object)datos.Usuario ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
         public string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono)
         {
             try
@@ -3334,30 +3450,59 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
         public ReparacionReporteDTO ObtenerReparacionReporte(int idReparacion)
         {
             using var cn = new SqlConnection(_connectionStrings);
-            using var cmd = new SqlCommand("SP_Reporte_Reparacion", cn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@IdReparacion", idReparacion);
+            ReparacionReporteDTO reparacion = null;
 
             cn.Open();
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
+            using (var cmd = new SqlCommand("SP_Reporte_Reparacion", cn))
             {
-                return new ReparacionReporteDTO
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@IdReparacion", idReparacion);
+
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
                 {
-                    IdReparacion = reader.GetInt64(reader.GetOrdinal("ID_Reparacion")),
-                    Imei = reader.IsDBNull(reader.GetOrdinal("Imei")) ? null : reader.GetString(reader.GetOrdinal("Imei")),
-                    NombreCliente = reader.GetString(reader.GetOrdinal("NombreCliente")),
-                    ApellidoCliente = reader.GetString(reader.GetOrdinal("ApellidoCliente")),
-                    Detalle_Reparacion = reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
-                    Observaciones = reader.GetString(reader.GetOrdinal("Observaciones")),
-                    Total = reader.GetDecimal(reader.GetOrdinal("Costo")),
-                    Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
-                    Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),
-                    Usuario = reader.GetString(reader.GetOrdinal("Usuario")),
-                    Modelo = reader.GetString(reader.GetOrdinal("Modelo"))
-                };
+                    reparacion = new ReparacionReporteDTO
+                    {
+                        IdReparacion = reader.GetInt64(reader.GetOrdinal("ID_Reparacion")),
+                        Imei = reader.IsDBNull(reader.GetOrdinal("Imei")) ? null : reader.GetString(reader.GetOrdinal("Imei")),
+                        NombreCliente = reader.GetString(reader.GetOrdinal("NombreCliente")),
+                        ApellidoCliente = reader.GetString(reader.GetOrdinal("ApellidoCliente")),
+                        Detalle_Reparacion = reader.GetString(reader.GetOrdinal("Detalle_Reparacion")),
+                        Observaciones = reader.GetString(reader.GetOrdinal("Observaciones")),
+                        Total = reader.GetDecimal(reader.GetOrdinal("Costo")),
+                        Precio = reader.GetDecimal(reader.GetOrdinal("Precio")),
+                        Fecha_Entrega = reader.GetDateTime(reader.GetOrdinal("Fecha_Entrega")),
+                        Usuario = reader.GetString(reader.GetOrdinal("Usuario")),
+                        Modelo = reader.GetString(reader.GetOrdinal("Modelo"))
+                    };
+                }
             }
-            return null;
+
+            if (reparacion == null) return null;
+
+            // Si la reparación fue cancelada, el recibo debe decirlo (SP_Reporte_Reparacion no devuelve el estatus)
+            using (var cmdCancelacion = new SqlCommand(@"
+                SELECT ET.Descripcion_Estado_Taller, R.Motivo_Cancelacion, R.Usuario_Cancelacion, R.Fecha_Cancelacion
+                  FROM dbo.Reparaciones R
+                  INNER JOIN dbo.Estados_Taller_Cata ET ON ET.ID_Estado_Taller = R.ID_Estado_Taller
+                 WHERE R.ID_Reparacion = @IdReparacion", cn))
+            {
+                cmdCancelacion.Parameters.AddWithValue("@IdReparacion", idReparacion);
+                using var readerCancelacion = cmdCancelacion.ExecuteReader();
+                if (readerCancelacion.Read())
+                {
+                    var estatus = readerCancelacion.IsDBNull(0) ? "" : readerCancelacion.GetString(0);
+                    reparacion.Cancelada = string.Equals(estatus.Trim(), "Cancelado", StringComparison.OrdinalIgnoreCase);
+                    if (reparacion.Cancelada)
+                    {
+                        reparacion.MotivoCancelacion = readerCancelacion.IsDBNull(1) ? null : readerCancelacion.GetString(1);
+                        reparacion.UsuarioCancelacion = readerCancelacion.IsDBNull(2) ? null : readerCancelacion.GetString(2);
+                        reparacion.FechaCancelacion = readerCancelacion.IsDBNull(3) ? (DateTime?)null : readerCancelacion.GetDateTime(3);
+                    }
+                }
+            }
+
+            return reparacion;
         }
 
         public DataTable GetPreFacturasConsulta(PreFacturaFiltro filtro)

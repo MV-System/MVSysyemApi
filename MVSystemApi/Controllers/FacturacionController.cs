@@ -45,6 +45,10 @@ namespace MVSystemApi.Controllers
         {
             try
             {
+                // Una factura sin cliente (ID en cero o inexistente) se guarda pero no aparece en la lista
+                if (request == null || !_accesoDatos.ClienteExiste(request.IdCliente))
+                    return BadRequest(new { error = "Debe seleccionar un cliente válido para facturar." });
+
                 // Validar pago mixto si aplica
                 if (request.IdTipoPago == 6)
                 {
@@ -146,7 +150,8 @@ namespace MVSystemApi.Controllers
                         {
                             NumeroFactura = resultFactura.NumeroFactura,
                             IDsucursal = resultFactura.IdAlmacen?.ToString() ?? "0",
-                            Usuario = request.Usuario ?? "Sistema"
+                            Usuario = request.Usuario ?? "Sistema",
+                            Motivo = "Anulada automáticamente: la DGII rechazó la factura electrónica"
                         });
                     }
                     catch (Exception exAnula)
@@ -239,6 +244,14 @@ namespace MVSystemApi.Controllers
         {
             try
             {
+                // La anulación manual exige el motivo (la anulación automática por rechazo de la DGII
+                // llama directamente al acceso a datos con su propio motivo).
+                if (Anulafactura == null || string.IsNullOrWhiteSpace(Anulafactura.Motivo) || Anulafactura.Motivo.Trim().Length < 5)
+                {
+                    return BadRequest("Debe indicar el motivo de la anulación (mínimo 5 caracteres).");
+                }
+                Anulafactura.Motivo = Anulafactura.Motivo.Trim();
+
                 var result = _accesoDatos.PostAnulaFactura(Anulafactura);
                 if (result == null)
                 {

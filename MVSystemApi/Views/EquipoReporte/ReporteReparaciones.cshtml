@@ -45,6 +45,20 @@
             padding: 2px 6px;
         }
 
+        .cancelada-box {
+            border: 2px solid #000;
+            margin: 6px 0;
+            padding: 6px;
+            text-align: center;
+            font-size: 9.5pt;
+        }
+
+        .cancelada-titulo {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
         .detalle-label {
             font-weight: bold;
             margin-top: 8px;
@@ -104,8 +118,27 @@
         </div>
     </div>
 
+    @if (Model.Reparaciones.FirstOrDefault().Cancelada)
+    {
+        <div class="container cancelada-box">
+            <div class="cancelada-titulo">*** REPARACIÓN CANCELADA ***</div>
+            @if (Model.Reparaciones.FirstOrDefault().FechaCancelacion.HasValue)
+            {
+                <div>Fecha: @Model.Reparaciones.FirstOrDefault().FechaCancelacion.Value.ToString("dd/MM/yyyy HH:mm")</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Reparaciones.FirstOrDefault().UsuarioCancelacion))
+            {
+                <div>Cancelada por: @Model.Reparaciones.FirstOrDefault().UsuarioCancelacion</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Reparaciones.FirstOrDefault().MotivoCancelacion))
+            {
+                <div>Motivo: @Model.Reparaciones.FirstOrDefault().MotivoCancelacion</div>
+            }
+        </div>
+    }
+
     <div class="container">
-        <div class="section-title">DETALLE DE RECIBO</div>
+        <div class="section-title">@(Model.Reparaciones.FirstOrDefault().Cancelada ? "RECIBO CANCELADO" : "DETALLE DE RECIBO")</div>
         <table class="table table-bordered table-sm">
             <tbody>
                 <tr><th>IMEI:</th><td>@Model.Reparaciones.FirstOrDefault().Imei</td></tr>

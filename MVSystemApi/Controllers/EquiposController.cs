@@ -372,9 +372,14 @@ namespace MVSystemApi.Controllers
 
         private bool TienePermisoModoDesarrollador()
         {
+            return TienePermiso("ModoDesarrollador");
+        }
+
+        private bool TienePermiso(string permiso)
+        {
             return User.Claims.Any(claim =>
                 (claim.Type == "role" || claim.Type == System.Security.Claims.ClaimTypes.Role) &&
-                claim.Value == "ModoDesarrollador");
+                claim.Value == permiso);
         }
 
         [HttpPost]
@@ -473,6 +478,37 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        /// <summary>
+        /// Cancela una reparación abierta (Pendiente / En Proceso). Requiere el permiso REPARACION_CANCELAR.
+        /// PUT: Equipos/CancelarReparacion
+        /// </summary>
+        [HttpPut]
+        [Route("CancelarReparacion")]
+        public ActionResult CancelarReparacion([FromBody] ReparacionCancelar datos)
+        {
+            if (!TienePermiso("REPARACION_CANCELAR"))
+            {
+                return StatusCode(403, "No tiene permisos para realizar esta acción.");
+            }
+            try
+            {
+                if (datos == null || datos.ID_Reparacion <= 0)
+                {
+                    return BadRequest("La reparación es requerida.");
+                }
+                if (string.IsNullOrWhiteSpace(datos.Motivo))
+                {
+                    return BadRequest("Debe indicar el motivo de la cancelación.");
+                }
+                var result = _accesoDatos.Reparacion_Cancelar(datos);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPut]
         [Route("ActualizarCostoPrecioReparacion")]
         // [Authorize(Roles = "MNTransfiereEquipos")]

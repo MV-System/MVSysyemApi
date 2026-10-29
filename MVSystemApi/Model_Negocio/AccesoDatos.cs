@@ -2284,10 +2284,10 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     cn.Close();
 
                     // Sync (un solo lote, todo o nada): IMEI que regresa → disponible; IMEI nuevo que sale → no disponible
-                    _sync.EjecutarQueries(new List<(string Sql, SqlParameter[] Parametros)>
+                    SincronizarDisponibilidad(new List<(string Imei, bool DisponibleEsperado)>
                     {
-                        (SqlDisponibilidad(true), new[] { new SqlParameter("@IMEI", EditaDetalleFactura.EquipoActual) }),
-                        (SqlDisponibilidad(false), new[] { new SqlParameter("@IMEI", EditaDetalleFactura.EquipoNuevo) }),
+                        (EditaDetalleFactura.EquipoActual, true),
+                        (EditaDetalleFactura.EquipoNuevo, false),
                     });
 
                     string mensaje = mensajeParam.Value.ToString();
@@ -2324,10 +2324,8 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                             mensaje = "Equipo rebajado correctamente.";
 
                         reader.Close();
-                        // Sync: marcar equipo como disponible en BD espejo
-                        _sync.EjecutarQuery(
-                            "UPDATE Equipos SET Disponible = 'S', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
-                            new SqlParameter("@IMEI", model.imei));
+                        // Sync: el equipo rebajado vuelve a estar disponible (se copia su estado real al espejo)
+                        SincronizarDisponibilidad(new[] { model.imei }, disponible: true);
                         return mensaje;
                     }
                 }
@@ -3601,15 +3599,68 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
         /// Marca los equipos como disponibles / no disponibles en la BD espejo, en una sola conexión y una
         /// transacción (antes era una conexión por equipo). Los fallos quedan en el log con [SYNC-FALLO].
         /// </summary>
-        private bool SincronizarDisponibilidad(IEnumerable<string> imeis, bool disponible)
-        {
-            var consultas = imeis
+        private bool SincronizarDisponibilidad(IEnumerable<string> imeis, bool disponible) =>
+            SincronizarDisponibilidad(imeis
                 .Where(i => !string.IsNullOrWhiteSpace(i))
                 .Distinct()
-                .Select(i => (SqlDisponibilidad(disponible), new[] { new SqlParameter("@IMEI", i) }))
+                .Select(i => (i, disponible))
+                .ToList());
+
+        /// <summary>
+        /// Copia al espejo el estado REAL de cada equipo en esta base (lo que dejó el SP), en lugar de escribir un
+        /// 'S' o 'N' fijo a ciegas. Así el espejo queda igual a la base de trabajo aunque el SP haya dejado un estado
+        /// distinto del esperado (por ejemplo, un equipo revendido). Si no se puede leer el estado local, se usa el
+        /// valor esperado (comportamiento anterior).
+        /// </summary>
+        private bool SincronizarDisponibilidad(List<(string Imei, bool DisponibleEsperado)> equipos)
+        {
+            if (equipos.Count == 0) return true;
+
+            var reales = LeerDisponibilidadLocal(equipos.Select(e => e.Imei).ToList());
+
+            var consultas = equipos
+                .Select(e =>
+                {
+                    bool disponible = reales.TryGetValue(e.Imei, out var real) ? real == "S" : e.DisponibleEsperado;
+                    if (reales.TryGetValue(e.Imei, out var r) && (r == "S") != e.DisponibleEsperado)
+                        _logger.LogWarning("[Sync] El equipo {Imei} quedo '{Real}' en la base de trabajo (se esperaba '{Esperado}'); se copia el estado real al espejo",
+                            e.Imei, r, e.DisponibleEsperado ? "S" : "N");
+                    return (SqlDisponibilidad(disponible), new[] { new SqlParameter("@IMEI", e.Imei) });
+                })
                 .ToList();
 
             return _sync.EjecutarQueries(consultas);
+        }
+
+        private Dictionary<string, string> LeerDisponibilidadLocal(List<string> imeis)
+        {
+            var resultado = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var conexion = new SqlConnection(_connectionStrings);
+                conexion.Open();
+                // En bloques para no pasar del limite de parametros de SQL Server
+                foreach (var bloque in imeis.Chunk(500))
+                {
+                    using var cmdLeer = new SqlCommand { Connection = conexion };
+                    var nombres = new List<string>();
+                    for (int i = 0; i < bloque.Length; i++)
+                    {
+                        nombres.Add("@p" + i);
+                        cmdLeer.Parameters.AddWithValue("@p" + i, bloque[i]);
+                    }
+                    cmdLeer.CommandText = $"SELECT Imei, Disponible FROM Equipos WHERE Imei IN ({string.Join(",", nombres)})";
+                    using var lector = cmdLeer.ExecuteReader();
+                    while (lector.Read())
+                        resultado[Convert.ToString(lector["Imei"]).Trim()] = Convert.ToString(lector["Disponible"]).Trim().ToUpperInvariant();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Sync] No se pudo leer el estado real de los equipos; se usa el valor esperado");
+                resultado.Clear();
+            }
+            return resultado;
         }
 
         public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)

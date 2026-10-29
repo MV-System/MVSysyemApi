@@ -94,15 +94,65 @@ namespace MVSystemApi.Services
 
             // Un SP puede no ser idempotente (por ejemplo un INSERT): un timeout durante la ejecucion
             // NO se reintenta porque pudo haberse aplicado. Los fallos al conectar si se reintentan.
-            return ConReintentos($"SP {spName} ({Formatear(copias)})", reintentarTimeoutEnEjecucion: false, (conn, ejecutando) =>
+            bool seAplico = true;
+            bool ok = ConReintentos($"SP {spName} ({Formatear(copias)})", reintentarTimeoutEnEjecucion: false, (conn, ejecutando) =>
             {
                 using var cmd = new SqlCommand(spName, conn) { CommandType = CommandType.StoredProcedure };
+                var enComando = new List<SqlParameter>();
                 foreach (var p in copias)
-                    cmd.Parameters.Add(Duplicar(p));
+                {
+                    var dup = Duplicar(p);
+                    enComando.Add(dup);
+                    cmd.Parameters.Add(dup);
+                }
                 ejecutando();
-                cmd.ExecuteNonQuery();
+
+                // Se lee el resultado: varios SP no lanzan error, devuelven un "Mensaje" o lo dejan en un
+                // parametro de salida (@mensaje). Sin leerlo, un fallo o un "no hizo nada" pasaba inadvertido.
+                var mensajes = new List<string>();
+                using (var reader = cmd.ExecuteReader())
+                {
+                    do
+                    {
+                        int colMensaje = -1;
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            if (string.Equals(reader.GetName(i), "Mensaje", StringComparison.OrdinalIgnoreCase)) colMensaje = i;
+
+                        while (reader.Read())
+                            if (colMensaje >= 0 && !reader.IsDBNull(colMensaje))
+                                mensajes.Add(Convert.ToString(reader.GetValue(colMensaje)));
+                    } while (reader.NextResult());
+                }
+
+                foreach (var p in enComando)
+                    if ((p.Direction is ParameterDirection.Output or ParameterDirection.InputOutput)
+                        && string.Equals(p.ParameterName, "@mensaje", StringComparison.OrdinalIgnoreCase)
+                        && p.Value != null && p.Value != DBNull.Value)
+                        mensajes.Add(Convert.ToString(p.Value));
+
+                foreach (var mensaje in mensajes.Distinct())
+                {
+                    if (mensaje.StartsWith("Error", StringComparison.OrdinalIgnoreCase))
+                    {
+                        seAplico = false;
+                        _logger.LogError("[SYNC-FALLO] El espejo respondio con error en {SP}: {Mensaje} ({Parametros})", spName, mensaje, Formatear(copias));
+                    }
+                    else if (EsAvisoDeNoAplicado(mensaje))
+                    {
+                        _logger.LogWarning("[SYNC-AVISO] El espejo no aplico cambios en {SP}: {Mensaje} ({Parametros})", spName, mensaje, Formatear(copias));
+                    }
+                }
             });
+
+            return ok && seAplico;
         }
+
+        // Respuestas de los SP que indican que no se hizo nada (el dato ya existia, o no se encontro)
+        private static bool EsAvisoDeNoAplicado(string mensaje) =>
+            mensaje.Contains("ya estaba", StringComparison.OrdinalIgnoreCase)
+            || mensaje.Contains("ya existe", StringComparison.OrdinalIgnoreCase)
+            || mensaje.Contains("No se encontr", StringComparison.OrdinalIgnoreCase)
+            || mensaje.Contains("no existe", StringComparison.OrdinalIgnoreCase);
 
         public bool EjecutarQuery(string sql, params SqlParameter[] parameters)
         {

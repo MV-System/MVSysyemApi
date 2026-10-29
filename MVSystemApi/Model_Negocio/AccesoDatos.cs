@@ -3189,6 +3189,11 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
+
+                // El espejo debe guardar la marca con el MISMO ID (cada base genera el suyo y se desfasaban)
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("ID_Marca") && dt.Rows[0]["ID_Marca"] != DBNull.Value)
+                    cmd.Parameters.AddWithValue("@ID_Marca", Convert.ToInt32(dt.Rows[0]["ID_Marca"]));
+
                 _sync.Ejecutar("Marcas_Insert", cmd.Parameters);
                 return dt;
             }
@@ -3260,6 +3265,11 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
 
                 _logger.LogInformation("[Modelo_Insert] Modelo insertado en A exitosamente. Filas retornadas: {Rows}", dt.Rows.Count);
                 _logger.LogInformation("[Modelo_Insert] Iniciando sync a BD espejo...");
+
+                // El espejo debe guardar el modelo con el MISMO ID (cada base genera el suyo y se desfasaban);
+                // si el modelo ya existia, se envia igual su ID para que el espejo lo alinee
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("ID_Modelo") && dt.Rows[0]["ID_Modelo"] != DBNull.Value)
+                    cmd.Parameters.AddWithValue("@ID_Modelo", Convert.ToInt32(dt.Rows[0]["ID_Modelo"]));
 
                 _sync.Ejecutar("Modelos_Insert", cmd.Parameters);
 

@@ -84,6 +84,8 @@ builder.Services.AddHostedService<MonitorSincronizacionService>();
 builder.Services.AddTransient<IAccesoDatos, AccesoDatos>();
 builder.Services.AddTransient<AccesoDatos>();
 builder.Services.AddTransient<ISyncService, SyncService>();
+builder.Services.AddSingleton<UsoSistemaService>();
+builder.Services.AddSingleton<AvisosService>();
 builder.Services.AddScoped<Catalogos_Negocio>();
 builder.Services.AddScoped<Clientes_Negocio>();
 builder.Services.AddScoped<Vendedores_Negocio>();

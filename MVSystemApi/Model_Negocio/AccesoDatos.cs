@@ -2205,12 +2205,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 // Sync: marcar equipos como no disponibles en BD espejo
                 if (factura.DetalleFacturaList != null)
                 {
-                    foreach (var item in factura.DetalleFacturaList)
-                    {
-                        _sync.EjecutarQuery(
-                            "UPDATE Equipos SET Disponible = 'N', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
-                            new SqlParameter("@IMEI", item.IdEquipo));
-                    }
+                    SincronizarDisponibilidad(factura.DetalleFacturaList.Select(item => item.IdEquipo), disponible: false);
                 }
 
                 return factura;
@@ -2249,12 +2244,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                             imeis.Add(reader["ID_Equipo"].ToString());
                         reader.Close();
 
-                        foreach (var imei in imeis)
-                        {
-                            _sync.EjecutarQuery(
-                                "UPDATE Equipos SET Disponible = 'S', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
-                                new SqlParameter("@IMEI", imei));
-                        }
+                        SincronizarDisponibilidad(imeis, disponible: true);
                     }
 
                     cn.Close();
@@ -2293,15 +2283,12 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     cmd.ExecuteNonQuery();
                     cn.Close();
 
-                    // Sync: IMEI que regresa → disponible
-                    _sync.EjecutarQuery(
-                        "UPDATE Equipos SET Disponible = 'S', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
-                        new SqlParameter("@IMEI", EditaDetalleFactura.EquipoActual));
-
-                    // Sync: IMEI nuevo que sale → no disponible
-                    _sync.EjecutarQuery(
-                        "UPDATE Equipos SET Disponible = 'N', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
-                        new SqlParameter("@IMEI", EditaDetalleFactura.EquipoNuevo));
+                    // Sync (un solo lote, todo o nada): IMEI que regresa → disponible; IMEI nuevo que sale → no disponible
+                    _sync.EjecutarQueries(new List<(string Sql, SqlParameter[] Parametros)>
+                    {
+                        (SqlDisponibilidad(true), new[] { new SqlParameter("@IMEI", EditaDetalleFactura.EquipoActual) }),
+                        (SqlDisponibilidad(false), new[] { new SqlParameter("@IMEI", EditaDetalleFactura.EquipoNuevo) }),
+                    });
 
                     string mensaje = mensajeParam.Value.ToString();
 
@@ -3607,6 +3594,24 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
+        private static string SqlDisponibilidad(bool disponible) =>
+            $"UPDATE Equipos SET Disponible = '{(disponible ? "S" : "N")}', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI";
+
+        /// <summary>
+        /// Marca los equipos como disponibles / no disponibles en la BD espejo, en una sola conexión y una
+        /// transacción (antes era una conexión por equipo). Los fallos quedan en el log con [SYNC-FALLO].
+        /// </summary>
+        private bool SincronizarDisponibilidad(IEnumerable<string> imeis, bool disponible)
+        {
+            var consultas = imeis
+                .Where(i => !string.IsNullOrWhiteSpace(i))
+                .Distinct()
+                .Select(i => (SqlDisponibilidad(disponible), new[] { new SqlParameter("@IMEI", i) }))
+                .ToList();
+
+            return _sync.EjecutarQueries(consultas);
+        }
+
         public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)
         {
             cn.Open();
@@ -3649,25 +3654,23 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 }
                 catch (Exception ex)
                 {
+                    // Sin esta lista los equipos no se marcan como vendidos en el espejo: dejar constancia
+                    _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los IMEIs de la prefactura {Prefactura} para el espejo", numeroPreFactura);
                 }
 
                 cmd.ExecuteNonQuery();
 
-                // Sync: marcar equipos como no disponibles en BD espejo
+                // Sync: marcar equipos como no disponibles en BD espejo (un solo lote, todo o nada)
                 int nuevoNumero = nuevoNumeroFacturaParam.Value != DBNull.Value ? (int)nuevoNumeroFacturaParam.Value : 0;
                 if (nuevoNumero > 0 && imeisSync.Count > 0)
                 {
                     try
                     {
-                        foreach (var imei in imeisSync)
-                        {
-                            _sync.EjecutarQuery(
-                                "UPDATE Equipos SET Disponible = 'N', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI",
-                                new SqlParameter("@IMEI", imei));
-                        }
+                        SincronizarDisponibilidad(imeisSync, disponible: false);
                     }
                     catch (Exception ex)
                     {
+                        _logger.LogError(ex, "[SYNC-FALLO] Error sincronizando la prefactura {Prefactura} (factura {Factura}) con el espejo", numeroPreFactura, nuevoNumero);
                     }
                 }
 

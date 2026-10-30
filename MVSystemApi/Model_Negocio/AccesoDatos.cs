@@ -4774,6 +4774,11 @@ WHERE ENCF = @encf", connection);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
+
+                // La espejo debe guardar el cambio con el MISMO ID: Recibir y EntregarCliente lo buscan por ID_Cambio
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("ID_Cambio") && dt.Rows[0]["ID_Cambio"] != DBNull.Value)
+                    cmd.Parameters.AddWithValue("@ID_Cambio", Convert.ToInt32(dt.Rows[0]["ID_Cambio"]));
+
                 _sync.Ejecutar("Equipo_Cambio_Pieza_Registrar", cmd.Parameters);
                 return dt;
             }

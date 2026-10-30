@@ -127,12 +127,59 @@
                 <b>FT:@Model.Factura.NumeroFactura</b><br>
                 <b>TF: </b>@Model.Factura.TipoFactura<br>
                 <b>TP: </b>@Model.Factura.TipoPago<br>
+                @if (!string.IsNullOrWhiteSpace(Model.Factura.Garantia))
+                {
+                    <b>GAR: </b>@Model.Factura.Garantia<br>
+                }
                 <b>Fecha: </b>@Model.Factura.FechaFacturacion.ToString("dd/MM/yyyy")<br>
                 <b>NCF: </b>@Model.Factura.Ncf
             </div>
         </div>
     </div>
 
+    @if (Model.Factura.Anulada)
+    {
+        <div class="container">
+            <div style="border: 2px solid #000; text-align: center; padding: 6px; margin-top: 8px; font-size: 9.5pt;">
+                <div style="font-size: 11pt; font-weight: bold;">*** FACTURA ANULADA ***</div>
+                @if (Model.Factura.FechaAnulacion.HasValue)
+                {
+                    <div>Fecha: @Model.Factura.FechaAnulacion.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Factura.UsuarioAnulacion))
+                {
+                    <div>Anulada por: @Model.Factura.UsuarioAnulacion</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Factura.MotivoAnulacion))
+                {
+                    <div>Motivo: @Model.Factura.MotivoAnulacion</div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Factura.Anulada)
+    {
+        // Factura anulada: no se imprime el detalle renglón por renglón, solo el resumen por modelo
+        var resumenAnulada = Model.DetalleFacturaList
+            .GroupBy(x => x.Descripcion)
+            .Select(g => new { Producto = g.Key, TotalCantidad = g.Sum(x => x.Cantidad) })
+            .ToList();
+
+        <div class="container">
+            <div class="row text-center mt-4 mb-3">
+                <b>RESUMEN POR MODELO</b>
+            </div>
+            <ul>
+                @foreach (var item in resumenAnulada)
+                {
+                    <li>@item.Producto: @item.TotalCantidad</li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
     <div class="container">
         <div class="row text-center mt-4 mb-3">
             <b>DETALLES DE FACTURA</b>
@@ -169,6 +216,7 @@
             </table>
         </div>
     </div>
+    }
 
     <div class="container text-right">
         <div>Subtotal: <b> @Model.Factura.SubTotal.ToString("N2")</b></div>

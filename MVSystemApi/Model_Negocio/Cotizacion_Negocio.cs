@@ -90,7 +90,7 @@ namespace MVSystemApi.Model_Negocio
                              select new Articulo
                              {
                                  NumeroFactura = Convert.ToInt32(dt["NumeroFactura"]),
-                                 IdEquipo = Convert.ToInt32(dt["IdEquipo"]),
+                                 IdEquipo = Convert.ToString(dt["IdEquipo"]),
                                  Descripcion = Convert.ToString(dt["Descripcion"]),
                                  IdTipo = Convert.ToInt32(dt["IdTipo"]),
                                  IdGarantia = Convert.ToInt32(dt["IdGarantia"]),

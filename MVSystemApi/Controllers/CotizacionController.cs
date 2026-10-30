@@ -33,6 +33,28 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Cancela una cotización no facturada (se oculta de la lista, no se borra).
+        /// PUT: Cotizacion/Cancelar
+        /// </summary>
+        [HttpPut("Cancelar")]
+        public IActionResult CancelarCotizacion([FromBody] CotizacionCancelar datos)
+        {
+            try
+            {
+                if (datos == null || datos.Codigo <= 0)
+                {
+                    return BadRequest("La cotización es requerida.");
+                }
+                var result = _accesoDatos.Cotizacion_Cancelar(datos);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("Detalle/{codigo}")]
         public IActionResult GetDetalleCotizacion(int codigo)
         {

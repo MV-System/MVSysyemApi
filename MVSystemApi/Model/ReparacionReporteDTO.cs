@@ -15,5 +15,11 @@
         public string Usuario { get; set; }
         public string Modelo { get; set; }
         public string Logo { get; set; }
+
+        // Cancelación (se llena solo cuando la reparación fue cancelada)
+        public bool Cancelada { get; set; }
+        public string MotivoCancelacion { get; set; }
+        public string UsuarioCancelacion { get; set; }
+        public DateTime? FechaCancelacion { get; set; }
     }
 }

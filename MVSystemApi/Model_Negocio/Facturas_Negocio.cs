@@ -74,6 +74,9 @@ namespace MVSystemApi.Model_Negocio
                               Itbis = Convert.ToDecimal(dt["Itbis"]),
                               Abono = dt.Table.Columns.Contains("Abono") ? Convert.ToDecimal(dt["Abono"]) : 0m,
                               Nota = Convert.ToString(dt["Nota"]),
+                              MotivoAnulacion = dt.Table.Columns.Contains("MotivoAnulacion") && dt["MotivoAnulacion"] != DBNull.Value ? Convert.ToString(dt["MotivoAnulacion"]) : null,
+                              UsuarioAnulacion = dt.Table.Columns.Contains("UsuarioAnulacion") && dt["UsuarioAnulacion"] != DBNull.Value ? Convert.ToString(dt["UsuarioAnulacion"]) : null,
+                              FechaAnulacion = dt.Table.Columns.Contains("FechaAnulacion") && dt["FechaAnulacion"] != DBNull.Value ? Convert.ToDateTime(dt["FechaAnulacion"]) : (DateTime?)null,
                               FechaFacturacion = Convert.ToDateTime(dt["Fecha de la Factura"]),
                               LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
                               Line = Convert.ToInt32(dt["Linea"]),
@@ -146,6 +149,23 @@ namespace MVSystemApi.Model_Negocio
             return result;
         }
 
+        /// <summary>
+        /// Garantía que se imprime en el encabezado de la factura. Si no hay garantía, o es "No Aplica",
+        /// devuelve null para que el campo no se muestre en el PDF.
+        /// </summary>
+        private static string GarantiaParaImprimir(DataRow row)
+        {
+            if (!row.Table.Columns.Contains("Garantia") || row["Garantia"] == DBNull.Value)
+                return null;
+
+            var garantia = Convert.ToString(row["Garantia"])?.Trim();
+            if (string.IsNullOrEmpty(garantia) ||
+                string.Equals(garantia, "No Aplica", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return garantia;
+        }
+
         private decimal CalcularItbisFactura(DataRow row)
         {
             if (row.Table.Columns.Contains("Itbis"))
@@ -166,11 +186,11 @@ namespace MVSystemApi.Model_Negocio
             return itbisCalculado > 0 ? itbisCalculado : 0m;
         }
 
-        internal object GetFacturasReporte(FacturaFilter consulta)
+        internal object GetFacturasReporte(FacturaFilter consulta, string estado = "A")
         {
 
 
-            var result = (from dt in Ac.GetFacturasReporte(consulta).AsEnumerable()
+            var result = (from dt in Ac.GetFacturasReporte(consulta, estado).AsEnumerable()
                           select new FacturaConsulta
                           {
                               NumeroFactura = Convert.ToInt32(dt["Numero de Factura"]),
@@ -190,6 +210,7 @@ namespace MVSystemApi.Model_Negocio
                               Abono = Convert.ToDecimal(dt["Abono"]),
                               Itbis = Convert.ToDecimal(dt["Itbis"]),
                               Nota = Convert.ToString(dt["Nota"]),
+                              Garantia = GarantiaParaImprimir(dt),
                               FechaFacturacion = Convert.ToDateTime(dt["Fecha de la Factura"]),
                               //LastLine = Convert.ToInt32(dt["Ultima_Linea"]),
                               //Line = Convert.ToInt32(dt["Linea"]),

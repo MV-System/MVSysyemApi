@@ -9,6 +9,7 @@ using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using MVSystemApi.Model_Negocio.Seguridad;
 using MVSystemApi.ModelsEF;
+using MVSystemApi.MonitorSync;
 using MVSystemApi.Services;
 using Rotativa.AspNetCore;
 using System.Text;
@@ -71,11 +72,20 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 // Configurar opciones de Facturaci�n
 builder.Services.Configure<FacturacionSettings>(builder.Configuration.GetSection("Facturacion"));
 
+// Monitor de sincronizacion principal/espejo con alertas (apagado por defecto: Monitor:Habilitado)
+builder.Services.Configure<MonitorOptions>(builder.Configuration.GetSection("Monitor"));
+builder.Services.AddSingleton<RevisorSincronizacion>();
+builder.Services.AddSingleton<EstadoAlertas>();
+builder.Services.AddSingleton<NotificadorAlertas>();
+builder.Services.AddHostedService<MonitorSincronizacionService>();
+
 #region CONFIGURE SERVICES
 //(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));
 builder.Services.AddTransient<IAccesoDatos, AccesoDatos>();
 builder.Services.AddTransient<AccesoDatos>();
 builder.Services.AddTransient<ISyncService, SyncService>();
+builder.Services.AddSingleton<UsoSistemaService>();
+builder.Services.AddSingleton<AvisosService>();
 builder.Services.AddScoped<Catalogos_Negocio>();
 builder.Services.AddScoped<Clientes_Negocio>();
 builder.Services.AddScoped<Vendedores_Negocio>();

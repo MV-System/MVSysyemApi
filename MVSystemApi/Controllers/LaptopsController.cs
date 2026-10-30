@@ -18,17 +18,23 @@ namespace MVSystemApi.Controllers
         private readonly IAccesoDatos _accesoDatos;
         private readonly int _horasMaxCustodia;
         private readonly bool _bloquearVencidos;
+        private readonly decimal _porcentajeCostoUsado;
 
         // Permisos del módulo (seg.Permisos). Llegan en el token como claims "role".
         private const string PermisoCambioPieza = "LAPTOP_CAMBIO_PIEZA";
         private const string PermisoCustodiaConsulta = "LAPTOP_CUSTODIA_CONSULTA";
         private const string PermisoCustodiaRecibir = "LAPTOP_CUSTODIA_RECIBIR";
+        private const string PermisoCorregirConfig = "LAPTOP_CORREGIR_CONFIG";
+        private const string PermisoCambioAnular = "LAPTOP_CAMBIO_ANULAR";
+        private const string PermisoConsumo = "LAPTOP_CONSUMO_COMPONENTES";
+        private const string PermisoConsultaAccesorios = "MNU_CONS_ACCESORIOS";
 
         public LaptopsController(IAccesoDatos accesoDatos, IConfiguration configuration)
         {
             _accesoDatos = accesoDatos;
             _horasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
             _bloquearVencidos = configuration.GetValue("Laptops:BloquearTecnicoConPendientesVencidos", false);
+            _porcentajeCostoUsado = configuration.GetValue("Laptops:PorcentajeCostoUsado", 50m);
         }
 
         /// <summary>True si el usuario tiene al menos uno de los permisos indicados.</summary>
@@ -44,14 +50,14 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>
-        /// Límite de horas de custodia y si se bloquea al técnico con pendientes vencidos (appsettings).
+        /// Límite de horas de custodia, si se bloquea al técnico con pendientes vencidos y el % del costo de una pieza usada (appsettings).
         /// GET: api/Laptops/Custodia/Configuracion
         /// </summary>
         [HttpGet("Custodia/Configuracion")]
         public ActionResult CustodiaConfiguracion()
         {
             if (!TienePermiso(PermisoCambioPieza, PermisoCustodiaConsulta)) { return SinPermiso(); }
-            return Ok(new { horasMax = _horasMaxCustodia, bloquearVencidos = _bloquearVencidos });
+            return Ok(new { horasMax = _horasMaxCustodia, bloquearVencidos = _bloquearVencidos, porcentajeCostoUsado = _porcentajeCostoUsado });
         }
 
         /// <summary>
@@ -99,6 +105,89 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>
+        /// Módulos (memorias y discos) instalados en una laptop.
+        /// GET: api/Laptops/Configuracion/Modulos?imei=
+        /// </summary>
+        [HttpGet("Configuracion/Modulos")]
+        public ActionResult Configuracion_Modulos([FromQuery] string imei)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(imei))
+                {
+                    return BadRequest("El serial/IMEI es requerido.");
+                }
+                return Ok(_accesoDatos.Equipo_Configuracion_Modulos_Consultar(imei));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Modelos de componentes (RAM / discos) con su tipo, para elegir el modelo de cada módulo.
+        /// GET: api/Laptops/Configuracion/ModelosComponente
+        /// </summary>
+        [HttpGet("Configuracion/ModelosComponente")]
+        public ActionResult Configuracion_ModelosComponente()
+        {
+            try
+            {
+                return Ok(_accesoDatos.Componente_Modelos_Consultar());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Correcciones manuales de los módulos de una laptop.
+        /// GET: api/Laptops/Configuracion/Correcciones?imei=
+        /// </summary>
+        [HttpGet("Configuracion/Correcciones")]
+        public ActionResult Configuracion_Correcciones([FromQuery] string imei)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(imei))
+                {
+                    return BadRequest("El serial/IMEI es requerido.");
+                }
+                return Ok(_accesoDatos.Equipo_Configuracion_Correcciones_Consultar(imei));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Corrige el modelo y/o la capacidad de un módulo instalado (sin mover inventario ni costo). Requiere motivo.
+        /// POST: api/Laptops/Configuracion/Modulos/Corregir
+        /// </summary>
+        [HttpPost("Configuracion/Modulos/Corregir")]
+        public ActionResult Configuracion_Modulo_Corregir([FromBody] EquipoModuloCorreccion correccion)
+        {
+            if (!TienePermiso(PermisoCorregirConfig)) { return SinPermiso(); }
+            try
+            {
+                if (correccion == null || correccion.ID_Modulo <= 0)
+                {
+                    return BadRequest("El módulo es requerido.");
+                }
+                correccion.Usuario = User.Identity?.Name ?? correccion.Usuario;
+                var result = _accesoDatos.Equipo_Configuracion_Modulo_Corregir(correccion);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Registra el cambio de una pieza (RAM / almacenamiento) de una laptop.
         /// POST: api/Laptops/CambioPieza
         /// </summary>
@@ -113,6 +202,89 @@ namespace MVSystemApi.Controllers
                     return BadRequest("El serial/IMEI es requerido.");
                 }
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Registrar(cambio);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Busca accesorios para elegir cuál consultar en el kardex.
+        /// GET: api/Laptops/Kardex/Buscar?idAlmacen=&filtro=
+        /// </summary>
+        [HttpGet("Kardex/Buscar")]
+        public ActionResult KardexBuscar([FromQuery] int? idAlmacen, [FromQuery] string filtro)
+        {
+            if (!TienePermiso(PermisoConsultaAccesorios)) { return SinPermiso(); }
+            try
+            {
+                return Ok(_accesoDatos.Accesorio_Kardex_Buscar(idAlmacen, filtro));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Kardex de un accesorio: ventas, piezas instaladas en cambios de pieza y piezas retiradas recibidas, con saldo referencial.
+        /// GET: api/Laptops/Kardex?idAccesorio=&fechaInicio=&fechaFinal=
+        /// </summary>
+        [HttpGet("Kardex")]
+        public ActionResult Kardex([FromQuery] long idAccesorio, [FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFinal)
+        {
+            if (!TienePermiso(PermisoConsultaAccesorios)) { return SinPermiso(); }
+            try
+            {
+                if (idAccesorio <= 0)
+                {
+                    return BadRequest("El accesorio es requerido.");
+                }
+                return Ok(_accesoDatos.Accesorio_Kardex_Consultar(idAccesorio, fechaInicio, fechaFinal));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Reporte general de consumo de componentes.
+        /// GET: api/Laptops/Consumo?fechaInicio=&fechaFinal=&idAlmacen=&tecnico=&tipoPieza=&motivo=
+        /// </summary>
+        [HttpGet("Consumo")]
+        public ActionResult Consumo([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFinal, [FromQuery] int? idAlmacen,
+            [FromQuery] string tecnico, [FromQuery] string tipoPieza, [FromQuery] string motivo)
+        {
+            if (!TienePermiso(PermisoConsumo)) { return SinPermiso(); }
+            try
+            {
+                return Ok(_accesoDatos.Componentes_Movimientos_Consultar(fechaInicio, fechaFinal, idAlmacen, tecnico, tipoPieza, motivo));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Anula un cambio de pieza (el último de la laptop, con la pieza retirada aún sin recibir). Requiere motivo.
+        /// POST: api/Laptops/CambioPieza/Anular
+        /// </summary>
+        [HttpPost("CambioPieza/Anular")]
+        public ActionResult CambioPiezaAnular([FromBody] EquipoCambioAnulacion anulacion)
+        {
+            if (!TienePermiso(PermisoCambioAnular)) { return SinPermiso(); }
+            try
+            {
+                if (anulacion == null || anulacion.ID_Cambio <= 0)
+                {
+                    return BadRequest("El cambio de pieza es requerido.");
+                }
+                anulacion.Usuario = User.Identity?.Name ?? anulacion.Usuario;
+                var result = _accesoDatos.Equipo_Cambio_Pieza_Anular(anulacion);
                 return Ok(result);
             }
             catch (Exception ex)

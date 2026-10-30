@@ -14,5 +14,6 @@ namespace MVSystemApi.Model
         public List<ReciboAbonoGeneralDTO> ReciboAbonoGeneral { get; set; }
         public List<HistorialAbonoDTO> HistorialAbonos { get; set; }
         public Clientes_consulta Cliente { get; set; }
+        public ComprobanteCustodiaDTO ComprobanteCustodia { get; set; }
     }
 }

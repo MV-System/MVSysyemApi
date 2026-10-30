@@ -13,5 +13,9 @@ namespace MVSystemApi.Model
         // Solo para "entregar al cliente": obligatorios si el costo resultante supera el precio de venta
         public decimal? Nuevo_Precio_Detalle { get; set; }
         public decimal? Nuevo_Precio_Por_Mayor { get; set; }
+        // Solo para "recibir": obligatorios si el accesorio de la pieza retirada no tiene costo y precios registrados
+        public decimal? Accesorio_Costo { get; set; }
+        public decimal? Accesorio_Precio_Por_Mayor { get; set; }
+        public decimal? Accesorio_Precio_Detalle { get; set; }
     }
 }

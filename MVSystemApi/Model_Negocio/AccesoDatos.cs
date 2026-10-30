@@ -23,6 +23,7 @@ namespace MVSystemApi.Model
         private readonly string _dgiQrBaseUrlFiscal;
         private readonly int _laptopsHorasMaxCustodia;
         private readonly bool _laptopsBloquearVencidos;
+        private readonly decimal _laptopsPorcentajeCostoUsado;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
@@ -39,6 +40,7 @@ namespace MVSystemApi.Model
             _dgiQrBaseUrlFiscal = configuration["Dgi:QrBaseUrlFiscal"] ?? string.Empty;
             _laptopsHorasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
             _laptopsBloquearVencidos = configuration.GetValue("Laptops:BloquearTecnicoConPendientesVencidos", false);
+            _laptopsPorcentajeCostoUsado = configuration.GetValue("Laptops:PorcentajeCostoUsado", 50m);
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -4706,11 +4708,140 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Almacenamiento_Tipo", (object)configuracion.Almacenamiento_Tipo ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Notas", (object)configuracion.Notas ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Usuario", configuracion.Usuario);
+                // Módulos (memorias / discos) en JSON; sin lista, el SP arma 1 módulo por RAM y 1 por almacenamiento
+                var pModulos = cmd.Parameters.Add("@Modulos", SqlDbType.NVarChar, -1);
+                pModulos.Value = ModulosAJson(configuracion.Modulos) ?? (object)DBNull.Value;
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
+
+                // La espejo debe guardar los módulos con los MISMOS ID_Modulo (los usan el cambio de pieza y la corrección)
+                pModulos.Value = ModulosAJson(Equipo_Configuracion_Modulos_Consultar(configuracion.Imei)) ?? (object)DBNull.Value;
                 _sync.Ejecutar("Equipo_Configuracion_Guardar", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>JSON de módulos que espera Equipo_Configuracion_Guardar (nombres exactos, OPENJSON distingue mayúsculas).</summary>
+        private static string ModulosAJson(IEnumerable<EquipoModuloConfiguracion> modulos)
+        {
+            if (modulos == null) return null;
+            var lista = modulos.Select(m => new
+            {
+                idModulo = m.IdModulo,
+                tipoPieza = m.TipoPieza,
+                capacidadGB = m.CapacidadGB,
+                idModeloComponente = m.IdModeloComponente
+            }).ToList();
+            return lista.Count == 0 ? null : Newtonsoft.Json.JsonConvert.SerializeObject(lista);
+        }
+
+        /// <summary>Módulos activos de la laptop con su ID (para replicarlos igual en la espejo).</summary>
+        private static string ModulosAJson(DataTable modulos)
+        {
+            if (modulos == null || modulos.Rows.Count == 0) return null;
+            return ModulosAJson(modulos.Rows.Cast<DataRow>().Select(r => new EquipoModuloConfiguracion
+            {
+                IdModulo = Convert.ToInt32(r["ID_Modulo"]),
+                TipoPieza = Convert.ToString(r["Tipo_Pieza"]),
+                CapacidadGB = Convert.ToInt32(r["Capacidad_GB"]),
+                IdModeloComponente = Convert.ToInt32(r["ID_Modelo_Componente"])
+            }));
+        }
+
+        /// <summary>Módulos (memorias / discos) instalados en la laptop.</summary>
+        public DataTable Equipo_Configuracion_Modulos_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Modulos_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Historial de correcciones manuales de los módulos de la laptop.</summary>
+        public DataTable Equipo_Configuracion_Correcciones_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Correcciones_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Modelos de componentes (RAM / discos) con su tipo, para elegir el modelo de cada módulo.</summary>
+        public DataTable Componente_Modelos_Consultar()
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Componente_Modelos_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Corrige modelo y/o capacidad de un módulo instalado (sin mover inventario ni costo) y lo replica a la espejo.</summary>
+        public DataTable Equipo_Configuracion_Modulo_Corregir(EquipoModuloCorreccion correccion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Modulo_Corregir";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Modulo", correccion.ID_Modulo);
+                cmd.Parameters.AddWithValue("@ID_Modelo_Componente", correccion.ID_Modelo_Componente);
+                cmd.Parameters.AddWithValue("@Capacidad_GB", correccion.Capacidad_GB);
+                cmd.Parameters.AddWithValue("@Motivo", (object)correccion.Motivo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", correccion.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Configuracion_Modulo_Corregir", cmd.Parameters);
                 return dt;
             }
             catch (Exception)
@@ -4757,8 +4888,9 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Imei", cambio.Imei);
                 cmd.Parameters.AddWithValue("@Tipo_Pieza", cambio.Tipo_Pieza);
                 cmd.Parameters.AddWithValue("@ID_Accesorio_Instalado", cambio.ID_Accesorio_Instalado);
-                cmd.Parameters.AddWithValue("@Nueva_Capacidad_GB", cambio.Nueva_Capacidad_GB);
-                cmd.Parameters.AddWithValue("@Nuevo_Tipo", cambio.Nuevo_Tipo);
+                cmd.Parameters.AddWithValue("@Nueva_Capacidad_GB", (object)cambio.Nueva_Capacidad_GB ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Tipo", (object)cambio.Nuevo_Tipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Modulo_Retirado", (object)cambio.ID_Modulo_Retirado ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@ID_Accesorio_Retirado", (object)cambio.ID_Accesorio_Retirado ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Destino_Retirada", (object)cambio.Destino_Retirada ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Tecnico", cambio.Tecnico);
@@ -4770,14 +4902,29 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Usuario", cambio.Usuario);
                 cmd.Parameters.AddWithValue("@Horas_Max_Custodia", _laptopsHorasMaxCustodia);
                 cmd.Parameters.AddWithValue("@Bloquear_Vencidos", _laptopsBloquearVencidos);
+                // La pieza retirada es una pieza USADA: su costo es este % del costo de la nueva
+                cmd.Parameters.AddWithValue("@Porcentaje_Costo_Usado", _laptopsPorcentajeCostoUsado);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
 
-                // La espejo debe guardar el cambio con el MISMO ID: Recibir y EntregarCliente lo buscan por ID_Cambio
+                // La espejo debe guardar el cambio con los MISMOS ID: el cambio (Recibir y EntregarCliente lo buscan por ID_Cambio),
+                // el modulo nuevo, el accesorio de la pieza retirada y los accesorios que el SP haya creado.
                 if (dt.Rows.Count > 0 && dt.Columns.Contains("ID_Cambio") && dt.Rows[0]["ID_Cambio"] != DBNull.Value)
-                    cmd.Parameters.AddWithValue("@ID_Cambio", Convert.ToInt32(dt.Rows[0]["ID_Cambio"]));
+                {
+                    var fila = dt.Rows[0];
+                    cmd.Parameters.AddWithValue("@ID_Cambio", Convert.ToInt32(fila["ID_Cambio"]));
+                    if (dt.Columns.Contains("ID_Modulo_Instalado") && fila["ID_Modulo_Instalado"] != DBNull.Value)
+                        cmd.Parameters.AddWithValue("@ID_Modulo_Instalado", Convert.ToInt32(fila["ID_Modulo_Instalado"]));
+                    if (dt.Columns.Contains("ID_Accesorio_Retirado") && fila["ID_Accesorio_Retirado"] != DBNull.Value)
+                    {
+                        cmd.Parameters.Remove(cmd.Parameters["@ID_Accesorio_Retirado"]);
+                        cmd.Parameters.AddWithValue("@ID_Accesorio_Retirado", Convert.ToInt64(fila["ID_Accesorio_Retirado"]));
+                    }
+                    if (dt.Columns.Contains("Accesorios_Creados") && fila["Accesorios_Creados"] != DBNull.Value)
+                        cmd.Parameters.AddWithValue("@Accesorios_Ids", Convert.ToString(fila["Accesorios_Creados"]));
+                }
 
                 _sync.Ejecutar("Equipo_Cambio_Pieza_Registrar", cmd.Parameters);
                 return dt;
@@ -4803,10 +4950,23 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@ID_Cambio", accion.ID_Cambio);
                 cmd.Parameters.AddWithValue("@Usuario", accion.Usuario);
                 cmd.Parameters.AddWithValue("@Nota", (object)accion.Nota ?? DBNull.Value);
+                // Costo y precios del accesorio (solo si no los tiene registrados); se actualizan en todos los almacenes
+                cmd.Parameters.AddWithValue("@Costo_Equipo", (object)accion.Accesorio_Costo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Por_Mayor", (object)accion.Accesorio_Precio_Por_Mayor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Detalle", (object)accion.Accesorio_Precio_Detalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Porcentaje_Costo_Usado", _laptopsPorcentajeCostoUsado);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
                 cn.Close();
+
+                // Si la recepcion creo el accesorio en el almacen del cambio, la espejo debe crearlo con el mismo ID
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("Accesorio_Creado") && dt.Rows[0]["Accesorio_Creado"] != DBNull.Value)
+                    cmd.Parameters.AddWithValue("@ID_Accesorio_Nuevo", Convert.ToInt64(dt.Rows[0]["Accesorio_Creado"]));
+                // Piezas usadas creadas al redirigir la entrada: la espejo las crea con los mismos ID
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("Accesorios_Creados") && dt.Rows[0]["Accesorios_Creados"] != DBNull.Value)
+                    cmd.Parameters.AddWithValue("@Accesorios_Ids", Convert.ToString(dt.Rows[0]["Accesorios_Creados"]));
+
                 _sync.Ejecutar("Equipo_Cambio_Pieza_Recibir", cmd.Parameters);
                 return dt;
             }
@@ -4905,6 +5065,135 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Tipo_Pieza", string.IsNullOrWhiteSpace(tipoPieza) ? DBNull.Value : (object)tipoPieza);
                 cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
                 cmd.Parameters.AddWithValue("@SoloConStock", soloConStock);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Anula un cambio de pieza (último de la laptop, con la pieza aún sin recibir): revierte stock, costo, módulos y
+        /// configuración. Se replica a la espejo por ID_Cambio.
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_Anular(EquipoCambioAnulacion anulacion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Anular";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", anulacion.ID_Cambio);
+                cmd.Parameters.AddWithValue("@Usuario", anulacion.Usuario);
+                cmd.Parameters.AddWithValue("@Motivo", (object)anulacion.Motivo ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Cambio_Pieza_Anular", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Busca accesorios (por descripción, modelo o código) para elegir cuál consultar en el kardex.</summary>
+        public DataTable Accesorio_Kardex_Buscar(int? idAlmacen, string filtro)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Kardex_Buscar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Almacen", (object)idAlmacen ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Kardex de un accesorio: movimientos registrados con saldo referencial.</summary>
+        public DataTable Accesorio_Kardex_Consultar(long idAccesorio, DateTime fechaInicio, DateTime fechaFinal)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Kardex_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Accesorio", idAccesorio);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Reporte general de consumo de componentes (ventas, cambios de pieza y recepciones).</summary>
+        public DataTable Componentes_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int? idAlmacen, string tecnico, string tipoPieza, string motivo)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Componentes_Movimientos_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@ID_Almacen", (object)idAlmacen ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Tecnico", string.IsNullOrWhiteSpace(tecnico) ? DBNull.Value : (object)tecnico);
+                cmd.Parameters.AddWithValue("@Tipo_Pieza", string.IsNullOrWhiteSpace(tipoPieza) ? DBNull.Value : (object)tipoPieza);
+                cmd.Parameters.AddWithValue("@Motivo", string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : (object)motivo);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Datos del comprobante de custodia (ticket) de un cambio de pieza.</summary>
+        public DataTable Equipo_Cambio_Pieza_Comprobante(int idCambio)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Comprobante";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", idCambio);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);

@@ -2394,6 +2394,33 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 throw;
             }
         }
+        /// <summary>Marca y modelo de un equipo, para mostrarlos en la pantalla de estatus.</summary>
+        public DataTable GetEquipoMarcaModelo(string imei)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "SELECT TOP 1 Marca = Ma.Descripcion, Modelo = Mo.Descripcion " +
+                                  "FROM dbo.Equipos E " +
+                                  "INNER JOIN dbo.Modelos Mo ON Mo.ID_Modelo = E.ID_Modelo " +
+                                  "INNER JOIN dbo.Marcas Ma ON Ma.ID_Marca = Mo.ID_Marca " +
+                                  "WHERE E.Imei = @Imei";
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 30).Value = imei;
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) { cn.Close(); }
+                throw;
+            }
+        }
         public DataSet ValidarEliminacionEquipo(string imei)
         {
             var dataSet = new DataSet();

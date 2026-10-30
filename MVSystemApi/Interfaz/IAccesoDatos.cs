@@ -45,6 +45,7 @@ namespace MVSystemApi.Interfaz
         public void EquipoEstadoActualiza(EquipoEstadoUpdate equipo);
 
         internal DataTable GetEquipoPreciosEstatusByImei(string imei);
+        internal DataTable GetEquipoMarcaModelo(string imei);
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
         public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal);

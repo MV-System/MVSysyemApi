@@ -110,6 +110,9 @@ namespace MVSystemApi.Model
         public int EstadoBloqueoId { get; set; }
         public string EstadoBloqueoDescripcion { get; set; }
         public string Usuario { get; set; }
+        // Solo para mostrar en la pantalla de estatus (no se guarda)
+        public string Marca { get; set; }
+        public string Modelo { get; set; }
 
     }
 

@@ -924,6 +924,10 @@ BEGIN
     -- --------------------------------------------------------
     IF EXISTS (SELECT 1 FROM @Mod)
     BEGIN
+        -- La configuracion de una laptop se define una sola vez (registro o alta posterior); despues solo se corrige por modulo
+        IF EXISTS (SELECT 1 FROM dbo.Equipo_Configuracion_Modulo WHERE Imei = @Imei AND Estado = 'A')
+            THROW 50531, 'La laptop ya tiene configuracion. Para corregirla use la correccion de modulos del historial de la laptop.', 1;
+
         IF EXISTS (SELECT 1 FROM dbo.Equipo_Cambio_Pieza WHERE Imei = @Imei)
             THROW 50524, 'La laptop ya tiene cambios de pieza: su configuracion no se puede reemplazar. Use la correccion de modulos.', 1;
 
@@ -1411,6 +1415,13 @@ BEGIN
 
         IF @Pieza_Inst <> @Tipo_Pieza
             THROW 50061, 'La pieza instalada no corresponde al tipo de pieza elegido (RAM / almacenamiento).', 1;
+
+        -- La descripcion no puede contradecir el tipo del modelo (ej. '12GB DDR3' guardado bajo el modelo RAM DDR4 SODIMM)
+        IF @Pieza_Inst = 'RAM' AND UPPER(@Desc_Inst) LIKE '%DDR[345]%' AND UPPER(@Desc_Inst) NOT LIKE '%' + @Tipo_Inst + '%'
+        BEGIN
+            DECLARE @MsgTipo NVARCHAR(400) = CONCAT('El accesorio "', @Desc_Inst, '" esta registrado bajo un modelo ', @Tipo_Inst, ' pero su descripcion indica otro tipo de RAM. Corrija el modelo o la descripcion del accesorio.');
+            THROW 50067, @MsgTipo, 1;
+        END
 
         DECLARE @Cap_Inst INT = dbo.fn_Componente_Capacidad_GB(@Desc_Inst);
         IF @Cap_Inst IS NULL SET @Cap_Inst = NULLIF(@Nueva_Capacidad_GB, 0);

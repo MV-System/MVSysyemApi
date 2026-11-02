@@ -25,8 +25,6 @@ namespace MVSystemApi.Controllers
         private const string PermisoCustodiaRecibir = "LAPTOP_CUSTODIA_RECIBIR";
         private const string PermisoCorregirConfig = "LAPTOP_CORREGIR_CONFIG";
         private const string PermisoCambioAnular = "LAPTOP_CAMBIO_ANULAR";
-        private const string PermisoConsumo = "LAPTOP_CONSUMO_COMPONENTES";
-        private const string PermisoConsultaAccesorios = "MNU_CONS_ACCESORIOS";
 
         public LaptopsController(IAccesoDatos accesoDatos, IConfiguration configuration)
         {
@@ -201,65 +199,6 @@ namespace MVSystemApi.Controllers
                 }
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Registrar(cambio);
                 return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Busca accesorios para elegir cuál consultar en el kardex.
-        /// GET: api/Laptops/Kardex/Buscar?idAlmacen=&filtro=
-        /// </summary>
-        [HttpGet("Kardex/Buscar")]
-        public ActionResult KardexBuscar([FromQuery] int? idAlmacen, [FromQuery] string filtro)
-        {
-            if (!TienePermiso(PermisoConsultaAccesorios)) { return SinPermiso(); }
-            try
-            {
-                return Ok(_accesoDatos.Accesorio_Kardex_Buscar(idAlmacen, filtro));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Kardex de un accesorio: ventas, piezas instaladas en cambios de pieza y piezas retiradas recibidas, con saldo referencial.
-        /// GET: api/Laptops/Kardex?idAccesorio=&fechaInicio=&fechaFinal=
-        /// </summary>
-        [HttpGet("Kardex")]
-        public ActionResult Kardex([FromQuery] long idAccesorio, [FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFinal)
-        {
-            if (!TienePermiso(PermisoConsultaAccesorios)) { return SinPermiso(); }
-            try
-            {
-                if (idAccesorio <= 0)
-                {
-                    return BadRequest("El accesorio es requerido.");
-                }
-                return Ok(_accesoDatos.Accesorio_Kardex_Consultar(idAccesorio, fechaInicio, fechaFinal));
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Reporte general de consumo de componentes.
-        /// GET: api/Laptops/Consumo?fechaInicio=&fechaFinal=&idAlmacen=&tecnico=&tipoPieza=&motivo=
-        /// </summary>
-        [HttpGet("Consumo")]
-        public ActionResult Consumo([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFinal, [FromQuery] int? idAlmacen,
-            [FromQuery] string tecnico, [FromQuery] string tipoPieza, [FromQuery] string motivo)
-        {
-            if (!TienePermiso(PermisoConsumo)) { return SinPermiso(); }
-            try
-            {
-                return Ok(_accesoDatos.Componentes_Movimientos_Consultar(fechaInicio, fechaFinal, idAlmacen, tecnico, tipoPieza, motivo));
             }
             catch (Exception ex)
             {

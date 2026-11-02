@@ -5187,70 +5187,51 @@ WHERE ENCF = @encf", connection);
             }
         }
 
-        /// <summary>Busca accesorios (por descripción, modelo o código) para elegir cuál consultar en el kardex.</summary>
-        public DataTable Accesorio_Kardex_Buscar(int? idAlmacen, string filtro)
+        /// <summary>Movimientos de stock de accesorios (Accesorio_Movimiento + historia anterior), paginados.</summary>
+        public DataTable Accesorio_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario, int pageIndex, int pageSize)
         {
             try
             {
                 cn.Open();
                 SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Accesorio_Kardex_Buscar";
+                cmd.CommandText = "Accesorio_Movimientos_Consultar";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@ID_Almacen", (object)idAlmacen ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@Sucursal", sucursal);
                 cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                cn.Close();
-                return dt;
-            }
-            catch (Exception)
-            {
-                if (cn.State == ConnectionState.Open) cn.Close();
-                throw;
-            }
-        }
-
-        /// <summary>Kardex de un accesorio: movimientos registrados con saldo referencial.</summary>
-        public DataTable Accesorio_Kardex_Consultar(long idAccesorio, DateTime fechaInicio, DateTime fechaFinal)
-        {
-            try
-            {
-                cn.Open();
-                SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Accesorio_Kardex_Consultar";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@ID_Accesorio", idAccesorio);
-                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
-                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                cn.Close();
-                return dt;
-            }
-            catch (Exception)
-            {
-                if (cn.State == ConnectionState.Open) cn.Close();
-                throw;
-            }
-        }
-
-        /// <summary>Reporte general de consumo de componentes (ventas, cambios de pieza y recepciones).</summary>
-        public DataTable Componentes_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int? idAlmacen, string tecnico, string tipoPieza, string motivo)
-        {
-            try
-            {
-                cn.Open();
-                SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Componentes_Movimientos_Consultar";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
-                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
-                cmd.Parameters.AddWithValue("@ID_Almacen", (object)idAlmacen ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@Tecnico", string.IsNullOrWhiteSpace(tecnico) ? DBNull.Value : (object)tecnico);
-                cmd.Parameters.AddWithValue("@Tipo_Pieza", string.IsNullOrWhiteSpace(tipoPieza) ? DBNull.Value : (object)tipoPieza);
                 cmd.Parameters.AddWithValue("@Motivo", string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : (object)motivo);
+                cmd.Parameters.AddWithValue("@Usuario", string.IsNullOrWhiteSpace(usuario) ? DBNull.Value : (object)usuario);
+                cmd.Parameters.AddWithValue("@PageIndex", pageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Totales de entradas y salidas por motivo, con los mismos filtros de la consulta de movimientos.</summary>
+        public DataTable Accesorio_Movimientos_Resumen(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Movimientos_Resumen";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@Sucursal", sucursal);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                cmd.Parameters.AddWithValue("@Motivo", string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : (object)motivo);
+                cmd.Parameters.AddWithValue("@Usuario", string.IsNullOrWhiteSpace(usuario) ? DBNull.Value : (object)usuario);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);

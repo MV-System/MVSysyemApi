@@ -1,4 +1,5 @@
 ﻿using DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using MVSystemApi.Interfaz;
@@ -39,6 +40,69 @@ namespace MVSystemApi.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        // Permiso (seg.Permisos) para la vista "Movimientos" de la consulta de accesorios. Llega en el token como claim "role".
+        private const string PermisoMovimientos = "ACCESORIOS_MOVIMIENTOS";
+
+        private bool TienePermiso(string permiso)
+        {
+            return User.Claims.Any(claim =>
+                (claim.Type == "role" || claim.Type == System.Security.Claims.ClaimTypes.Role) && claim.Value == permiso);
+        }
+
+        /// <summary>
+        /// Movimientos de stock de accesorios (entradas, ajustes, ventas, cambios de pieza...), paginados, con totales por motivo.
+        /// GET: Accesorios/Accesorio_Movimientos?fechaInicio=&amp;fechaFinal=&amp;sucursal=&amp;filtro=&amp;motivo=&amp;usuario=&amp;pageIndex=&amp;pageSize=
+        /// </summary>
+        [HttpGet]
+        [Route("Accesorio_Movimientos")]
+        [Authorize]
+        public ActionResult Accesorio_Movimientos([FromQuery] DateTime fechaInicio, [FromQuery] DateTime fechaFinal, [FromQuery] int sucursal,
+            [FromQuery] string filtro, [FromQuery] string motivo, [FromQuery] string usuario,
+            [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 20)
+        {
+            if (!TienePermiso(PermisoMovimientos))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, "No tiene permisos para realizar esta acción.");
+            }
+            try
+            {
+                var filas = accesoDatos.Accesorio_Movimientos_Consultar(fechaInicio, fechaFinal, sucursal, filtro, motivo, usuario, pageIndex, pageSize).AsEnumerable()
+                    .Select(dt => new
+                    {
+                        fecha = Convert.ToDateTime(dt["Fecha"]),
+                        motivo = Convert.ToString(dt["Motivo"]),
+                        documento = dt["Documento"] == DBNull.Value ? null : Convert.ToString(dt["Documento"]),
+                        idAccesorio = Convert.ToInt64(dt["ID_Accesorio"]),
+                        descripcion = Convert.ToString(dt["Descripcion_Accesorio"]),
+                        modelo = Convert.ToString(dt["Modelo"]),
+                        idAlmacen = Convert.ToInt32(dt["ID_Almacen"]),
+                        almacen = dt["Descripcion_Almacen"] == DBNull.Value ? null : Convert.ToString(dt["Descripcion_Almacen"]),
+                        entrada = Convert.ToInt32(dt["Entrada"]),
+                        salida = Convert.ToInt32(dt["Salida"]),
+                        saldo = dt["Saldo"] == DBNull.Value ? (int?)null : Convert.ToInt32(dt["Saldo"]),
+                        usuario = dt["Usuario"] == DBNull.Value ? null : Convert.ToString(dt["Usuario"]),
+                        nota = dt["Nota"] == DBNull.Value ? null : Convert.ToString(dt["Nota"]),
+                        origen = Convert.ToString(dt["Origen"]),
+                        totalRegistros = Convert.ToInt32(dt["Total_Registros"])
+                    }).ToList();
+
+                var resumen = accesoDatos.Accesorio_Movimientos_Resumen(fechaInicio, fechaFinal, sucursal, filtro, motivo, usuario).AsEnumerable()
+                    .Select(dt => new
+                    {
+                        motivo = Convert.ToString(dt["Motivo"]),
+                        movimientos = Convert.ToInt32(dt["Movimientos"]),
+                        entradas = Convert.ToInt32(dt["Entradas"]),
+                        salidas = Convert.ToInt32(dt["Salidas"])
+                    }).ToList();
+
+                return Ok(new { total = filas.Count == 0 ? 0 : filas[0].totalRegistros, items = filas, resumen });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         /// <summary>Accesorios existentes con el mismo modelo y descripcion en el almacen (antes de registrar uno nuevo).</summary>
         [HttpGet]
         [Route("Accesorio_Coincidencias")]

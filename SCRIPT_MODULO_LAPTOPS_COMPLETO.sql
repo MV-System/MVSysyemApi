@@ -2246,30 +2246,19 @@ GO
 
 
 -- ############################################################
--- 7. KARDEX DE ACCESORIOS Y REPORTE DE CONSUMO DE COMPONENTES
+-- 7. HISTORIA ANTERIOR DE MOVIMIENTOS DE ACCESORIOS (ventas y cambios de pieza previos a Accesorio_Movimiento)
 -- ############################################################
 
 -- ============================================================
--- Feature: Mejoras del Modulo de Laptops - Tarea 7 (kardex por accesorio y reporte general de consumo)
--- Proposito: ver que movimientos tuvo un accesorio (y los componentes en general) y por que.
---   Movimientos que el sistema REGISTRA (compras, ajustes manuales y transferencias de accesorios no dejan registro):
+-- Tarea 13: la consulta de accesorios tiene una vista "Movimientos" (Accesorio_Movimientos_Consultar / _Resumen, en la
+-- seccion 14). Las pantallas Kardex de accesorios y Consumo de componentes se eliminaron: sus procedimientos
+-- (Accesorio_Kardex_Buscar, Accesorio_Kardex_Consultar, Componentes_Movimientos_Consultar) se borran al final de esta seccion.
+-- fn_Accesorio_Movimientos se conserva: reconstruye la historia ANTERIOR al primer registro de Accesorio_Movimiento (Tarea 12):
 --     VENTA        (Salida)  : detalle de factura de accesorios (ID_Tipo = 2) de facturas vigentes (no anuladas).
 --     CAMBIO_PIEZA (Salida)  : pieza instalada en un cambio de pieza de laptop (no anulado).
---     RECEPCION    (Entrada) : pieza retirada recibida en custodia (entra a la variante en el almacen del cambio).
---   1. dbo.fn_Accesorio_Movimientos(): todos esos movimientos en una sola lista (la usan el kardex y el reporte).
---   2. Accesorio_Kardex_Buscar: busca accesorios por descripcion / modelo / codigo (para elegir cual consultar).
---   3. Accesorio_Kardex_Consultar @ID_Accesorio, @Fecha_Inicio, @Fecha_Final: lista ordenada por fecha con saldo.
---        El saldo es REFERENCIAL: se calcula hacia atras desde la existencia actual y los movimientos registrados
---        (Saldo inicial = existencia actual - movimientos registrados desde la fecha de inicio). No incluye lo que el
---        sistema no registra (compras, ajustes, transferencias).
---   4. Componentes_Movimientos_Consultar: reporte general de consumo de componentes con filtros por fecha, almacen,
---        tecnico, tipo de pieza (RAM / ALMACENAMIENTO) y motivo.
---   Nota: todas las fechas estan en hora local (servidor - 4 horas). Los cambios de pieza anteriores a
---   UPDATE_Laptops_Fechas_Hora_Local.sql (Tarea 9) quedaron con la hora del servidor.
--- Requiere: scripts de las Tareas 1 a 6 ejecutados ANTES (usa Equipo_Cambio_Pieza y Componente_Modelo_Tipo).
--- Ejecutar en TODAS las bases. Script idempotente (CREATE OR ALTER). Solo consulta: no modifica datos.
--- Autor: MVSystem
--- Fecha: 2026-10-30
+--     RECEPCION    (Entrada) : pieza retirada recibida en custodia.
+-- Las fechas estan en hora local (servidor - 4 horas).
+-- Ejecutar en TODAS las bases. Script idempotente (CREATE OR ALTER).
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -2335,136 +2324,10 @@ RETURN
 )
 GO
 
--- ------------------------------------------------------------
--- 2. Buscar accesorios para el kardex
--- ------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.Accesorio_Kardex_Buscar
-    @ID_Almacen INT = NULL,
-    @Filtro     VARCHAR(100) = ''
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT TOP 100
-           A.ID_Accesorio,
-           A.Descripcion_Accesorio,
-           Modelo = M.Descripcion,
-           A.ID_Almacen,
-           AC.Descripcion_Almacen,
-           Cantidad = ISNULL(A.Cantidad, 0),
-           A.Estado
-      FROM dbo.Accesorios A
-     INNER JOIN dbo.Modelos M ON M.ID_Modelo = A.ID_Modelo
-      LEFT JOIN dbo.Almacen_Cata AC ON AC.ID_Almacen = A.ID_Almacen
-     WHERE (@ID_Almacen IS NULL OR A.ID_Almacen = @ID_Almacen)
-       AND (ISNULL(@Filtro, '') = ''
-            OR A.Descripcion_Accesorio LIKE '%' + @Filtro + '%'
-            OR M.Descripcion LIKE '%' + @Filtro + '%'
-            OR CONVERT(VARCHAR(30), A.Codigo_Barra) = @Filtro
-            OR CONVERT(VARCHAR(30), A.ID_Accesorio) = @Filtro)
-     ORDER BY M.Descripcion, A.Descripcion_Accesorio, AC.Descripcion_Almacen;
-END
-GO
-
--- ------------------------------------------------------------
--- 3. Kardex de un accesorio (saldo referencial)
--- ------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.Accesorio_Kardex_Consultar
-    @ID_Accesorio BIGINT,
-    @Fecha_Inicio DATETIME,
-    @Fecha_Final  DATETIME
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @Existencia INT, @Descripcion VARCHAR(100), @Almacen VARCHAR(100);
-
-    SELECT @Existencia = ISNULL(A.Cantidad, 0),
-           @Descripcion = A.Descripcion_Accesorio,
-           @Almacen = AC.Descripcion_Almacen
-      FROM dbo.Accesorios A
-      LEFT JOIN dbo.Almacen_Cata AC ON AC.ID_Almacen = A.ID_Almacen
-     WHERE A.ID_Accesorio = @ID_Accesorio;
-
-    IF @Existencia IS NULL
-        THROW 50700, 'El accesorio no existe.', 1;
-
-    DECLARE @Ini DATETIME = CAST(CAST(ISNULL(@Fecha_Inicio, '19000101') AS DATE) AS DATETIME);
-    DECLARE @FinExcl DATETIME = DATEADD(DAY, 1, CAST(CAST(ISNULL(@Fecha_Final, DATEADD(HOUR, -4, GETDATE())) AS DATE) AS DATETIME));
-
-    -- Saldo inicial referencial = existencia actual - lo registrado desde la fecha de inicio
-    DECLARE @NetoDesdeInicio INT =
-        (SELECT ISNULL(SUM(Mv.Entrada - Mv.Salida), 0)
-           FROM dbo.fn_Accesorio_Movimientos() Mv
-          WHERE Mv.ID_Accesorio = @ID_Accesorio AND Mv.Fecha >= @Ini);
-    DECLARE @SaldoInicial INT = @Existencia - @NetoDesdeInicio;
-
-    ;WITH M AS (
-        SELECT Mv.Fecha, Mv.Motivo, Mv.Documento, Mv.Entrada, Mv.Salida, Mv.Usuario
-          FROM dbo.fn_Accesorio_Movimientos() Mv
-         WHERE Mv.ID_Accesorio = @ID_Accesorio AND Mv.Fecha >= @Ini AND Mv.Fecha < @FinExcl
-    ),
-    S AS (
-        SELECT M.*,
-               Saldo = @SaldoInicial + SUM(M.Entrada - M.Salida)
-                       OVER (ORDER BY M.Fecha, M.Motivo, M.Documento ROWS UNBOUNDED PRECEDING)
-          FROM M
-    )
-    SELECT X.Fecha, X.Motivo, X.Documento, X.Entrada, X.Salida, X.Usuario, X.Saldo,
-           Descripcion_Accesorio = @Descripcion, Descripcion_Almacen = @Almacen, Existencia_Actual = @Existencia
-      FROM (
-            SELECT Orden = 0, Fecha = @Ini, Motivo = CAST('SALDO_INICIAL' AS VARCHAR(20)), Documento = CAST(NULL AS VARCHAR(40)),
-                   Entrada = 0, Salida = 0, Usuario = CAST(NULL AS VARCHAR(60)), Saldo = @SaldoInicial
-            UNION ALL
-            SELECT 1, S.Fecha, S.Motivo, S.Documento, S.Entrada, S.Salida, S.Usuario, S.Saldo FROM S
-           ) X
-     ORDER BY X.Orden, X.Fecha, X.Motivo, X.Documento;
-END
-GO
-
--- ------------------------------------------------------------
--- 4. Reporte general de consumo de componentes
--- ------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.Componentes_Movimientos_Consultar
-    @Fecha_Inicio DATETIME,
-    @Fecha_Final  DATETIME,
-    @ID_Almacen   INT = NULL,
-    @Tecnico      VARCHAR(60) = NULL,
-    @Tipo_Pieza   VARCHAR(20) = NULL,    -- 'RAM' | 'ALMACENAMIENTO'
-    @Motivo       VARCHAR(20) = NULL     -- 'VENTA' | 'CAMBIO_PIEZA' | 'RECEPCION'
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @Ini DATETIME = CAST(CAST(ISNULL(@Fecha_Inicio, '19000101') AS DATE) AS DATETIME);
-    DECLARE @FinExcl DATETIME = DATEADD(DAY, 1, CAST(CAST(ISNULL(@Fecha_Final, DATEADD(HOUR, -4, GETDATE())) AS DATE) AS DATETIME));
-
-    SELECT Mv.Fecha,
-           Mv.Motivo,
-           Mv.Documento,
-           A.ID_Accesorio,
-           A.Descripcion_Accesorio,
-           Modelo = Mo.Descripcion,
-           T.Tipo_Pieza,
-           A.ID_Almacen,
-           AC.Descripcion_Almacen,
-           Mv.Entrada,
-           Mv.Salida,
-           Costo = CAST(A.Costo_Equipo AS DECIMAL(18,2)),
-           Mv.Usuario,
-           Mv.Tecnico
-      FROM dbo.fn_Accesorio_Movimientos() Mv
-     INNER JOIN dbo.Accesorios A ON A.ID_Accesorio = Mv.ID_Accesorio
-     INNER JOIN dbo.Modelos Mo ON Mo.ID_Modelo = A.ID_Modelo
-     INNER JOIN dbo.Componente_Modelo_Tipo T ON T.ID_Modelo = A.ID_Modelo        -- solo componentes
-      LEFT JOIN dbo.Almacen_Cata AC ON AC.ID_Almacen = A.ID_Almacen
-     WHERE Mv.Fecha >= @Ini AND Mv.Fecha < @FinExcl
-       AND (@ID_Almacen IS NULL OR A.ID_Almacen = @ID_Almacen)
-       AND (@Tecnico IS NULL OR Mv.Tecnico = @Tecnico)
-       AND (@Tipo_Pieza IS NULL OR T.Tipo_Pieza = @Tipo_Pieza)
-       AND (@Motivo IS NULL OR Mv.Motivo = @Motivo)
-     ORDER BY Mv.Fecha DESC, Mv.Motivo, Mv.Documento;
-END
+-- Procedimientos de las pantallas eliminadas (Kardex y Consumo)
+DROP PROCEDURE IF EXISTS dbo.Accesorio_Kardex_Buscar;
+DROP PROCEDURE IF EXISTS dbo.Accesorio_Kardex_Consultar;
+DROP PROCEDURE IF EXISTS dbo.Componentes_Movimientos_Consultar;
 GO
 
 
@@ -4825,6 +4688,144 @@ SET Motivo_Anulacion = NULLIF(LTRIM(RTRIM(@Motivo)), ''),
     Usuario_Anulacion = @Usuario,
     Fecha_Anulacion = DATEADD(hour, -4, GETDATE())
 WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal AND Literal = @LiteralFt AND Estado = 'X'
+GO
+
+-- ############################################################
+-- 14. VISTA "MOVIMIENTOS" DE LA CONSULTA DE ACCESORIOS (Tarea 13)
+--     Lista los movimientos de stock desde Accesorio_Movimiento y, para fechas ANTERIORES al primer registro, la historia que
+--     ya existia (ventas y cambios de pieza, marcada Origen = 'HISTORICO'). Permiso del front/API: ACCESORIOS_MOVIMIENTOS.
+--     @Sucursal sigue la misma convencion de la consulta de accesorios: ID de sucursal; 4 (o 0) = todas.
+-- ############################################################
+
+CREATE OR ALTER FUNCTION dbo.fn_Accesorio_Movimientos_Todos ()
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT Orden = M.ID_Movimiento,
+           M.Fecha,
+           M.Motivo,
+           M.Documento,
+           M.ID_Accesorio,
+           M.ID_Almacen,
+           Entrada = CASE WHEN M.Diferencia > 0 THEN M.Diferencia ELSE 0 END,
+           Salida  = CASE WHEN M.Diferencia < 0 THEN -M.Diferencia ELSE 0 END,
+           Saldo   = M.Cantidad_Nueva,
+           M.Usuario,
+           M.Nota,
+           Origen  = CAST('REGISTRO' AS VARCHAR(10))
+      FROM dbo.Accesorio_Movimiento M
+
+    UNION ALL
+
+    SELECT 0,
+           H.Fecha,
+           CAST(CASE H.Motivo WHEN 'RECEPCION' THEN 'RECEPCION_PIEZA' ELSE H.Motivo END AS VARCHAR(30)),
+           CAST(H.Documento AS VARCHAR(50)),
+           H.ID_Accesorio,
+           A.ID_Almacen,
+           H.Entrada,
+           H.Salida,
+           CAST(NULL AS INT),
+           H.Usuario,
+           CAST(NULL AS VARCHAR(250)),
+           CAST('HISTORICO' AS VARCHAR(10))
+      FROM dbo.fn_Accesorio_Movimientos() H
+     INNER JOIN dbo.Accesorios A ON A.ID_Accesorio = H.ID_Accesorio
+     WHERE H.Fecha < ISNULL((SELECT MIN(Fecha) FROM dbo.Accesorio_Movimiento), '99991231')
+)
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Accesorio_Movimientos_Consultar
+    @Fecha_Inicio DATETIME,
+    @Fecha_Final  DATETIME,
+    @Sucursal     INT = 0,
+    @Filtro       VARCHAR(100) = '',
+    @Motivo       VARCHAR(30) = NULL,
+    @Usuario      VARCHAR(60) = NULL,
+    @PageIndex    INT = 1,
+    @PageSize     INT = 20
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Ini DATETIME = CAST(CAST(ISNULL(@Fecha_Inicio, '19000101') AS DATE) AS DATETIME);
+    DECLARE @FinExcl DATETIME = DATEADD(DAY, 1, CAST(CAST(ISNULL(@Fecha_Final, DATEADD(HOUR, -4, GETDATE())) AS DATE) AS DATETIME));
+    DECLARE @Almacen INT = CASE WHEN ISNULL(@Sucursal, 0) IN (0, 4) THEN 0
+                                ELSE ISNULL((SELECT TOP 1 ID_Almacen FROM dbo.Sucursales_cata WHERE ID_Sucursal = @Sucursal), -1) END;
+
+    SET @PageIndex = CASE WHEN ISNULL(@PageIndex, 0) <= 0 THEN 1 ELSE @PageIndex END;
+    SET @PageSize  = CASE WHEN ISNULL(@PageSize, 0) <= 0 THEN 20 ELSE @PageSize END;
+
+    SELECT T.Fecha,
+           T.Motivo,
+           T.Documento,
+           T.ID_Accesorio,
+           A.Descripcion_Accesorio,
+           Modelo = Mo.Descripcion,
+           T.ID_Almacen,
+           AC.Descripcion_Almacen,
+           T.Entrada,
+           T.Salida,
+           T.Saldo,
+           T.Usuario,
+           T.Nota,
+           T.Origen,
+           Total_Registros = COUNT(*) OVER ()
+      FROM dbo.fn_Accesorio_Movimientos_Todos() T
+     INNER JOIN dbo.Accesorios A ON A.ID_Accesorio = T.ID_Accesorio
+     INNER JOIN dbo.Modelos Mo ON Mo.ID_Modelo = A.ID_Modelo
+      LEFT JOIN dbo.Almacen_Cata AC ON AC.ID_Almacen = T.ID_Almacen
+     WHERE T.Fecha >= @Ini AND T.Fecha < @FinExcl
+       AND (@Almacen = 0 OR T.ID_Almacen = @Almacen)
+       AND (@Motivo IS NULL OR @Motivo = '' OR T.Motivo = @Motivo)
+       AND (@Usuario IS NULL OR @Usuario = '' OR T.Usuario LIKE '%' + @Usuario + '%')
+       AND (ISNULL(@Filtro, '') = ''
+            OR A.Descripcion_Accesorio LIKE '%' + @Filtro + '%'
+            OR Mo.Descripcion LIKE '%' + @Filtro + '%'
+            OR CONVERT(VARCHAR(30), A.Codigo_Barra) = @Filtro
+            OR CONVERT(VARCHAR(30), A.ID_Accesorio) = @Filtro)
+     ORDER BY T.Fecha DESC, T.Orden DESC
+    OFFSET (@PageIndex - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
+-- Totales por motivo con los mismos filtros (sin paginar)
+CREATE OR ALTER PROCEDURE dbo.Accesorio_Movimientos_Resumen
+    @Fecha_Inicio DATETIME,
+    @Fecha_Final  DATETIME,
+    @Sucursal     INT = 0,
+    @Filtro       VARCHAR(100) = '',
+    @Motivo       VARCHAR(30) = NULL,
+    @Usuario      VARCHAR(60) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Ini DATETIME = CAST(CAST(ISNULL(@Fecha_Inicio, '19000101') AS DATE) AS DATETIME);
+    DECLARE @FinExcl DATETIME = DATEADD(DAY, 1, CAST(CAST(ISNULL(@Fecha_Final, DATEADD(HOUR, -4, GETDATE())) AS DATE) AS DATETIME));
+    DECLARE @Almacen INT = CASE WHEN ISNULL(@Sucursal, 0) IN (0, 4) THEN 0
+                                ELSE ISNULL((SELECT TOP 1 ID_Almacen FROM dbo.Sucursales_cata WHERE ID_Sucursal = @Sucursal), -1) END;
+
+    SELECT T.Motivo,
+           Movimientos = COUNT(*),
+           Entradas    = SUM(T.Entrada),
+           Salidas     = SUM(T.Salida)
+      FROM dbo.fn_Accesorio_Movimientos_Todos() T
+     INNER JOIN dbo.Accesorios A ON A.ID_Accesorio = T.ID_Accesorio
+     INNER JOIN dbo.Modelos Mo ON Mo.ID_Modelo = A.ID_Modelo
+     WHERE T.Fecha >= @Ini AND T.Fecha < @FinExcl
+       AND (@Almacen = 0 OR T.ID_Almacen = @Almacen)
+       AND (@Motivo IS NULL OR @Motivo = '' OR T.Motivo = @Motivo)
+       AND (@Usuario IS NULL OR @Usuario = '' OR T.Usuario LIKE '%' + @Usuario + '%')
+       AND (ISNULL(@Filtro, '') = ''
+            OR A.Descripcion_Accesorio LIKE '%' + @Filtro + '%'
+            OR Mo.Descripcion LIKE '%' + @Filtro + '%'
+            OR CONVERT(VARCHAR(30), A.Codigo_Barra) = @Filtro
+            OR CONVERT(VARCHAR(30), A.ID_Accesorio) = @Filtro)
+     GROUP BY T.Motivo
+     ORDER BY T.Motivo;
+END
 GO
 
 -- ============================================================

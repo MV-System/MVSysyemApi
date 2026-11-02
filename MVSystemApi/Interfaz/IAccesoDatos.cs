@@ -210,9 +210,8 @@ namespace MVSystemApi.Interfaz
         DataTable Equipo_Cambio_Pieza_Historial(string imei);
         DataTable Equipo_Cambio_Pieza_Anular(EquipoCambioAnulacion anulacion);
         DataTable Equipo_Cambio_Pieza_Comprobante(int idCambio);
-        DataTable Accesorio_Kardex_Buscar(int? idAlmacen, string filtro);
-        DataTable Accesorio_Kardex_Consultar(long idAccesorio, DateTime fechaInicio, DateTime fechaFinal);
-        DataTable Componentes_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int? idAlmacen, string tecnico, string tipoPieza, string motivo);
+        DataTable Accesorio_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario, int pageIndex, int pageSize);
+        DataTable Accesorio_Movimientos_Resumen(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario);
         DataTable Equipo_Cambio_Pieza_Recibir(EquipoCustodiaAccion accion);
         DataTable Equipo_Cambio_Pieza_EntregarCliente(EquipoCustodiaAccion accion);
         DataTable Equipo_Cambio_Pieza_Pendientes(string tecnico, int? idAlmacen, int horasMax);

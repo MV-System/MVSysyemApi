@@ -1,5 +1,8 @@
 # PLAN – Mejoras del Módulo de Laptops (rama `claude`)
 
+> ## ⛔ PRODUCCIÓN Y RAMA `ventura`: NO TOCAR SIN AUTORIZACIÓN DEL USUARIO
+> Todo se hace **solo en la rama `claude`** y **solo en la base de pruebas**. Prohibido ejecutar scripts en las bases de producción y hacer commit/merge/push en `ventura`. Ver `docs/PASE_A_PRODUCCION.md`.
+
 > **Instrucción para el agente:** ejecuta **UNA SOLA TAREA** por sesión (la que se te indique: "Ejecuta la Tarea N").
 > No adelantes tareas. Al terminar entrega el resumen de la sección **"Entrega de cada tarea"** y detente.
 > Antes de empezar lee también `docs/PLAN_MODULO_LAPTOPS.md` (reglas R1–R13 y convenciones), que siguen vigentes.
@@ -178,6 +181,17 @@
 - **Eliminar** las pantallas *Kardex de accesorios* y *Consumo de componentes* (componentes, rutas y opciones del menú). Los SP de kardex que ya no se usen se dejan de llamar; borrarlos del script completo solo si nada más los usa.
 - Aceptación: el menú queda sin "Kardex de accesorios" ni "Consumo de componentes"; desde la consulta de accesorios se ven todos los movimientos de un accesorio normal (ej. un cargador) y de una pieza de laptop.
 - **Hecho:** sección 14 de `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql` (`fn_Accesorio_Movimientos_Todos`, `Accesorio_Movimientos_Consultar` y `Accesorio_Movimientos_Resumen`); la sección 7 conserva solo `fn_Accesorio_Movimientos` para la historia previa y borra los SP de Kardex y Consumo. API: `GET Accesorios/Accesorio_Movimientos` (claim `ACCESORIOS_MOVIMIENTOS`); se quitaron `Kardex`, `Kardex/Buscar` y `Consumo` de `LaptopsController` y se borró `CREATE_Accesorio_Kardex.sql`. Front: componente `accesorio-movimientos` dentro de la consulta de accesorios (tercera opción, solo con el permiso); se eliminaron las pantallas Kardex y Consumo, sus rutas, menú y servicios. El saldo se muestra en cada fila (es el saldo de ese accesorio después del movimiento; vacío en filas históricas). Permiso: `CREATE_Accesorios_Permiso_Movimientos.sql` (BD SEGURIDAD).
+
+### Tarea 14 – Separación de funciones técnico / encargado (cerrar fugas de custodia)
+**Modelo acordado:** el **técnico** solo tiene `LAPTOP_CAMBIO_PIEZA` (registra cambios). El **encargado** tiene `LAPTOP_CUSTODIA_RECIBIR` (recibe, entrega al cliente) y el permiso de anular; **no** tiene `LAPTOP_CAMBIO_PIEZA`. Así uno no puede hacer lo del otro y no hace falta más personal.
+1. **Técnico automático:** en la pantalla de cambio de pieza, **quitar el campo "Técnico"**. El técnico es siempre el usuario que registra el cambio (tomarlo del token en el API, no del body). El SP `Equipo_Cambio_Pieza_Registrar` usa `@Tecnico = @Usuario` (si llega un `@Tecnico` distinto, ignorarlo). El bloqueo por piezas vencidas (Tarea 16 del plan original) aplica a ese usuario.
+2. **Sin destino "cliente" al registrar:** quitar el campo **"Destino de la pieza retirada"** de la pantalla. Toda pieza retirada queda **`PENDIENTE`**. En el SP, rechazar `@Destino_Retirada = 'CLIENTE'` (mensaje: "La entrega al cliente la registra el encargado desde Custodia de piezas"). "Entregada al cliente" queda solo en la pantalla de Custodia (ya existe, con `LAPTOP_CUSTODIA_RECIBIR`).
+3. **Quién recibe / entrega:** en `Equipo_Cambio_Pieza_Recibir` y `Equipo_Cambio_Pieza_EntregarCliente`, rechazar si `@Usuario` = `Tecnico` **o** = `Usuario_Registro` del cambio. En el API, exigir `LAPTOP_CUSTODIA_RECIBIR` en ambos endpoints (`[Authorize]` por permiso, además de ocultarlo en el front).
+4. **Anular:** `Equipo_Cambio_Pieza_Anular` y su endpoint exigen `LAPTOP_CAMBIO_ANULAR`; el SP rechaza si quien anula es el `Tecnico` o el `Usuario_Registro` del cambio. Documentar en el resumen de la tarea que ese permiso es del encargado, no del técnico.
+5. Permisos en el API: verificar que **todos** los endpoints de laptops validen su permiso en el backend (no solo ocultar menús en el front).
+- Resultado en pantalla de cambio: serial, tipo de pieza, pieza que sale, pieza que entra (+ precios solo si hace falta). Dos campos menos.
+- Actualizar `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql`. Solo base de pruebas (ver aviso ⛔).
+- Aceptación: (a) el técnico no puede elegir otro técnico ni marcar "cliente"; (b) el técnico no puede recibir, entregar ni anular su propio cambio aunque tenga los permisos por error; (c) llamando al API directo sin el permiso → 403.
 
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).

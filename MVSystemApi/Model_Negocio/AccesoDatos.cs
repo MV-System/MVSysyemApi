@@ -3641,7 +3641,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
-        public DataTable GetPreDetalleFacturaConsulta(int numeroPreFactura)
+        public DataTable GetPreDetalleFacturaConsulta(int numeroPreFactura, string literal = null)
         {
             cn.Open();
             try
@@ -3650,6 +3650,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 cmd.CommandText = "PreDetalle_Factura_Consultar";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                if (!string.IsNullOrEmpty(literal)) cmd.Parameters.AddWithValue("@Literal", literal);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -3839,7 +3840,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
-        public DataTable AnularPreFactura(int numeroPreFactura)
+        public DataTable AnularPreFactura(int numeroPreFactura, string literal = null)
         {
             cn.Open();
             try
@@ -3849,6 +3850,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
                 cmd.Parameters.AddWithValue("@Usuario_Anulacion", "suser_sname()" /* Puedes cambiar por usuario real */);
+                if (!string.IsNullOrEmpty(literal)) cmd.Parameters.AddWithValue("@Literal", literal);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -5232,6 +5234,32 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
                 cmd.Parameters.AddWithValue("@Motivo", string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : (object)motivo);
                 cmd.Parameters.AddWithValue("@Usuario", string.IsNullOrWhiteSpace(usuario) ? DBNull.Value : (object)usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Existencia al inicio y al final del periodo, para cuadrar con las entradas y salidas.</summary>
+        public DataTable Accesorio_Movimientos_Saldos(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Movimientos_Saldos";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@Sucursal", sucursal);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);

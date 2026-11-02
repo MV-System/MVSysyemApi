@@ -21,3 +21,4 @@
 - [x] **Quitar la variante "(Usado)":** la pieza retirada vuelve al mismo accesorio, al costo de catálogo (reemplaza la regla de la Tarea 5). (Tarea 11)
 - [x] **Registro de todos los movimientos de stock de accesorios** (entradas, ajustes, ventas, anulaciones, cambios): quién, cuándo, cuánto y por qué. (Tarea 12)
 - [x] **Vista "Movimientos" en la consulta de accesorios** y eliminar las pantallas de Kardex y Consumo. (Tarea 13)
+- [ ] **Separación técnico / encargado:** técnico automático, sin destino "cliente" al registrar, recibir/entregar/anular solo por otro usuario con permiso (validado en el API). (Tarea 14)

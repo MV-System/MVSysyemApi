@@ -197,6 +197,9 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El serial/IMEI es requerido.");
                 }
+                // El tecnico es siempre quien registra el cambio (token), no lo que llegue en el body
+                cambio.Usuario = User.Identity?.Name ?? cambio.Usuario;
+                cambio.Tecnico = cambio.Usuario;
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Registrar(cambio);
                 return Ok(result);
             }
@@ -244,6 +247,7 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El cambio de pieza es requerido.");
                 }
+                accion.Usuario = User.Identity?.Name ?? accion.Usuario;
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Recibir(accion);
                 return Ok(result);
             }
@@ -267,6 +271,7 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El cambio de pieza es requerido.");
                 }
+                accion.Usuario = User.Identity?.Name ?? accion.Usuario;
                 var result = _accesoDatos.Equipo_Cambio_Pieza_EntregarCliente(accion);
                 return Ok(result);
             }

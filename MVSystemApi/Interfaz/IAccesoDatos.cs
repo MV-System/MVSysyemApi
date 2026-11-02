@@ -212,6 +212,7 @@ namespace MVSystemApi.Interfaz
         DataTable Equipo_Cambio_Pieza_Comprobante(int idCambio);
         DataTable Accesorio_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario, int pageIndex, int pageSize);
         DataTable Accesorio_Movimientos_Resumen(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario);
+        DataTable Accesorio_Movimientos_Saldos(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro);
         DataTable Equipo_Cambio_Pieza_Recibir(EquipoCustodiaAccion accion);
         DataTable Equipo_Cambio_Pieza_EntregarCliente(EquipoCustodiaAccion accion);
         DataTable Equipo_Cambio_Pieza_Pendientes(string tecnico, int? idAlmacen, int horasMax);

@@ -1289,15 +1289,18 @@ BEGIN
         IF @Tipo_Pieza NOT IN ('RAM', 'ALMACENAMIENTO')
             THROW 50001, 'Tipo de pieza invalido. Use RAM o ALMACENAMIENTO.', 1;
 
+        -- El tecnico es siempre quien registra el cambio (si llega otro, se ignora)
+        SET @Tecnico = @Usuario;
+
         IF @Tecnico IS NULL OR LTRIM(RTRIM(@Tecnico)) = ''
             THROW 50004, 'El tecnico es requerido.', 1;
 
         IF @ID_Accesorio_Instalado IS NULL
             THROW 50005, 'Debe indicar el accesorio instalado.', 1;
 
-        IF (@ID_Modulo_Retirado IS NOT NULL OR @ID_Accesorio_Retirado IS NOT NULL)
-           AND ISNULL(@Destino_Retirada, '') NOT IN ('CUSTODIA', 'CLIENTE')
-            THROW 50006, 'Destino de la pieza retirada invalido. Use CUSTODIA o CLIENTE.', 1;
+        -- Toda pieza retirada queda en custodia; la entrega al cliente la registra el encargado (en la replicacion no se aplica)
+        IF @Destino_Retirada = 'CLIENTE' AND @ID_Cambio IS NULL
+            THROW 50006, 'La entrega al cliente la registra el encargado desde Custodia de piezas.', 1;
 
         -- Tarea 16: un tecnico con piezas en custodia vencidas no puede registrar mas cambios
         -- (en la replicacion no se aplica: la base de trabajo ya lo valido)
@@ -1705,10 +1708,11 @@ BEGIN
 
         BEGIN TRAN;
 
-        DECLARE @Estado VARCHAR(20), @Tecnico VARCHAR(60), @ID_Almacen INT, @ID_Accesorio_Retirado BIGINT;
+        DECLARE @Estado VARCHAR(20), @Tecnico VARCHAR(60), @Usuario_Reg VARCHAR(60), @ID_Almacen INT, @ID_Accesorio_Retirado BIGINT;
 
         SELECT @Estado = C.Estado_Custodia,
                @Tecnico = C.Tecnico,
+               @Usuario_Reg = C.Usuario_Registro,
                @ID_Almacen = C.ID_Almacen,
                @ID_Accesorio_Retirado = C.ID_Accesorio_Retirado
         FROM dbo.Equipo_Cambio_Pieza C WITH (UPDLOCK, ROWLOCK)
@@ -1720,9 +1724,9 @@ BEGIN
         IF @Estado <> 'PENDIENTE'
             THROW 50102, 'Solo se puede recibir una pieza en estado PENDIENTE.', 1;
 
-        -- R9: la recepcion la confirma un usuario distinto al tecnico
-        IF LTRIM(RTRIM(@Usuario)) = LTRIM(RTRIM(@Tecnico))
-            THROW 50103, 'La recepcion debe confirmarla un usuario distinto al tecnico que retiro la pieza.', 1;
+        -- R9: la recepcion la confirma otro usuario (el encargado), distinto al tecnico y a quien registro el cambio
+        IF LTRIM(RTRIM(@Usuario)) IN (LTRIM(RTRIM(@Tecnico)), LTRIM(RTRIM(@Usuario_Reg)))
+            THROW 50103, 'La recepcion debe confirmarla un usuario distinto al tecnico y a quien registro el cambio.', 1;
 
         IF @ID_Accesorio_Retirado IS NULL
             THROW 50104, 'El cambio no tiene pieza retirada.', 1;
@@ -1880,11 +1884,13 @@ BEGIN
 
         BEGIN TRAN;
 
-        DECLARE @Estado VARCHAR(20), @Imei VARCHAR(30), @Costo_Retirado DECIMAL(18,2);
+        DECLARE @Estado VARCHAR(20), @Imei VARCHAR(30), @Costo_Retirado DECIMAL(18,2), @Tecnico VARCHAR(60), @Usuario_Reg VARCHAR(60);
 
         SELECT @Estado = C.Estado_Custodia,
                @Imei = C.Imei,
-               @Costo_Retirado = C.Costo_Retirado
+               @Costo_Retirado = C.Costo_Retirado,
+               @Tecnico = C.Tecnico,
+               @Usuario_Reg = C.Usuario_Registro
         FROM dbo.Equipo_Cambio_Pieza C WITH (UPDLOCK, ROWLOCK)
         WHERE C.ID_Cambio = @ID_Cambio;
 
@@ -1893,6 +1899,10 @@ BEGIN
 
         IF @Estado <> 'PENDIENTE'
             THROW 50202, 'Solo se puede entregar al cliente una pieza en estado PENDIENTE.', 1;
+
+        -- la entrega al cliente la registra otro usuario (el encargado), distinto al tecnico y a quien registro el cambio
+        IF LTRIM(RTRIM(@Usuario)) IN (LTRIM(RTRIM(@Tecnico)), LTRIM(RTRIM(@Usuario_Reg)))
+            THROW 50207, 'La entrega al cliente debe registrarla un usuario distinto al tecnico y a quien registro el cambio.', 1;
 
         -- Laptop: existe y no esta vendida
         DECLARE @Disponible CHAR(1), @Costo_Actual DECIMAL(18,2),
@@ -2056,9 +2066,10 @@ BEGIN
 
         DECLARE @Imei VARCHAR(30), @Estado VARCHAR(20), @ID_Almacen INT, @ID_Accesorio_Instalado BIGINT,
                 @Mod_Ret INT, @Mod_Inst INT, @Costo_Ant DECIMAL(18,2),
-                @PrecioDet_Ant DECIMAL(18,2), @PrecioMay_Ant DECIMAL(18,2);
+                @PrecioDet_Ant DECIMAL(18,2), @PrecioMay_Ant DECIMAL(18,2), @Tecnico VARCHAR(60), @Usuario_Reg VARCHAR(60);
 
         SELECT @Imei = C.Imei, @Estado = C.Estado_Custodia, @ID_Almacen = C.ID_Almacen,
+               @Tecnico = C.Tecnico, @Usuario_Reg = C.Usuario_Registro,
                @ID_Accesorio_Instalado = C.ID_Accesorio_Instalado,
                @Mod_Ret = C.ID_Modulo_Retirado, @Mod_Inst = C.ID_Modulo_Instalado,
                @Costo_Ant = C.Costo_Equipo_Anterior,
@@ -2068,6 +2079,10 @@ BEGIN
 
         IF @Imei IS NULL
             THROW 50602, 'El cambio de pieza no existe.', 1;
+
+        -- anula otro usuario (el encargado), distinto al tecnico y a quien registro el cambio
+        IF LTRIM(RTRIM(@Usuario)) IN (LTRIM(RTRIM(@Tecnico)), LTRIM(RTRIM(@Usuario_Reg)))
+            THROW 50608, 'La anulacion debe registrarla un usuario distinto al tecnico y a quien registro el cambio.', 1;
 
         IF @Estado = 'ANULADO'
             THROW 50603, 'El cambio de pieza ya fue anulado.', 1;
@@ -2823,7 +2838,8 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE OR ALTER PROCEDURE [dbo].[PreFacturas_Anular]
 @Numero_PreFactura INT,
-@Usuario_Anulacion VARCHAR(50)
+@Usuario_Anulacion VARCHAR(50),
+@Literal CHAR(1) = NULL   -- el numero de prefactura se repite entre literales: con @Literal solo se anula la de esa literal
 AS
 BEGIN
     -- Cambia el estado a 'X' (Anulada), registra usuario y fecha de anulacion
@@ -2832,6 +2848,7 @@ BEGIN
         Fecha_Procesamiento = GETDATE(),
         Usuario_Procesamiento = @Usuario_Anulacion
     WHERE Numero_PreFactura = @Numero_PreFactura
+      AND (@Literal IS NULL OR Literal = @Literal)
 
     -- Tambien se actualizan los detalles
     UPDATE PreDetalle_Facturas
@@ -2839,6 +2856,7 @@ BEGIN
         Usuario = @Usuario_Anulacion,
         Fecha_registro = GETDATE()
     WHERE Numero_PreFactura = @Numero_PreFactura
+      AND (@Literal IS NULL OR LiteralF = @Literal + CONVERT(VARCHAR(10), @Numero_PreFactura))
 END
 GO
 
@@ -2881,7 +2899,8 @@ BEGIN
         pf.NFCFISCAL,
         pf.NCF_NUMERO,
         pf.RNC,
-        pf.Cotizacion_Numero
+        pf.Cotizacion_Numero,
+        pf.Literal
     FROM PreFacturas pf
     INNER JOIN Clientes cl ON pf.ID_Cliente = cl.ID_Cliente
     INNER JOIN Contactos c ON cl.ID_Contacto = c.ID_Contacto
@@ -2902,6 +2921,64 @@ BEGIN
             OR t.Numero_Telefono LIKE '%' + @Criterio + '%'
           )
     ORDER BY pf.Fecha_Registro DESC
+END
+GO
+
+-- ------------------------------------------------------------
+-- PreDetalle_Factura_Insert: la literal del detalle sale de la prefactura (el original la buscaba en una FACTURA con ese numero
+-- y quedaba con la literal de otra sucursal). Con numeros repetidos entre literales, la prefactura es la pendiente mas reciente.
+-- ------------------------------------------------------------
+CREATE OR ALTER PROCEDURE [dbo].[PreDetalle_Factura_Insert]
+@Numero_PreFactura INT,
+@ID_Equipo VARCHAR(30),
+@Descripcion VARCHAR(100),
+@ID_Tipo INT,
+@ID_Garantia INT,
+@cantidad INT = NULL,
+@precio MONEY = NULL,
+@SubTotal MONEY = NULL,
+@Descuento MONEY = NULL,
+@Itbis MONEY = NULL,
+@Total MONEY = NULL,
+@Usuario VARCHAR(50)
+AS
+BEGIN
+    DECLARE @literal CHAR(1) = (SELECT TOP 1 Literal
+                                  FROM PreFacturas
+                                 WHERE Numero_PreFactura = @Numero_PreFactura AND Estado = 'P'
+                                 ORDER BY Codigo DESC);
+    DECLARE @numero_factura_literal VARCHAR(20) = @literal + CONVERT(VARCHAR(10), @Numero_PreFactura);
+
+    INSERT INTO PreDetalle_Facturas (
+        Numero_PreFactura, ID_Equipo, Descripcion, ID_Tipo, ID_Garantia, cantidad,
+        precio, SubTotal, Descuento, LiteralF, Itbis, Total, Estado, Usuario, Fecha_registro, Costo_Equipo
+    )
+    VALUES (
+        @Numero_PreFactura, @ID_Equipo, @Descripcion, @ID_Tipo, @ID_Garantia, @cantidad,
+        @precio, @SubTotal, @Descuento, @numero_factura_literal, @Itbis, @Total, 'P', @Usuario, DATEADD(HOUR, -4, GETDATE()), (SELECT TOP 1 Costo_Equipo FROM Equipos WHERE Imei = @ID_Equipo)
+    )
+
+    SELECT TOP 1 *
+      FROM PreDetalle_Facturas
+     WHERE Numero_PreFactura = @Numero_PreFactura
+     ORDER BY Fecha_Registro DESC
+END
+GO
+
+-- ------------------------------------------------------------
+-- PreDetalle_Factura_Consultar: con @Literal solo devuelve el detalle de la prefactura de esa literal
+-- ------------------------------------------------------------
+CREATE OR ALTER PROCEDURE [dbo].[PreDetalle_Factura_Consultar]
+@Numero_PreFactura INT,
+@Literal CHAR(1) = NULL
+AS
+BEGIN
+    SELECT *
+      FROM PreDetalle_Facturas
+     WHERE Numero_PreFactura = @Numero_PreFactura
+       AND Estado <> 'I'
+       AND (@Literal IS NULL OR LiteralF = @Literal + CONVERT(VARCHAR(10), @Numero_PreFactura))
+     ORDER BY Fecha_registro ASC
 END
 GO
 
@@ -3116,6 +3193,14 @@ BEGIN
               AND Estado = 'P'
         );
 
+        -- Movimiento de stock: VENTA_PF (venta por prefactura; la directa es VENTA_D), con la factura (misma literal que Detalle_Facturas) y el usuario que procesa
+        DECLARE @MovDoc VARCHAR(50) = (SELECT TOP 1 CONCAT(Literal, @Nuevo_Numero_Factura)
+                                         FROM PreFacturas
+                                        WHERE Numero_PreFactura = @Numero_PreFactura AND Estado = 'P');
+        EXEC sp_set_session_context N'mov_motivo', N'VENTA_PF';
+        EXEC sp_set_session_context N'mov_documento', @MovDoc;
+        EXEC sp_set_session_context N'mov_usuario', @Usuario_Procesamiento;
+
         UPDATE a
         SET a.Cantidad = a.Cantidad - pf.cantidad
         FROM Accesorios a
@@ -3124,6 +3209,10 @@ BEGIN
         WHERE pf.Numero_PreFactura = @Numero_PreFactura
           AND pf.ID_Tipo = 2
           AND pf.Estado = 'P';
+
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_documento', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
 
         UPDATE Reparaciones
         SET ID_Estado_Taller = 3,
@@ -3171,6 +3260,9 @@ BEGIN
         IF @@TRANCOUNT > 0
             ROLLBACK TRANSACTION;
 
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_documento', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
         SET @Nuevo_Numero_Factura = 0;
         SET @Mensaje = 'ERROR: ' + ERROR_MESSAGE();
     END CATCH;
@@ -3312,8 +3404,8 @@ GO
 --     con un trigger: ningun camino que mueva stock queda sin registro.
 --     El motivo, el documento y el usuario los fijan los procedimientos con sp_set_session_context
 --     (mov_motivo, mov_documento, mov_usuario) justo antes del UPDATE y los limpian justo despues.
---     Sin contexto: INSERT -> ENTRADA, UPDATE -> AJUSTE, usuario = Accesorios.Usuario (o el login de SQL).
---     Motivos: ENTRADA, AJUSTE, AJUSTE_INVENTARIO, VENTA, ANULACION_FACTURA, TRANSFERENCIA,
+--     Sin contexto: INSERT -> ENTRADA (usuario = Accesorios.Usuario), UPDATE -> AJUSTE (usuario = login de SQL, con nota 'Sin contexto').
+--     Motivos: ENTRADA, AJUSTE, AJUSTE_INVENTARIO, VENTA_PF (por prefactura), VENTA_D (directa), ANULACION_FACTURA, TRANSFERENCIA,
 --              CAMBIO_PIEZA, RECEPCION_PIEZA, ANULACION_CAMBIO.
 --     Ejecutar en principal y espejo: cada base registra sus propios movimientos (la tabla no se replica).
 -- ############################################################
@@ -3366,8 +3458,10 @@ BEGIN
            ISNULL(d.Cantidad, 0), ISNULL(i.Cantidad, 0), ISNULL(i.Cantidad, 0) - ISNULL(d.Cantidad, 0),
            COALESCE(@Motivo, CASE WHEN @EsAlta = 1 THEN 'ENTRADA' ELSE 'AJUSTE' END),
            @Documento,
-           COALESCE(@Usuario, NULLIF(LTRIM(RTRIM(i.Usuario)), ''), SUSER_SNAME()),
-           @Nota
+           -- Sin contexto: en un alta el usuario del registro es confiable; en un UPDATE no (puede ser el de una edicion anterior),
+           -- por eso se guarda el login de la conexion y se avisa en la nota
+           COALESCE(@Usuario, CASE WHEN @EsAlta = 1 THEN NULLIF(LTRIM(RTRIM(i.Usuario)), '') END, SUSER_SNAME()),
+           COALESCE(@Nota, CASE WHEN @Usuario IS NULL AND @EsAlta = 0 THEN 'Sin contexto: usuario de la conexion' END)
       FROM inserted i
       LEFT JOIN deleted d ON d.ID_Accesorio = i.ID_Accesorio
      WHERE ISNULL(i.Cantidad, 0) <> ISNULL(d.Cantidad, 0);
@@ -3498,6 +3592,9 @@ BEGIN
 	FROM [dbo].[Accesorios]
 	WHERE ID_Accesorio = @ID_Accesorio
 
+	-- si cambia la cantidad, el movimiento queda a nombre de quien edita
+	EXEC sp_set_session_context N'mov_usuario', @Usuario;
+	EXEC sp_set_session_context N'mov_nota', N'Cantidad editada desde la edicion de accesorios';
 	UPDATE dbo.Accesorios
 	SET Descripcion_Accesorio = LTRIM(RTRIM(@Descripcion_Accesorio))
 	    ,Numero_de_Factura = @Codigo
@@ -3508,6 +3605,9 @@ BEGIN
 		,Costo_Equipo = @Costo_Equipo
 		,Cantidad = @Cantidad
 	WHERE ID_accesorio = @ID_Accesorio
+
+	EXEC sp_set_session_context N'mov_usuario', NULL;
+	EXEC sp_set_session_context N'mov_nota', NULL;
 END;
 GO
 
@@ -4235,7 +4335,7 @@ values (@Numero_Factura
 
 -- rebaja del inventario
 
-EXEC sp_set_session_context N'mov_motivo', N'VENTA';
+EXEC sp_set_session_context N'mov_motivo', N'VENTA_D';
 EXEC sp_set_session_context N'mov_documento', @numero_factura_literal;
 EXEC sp_set_session_context N'mov_usuario', @Usuario;
 update Accesorios
@@ -4877,6 +4977,52 @@ BEGIN
             OR CONVERT(VARCHAR(30), A.ID_Accesorio) = @Filtro)
      GROUP BY T.Motivo
      ORDER BY T.Motivo;
+END
+GO
+
+-- Existencia al inicio y al final del periodo, con las entradas y salidas REGISTRADAS (mismos filtros de fecha, sucursal y accesorio).
+-- Cuadra: existencia inicial + entradas - salidas = existencia final. No aplica con filtro de tipo o usuario.
+-- Los movimientos historicos (anteriores al registro de movimientos) no tienen saldo: se devuelven aparte para avisarlo.
+CREATE OR ALTER PROCEDURE dbo.Accesorio_Movimientos_Saldos
+    @Fecha_Inicio DATETIME,
+    @Fecha_Final  DATETIME,
+    @Sucursal     INT = 0,
+    @Filtro       VARCHAR(100) = ''
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Ini DATETIME = CAST(CAST(ISNULL(@Fecha_Inicio, '19000101') AS DATE) AS DATETIME);
+    DECLARE @FinExcl DATETIME = DATEADD(DAY, 1, CAST(CAST(ISNULL(@Fecha_Final, DATEADD(HOUR, -4, GETDATE())) AS DATE) AS DATETIME));
+    DECLARE @Almacen INT = CASE WHEN ISNULL(@Sucursal, 0) IN (0, 4) THEN 0
+                                ELSE ISNULL((SELECT TOP 1 ID_Almacen FROM dbo.Sucursales_cata WHERE ID_Sucursal = @Sucursal), -1) END;
+
+    ;WITH M AS (
+        SELECT T.Origen, T.Entrada, T.Salida,
+               Mv.Cantidad_Anterior, Mv.Cantidad_Nueva,
+               Primero = CASE WHEN T.Origen = 'REGISTRO'
+                              THEN ROW_NUMBER() OVER (PARTITION BY T.ID_Accesorio, T.Origen ORDER BY T.Fecha, T.Orden) END,
+               Ultimo  = CASE WHEN T.Origen = 'REGISTRO'
+                              THEN ROW_NUMBER() OVER (PARTITION BY T.ID_Accesorio, T.Origen ORDER BY T.Fecha DESC, T.Orden DESC) END
+          FROM dbo.fn_Accesorio_Movimientos_Todos() T
+         INNER JOIN dbo.Accesorios A ON A.ID_Accesorio = T.ID_Accesorio
+         INNER JOIN dbo.Modelos Mo ON Mo.ID_Modelo = A.ID_Modelo
+          LEFT JOIN dbo.Accesorio_Movimiento Mv ON T.Origen = 'REGISTRO' AND Mv.ID_Movimiento = T.Orden
+         WHERE T.Fecha >= @Ini AND T.Fecha < @FinExcl
+           AND (@Almacen = 0 OR T.ID_Almacen = @Almacen)
+           AND (ISNULL(@Filtro, '') = ''
+                OR A.Descripcion_Accesorio LIKE '%' + @Filtro + '%'
+                OR Mo.Descripcion LIKE '%' + @Filtro + '%'
+                OR CONVERT(VARCHAR(30), A.Codigo_Barra) = @Filtro
+                OR CONVERT(VARCHAR(30), A.ID_Accesorio) = @Filtro)
+    )
+    SELECT Existencia_Inicial   = ISNULL(SUM(CASE WHEN Primero = 1 THEN Cantidad_Anterior END), 0),
+           Existencia_Final     = ISNULL(SUM(CASE WHEN Ultimo  = 1 THEN Cantidad_Nueva    END), 0),
+           Entradas_Registradas = ISNULL(SUM(CASE WHEN Origen = 'REGISTRO'  THEN Entrada END), 0),
+           Salidas_Registradas  = ISNULL(SUM(CASE WHEN Origen = 'REGISTRO'  THEN Salida  END), 0),
+           Entradas_Historicas  = ISNULL(SUM(CASE WHEN Origen = 'HISTORICO' THEN Entrada END), 0),
+           Salidas_Historicas   = ISNULL(SUM(CASE WHEN Origen = 'HISTORICO' THEN Salida  END), 0)
+      FROM M;
 END
 GO
 

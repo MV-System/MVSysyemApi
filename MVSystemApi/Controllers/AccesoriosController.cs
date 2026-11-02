@@ -95,7 +95,24 @@ namespace MVSystemApi.Controllers
                         salidas = Convert.ToInt32(dt["Salidas"])
                     }).ToList();
 
-                return Ok(new { total = filas.Count == 0 ? 0 : filas[0].totalRegistros, items = filas, resumen });
+                // Con filtro de tipo o usuario las entradas y salidas no cuadran con la existencia: no se devuelven saldos
+                int? existenciaInicial = null, existenciaFinal = null;
+                int entradasRegistradas = 0, salidasRegistradas = 0, entradasHistoricas = 0, salidasHistoricas = 0;
+                if (string.IsNullOrWhiteSpace(motivo) && string.IsNullOrWhiteSpace(usuario))
+                {
+                    var saldos = accesoDatos.Accesorio_Movimientos_Saldos(fechaInicio, fechaFinal, sucursal, filtro);
+                    if (saldos.Rows.Count > 0)
+                    {
+                        existenciaInicial = Convert.ToInt32(saldos.Rows[0]["Existencia_Inicial"]);
+                        existenciaFinal = Convert.ToInt32(saldos.Rows[0]["Existencia_Final"]);
+                        entradasRegistradas = Convert.ToInt32(saldos.Rows[0]["Entradas_Registradas"]);
+                        salidasRegistradas = Convert.ToInt32(saldos.Rows[0]["Salidas_Registradas"]);
+                        entradasHistoricas = Convert.ToInt32(saldos.Rows[0]["Entradas_Historicas"]);
+                        salidasHistoricas = Convert.ToInt32(saldos.Rows[0]["Salidas_Historicas"]);
+                    }
+                }
+
+                return Ok(new { total = filas.Count == 0 ? 0 : filas[0].totalRegistros, items = filas, resumen, existenciaInicial, existenciaFinal, entradasRegistradas, salidasRegistradas, entradasHistoricas, salidasHistoricas });
             }
             catch (Exception ex)
             {

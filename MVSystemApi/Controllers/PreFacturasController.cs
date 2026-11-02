@@ -96,11 +96,11 @@ namespace MVSystemApi.Controllers
         // GET /PreFacturas/{id}/detalle
         [HttpGet]
         [Route("{id}/detalle")]
-        public IActionResult ObtenerDetalle(int id)
+        public IActionResult ObtenerDetalle(int id, [FromQuery] string literal = null)
         {
             try
             {
-                var result = AD.ObtenerDetallePreFactura(id);
+                var result = AD.ObtenerDetallePreFactura(id, literal);
                 if (result == null) return NotFound();
                 return Ok(result);
             }
@@ -238,11 +238,11 @@ namespace MVSystemApi.Controllers
         // POST /PreFacturas/{id}/anular
         [HttpPost]
         [Route("{id}/anular")]
-        public IActionResult AnularPreFactura(int id)
+        public IActionResult AnularPreFactura(int id, [FromQuery] string literal = null)
         {
             try
             {
-                var result = AD.AnularPreFactura(id);
+                var result = AD.AnularPreFactura(id, literal);
                 if (result == null) return NotFound();
                 return Ok(result);
             }

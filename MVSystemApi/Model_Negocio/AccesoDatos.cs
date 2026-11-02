@@ -893,6 +893,67 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 throw;
             }
         }
+        /// <summary>Accesorios que ya existen con el mismo modelo y la misma descripcion (para no registrarlo de nuevo).</summary>
+        public DataTable Accesorio_Coincidencias(int idModelo, string descripcion, int idAlmacen)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Accesorio_Coincidencias", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Modelo", idModelo);
+                cmd.Parameters.AddWithValue("@Descripcion", descripcion ?? "");
+                cmd.Parameters.AddWithValue("@ID_Almacen", idAlmacen);
+
+                da.Fill(dt);
+                cn.Close();
+
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
+        /// <summary>Suma cantidad a un accesorio existente (movimiento ENTRADA). Se replica en la espejo.</summary>
+        public DataTable Accesorio_Sumar_Existencia(AccesorioSumarDTO datos)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Accesorio_Sumar_Existencia", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Accesorio", datos.IdAccesorio);
+                cmd.Parameters.AddWithValue("@Cantidad", datos.Cantidad);
+                cmd.Parameters.AddWithValue("@Usuario", datos.Usuario ?? "");
+                cmd.Parameters.AddWithValue("@Costo_Equipo", (object)datos.CostoEquipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Por_Mayor", (object)datos.PrecioPorMayor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Detalle", (object)datos.PrecioDetalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Actualizar_Precios", datos.ActualizarPrecios);
+
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Accesorio_Sumar_Existencia", cmd.Parameters);
+
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
         public DataTable GetAccesorios(Paginate paginate,string accesorio, int almacen)
         {
             try

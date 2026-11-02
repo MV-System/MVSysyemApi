@@ -1,5 +1,6 @@
 ﻿using DTO;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using Newtonsoft.Json;
@@ -33,6 +34,57 @@ namespace MVSystemApi.Controllers
                 return Ok(lista);
             }
 
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        /// <summary>Accesorios existentes con el mismo modelo y descripcion en el almacen (antes de registrar uno nuevo).</summary>
+        [HttpGet]
+        [Route("Accesorio_Coincidencias")]
+        public ActionResult Accesorio_Coincidencias([FromQuery] int idModelo, [FromQuery] string descripcion, [FromQuery] int idAlmacen)
+        {
+            try
+            {
+                var lista = accesoDatos.Accesorio_Coincidencias(idModelo, descripcion, idAlmacen).AsEnumerable()
+                    .Select(dt => new
+                    {
+                        idAccesorio = Convert.ToInt64(dt["ID_Accesorio"]),
+                        descripcion = Convert.ToString(dt["Descripcion_Accesorio"]),
+                        modelo = Convert.ToString(dt["Modelo"]),
+                        idAlmacen = Convert.ToInt32(dt["ID_Almacen"]),
+                        almacen = Convert.ToString(dt["Descripcion_Almacen"]),
+                        cantidad = Convert.ToInt32(dt["Cantidad"]),
+                        costoEquipo = Convert.ToDecimal(dt["Costo_Equipo"]),
+                        precioPorMayor = Convert.ToDecimal(dt["Precio_Por_Mayor"]),
+                        precioDetalle = Convert.ToDecimal(dt["Precio_Detalle"]),
+                        estado = Convert.ToString(dt["Estado"]),
+                        codigoBarra = dt["Codigo_Barra"] == DBNull.Value ? (long?)null : Convert.ToInt64(dt["Codigo_Barra"])
+                    }).ToList();
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        /// <summary>Suma cantidad a un accesorio que ya existe (en lugar de registrarlo de nuevo).</summary>
+        [HttpPost]
+        [Route("Accesorio_Sumar_Existencia")]
+        public ActionResult Accesorio_Sumar_Existencia([FromBody] AccesorioSumarDTO datos)
+        {
+            try
+            {
+                var r = accesoDatos.Accesorio_Sumar_Existencia(datos).AsEnumerable()
+                    .Select(dt => new
+                    {
+                        idAccesorio = Convert.ToInt64(dt["ID_Accesorio"]),
+                        descripcion = Convert.ToString(dt["Descripcion_Accesorio"]),
+                        cantidad = Convert.ToInt32(dt["Cantidad"]),
+                        mensaje = Convert.ToString(dt["Mensaje"])
+                    }).FirstOrDefault();
+                return Ok(r);
+            }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);

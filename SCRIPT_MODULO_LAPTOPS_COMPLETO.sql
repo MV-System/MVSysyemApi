@@ -1402,13 +1402,22 @@ BEGIN
         IF @Cap_Inst IS NULL
             THROW 50062, 'No se pudo determinar la capacidad de la pieza; revise la descripcion del accesorio.', 1;
 
+        EXEC sp_set_session_context N'mov_motivo', N'CAMBIO_PIEZA';
+        DECLARE @MovDoc VARCHAR(50) = CONCAT('Laptop ', @Imei);
+        EXEC sp_set_session_context N'mov_documento', @MovDoc;
+        EXEC sp_set_session_context N'mov_usuario', @Usuario;
         UPDATE dbo.Accesorios
            SET Cantidad = Cantidad - 1
          WHERE ID_Accesorio = @ID_Accesorio_Instalado
            AND ID_Almacen = @ID_Almacen
            AND ISNULL(Cantidad, 0) > 0;
 
-        IF @@ROWCOUNT = 0
+        DECLARE @FilasMov INT = @@ROWCOUNT;
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_documento', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
+
+        IF @FilasMov = 0
             THROW 50021, 'No hay existencia del accesorio instalado en este almacen.', 1;
 
         -- --------------------------------------------------------
@@ -1811,9 +1820,16 @@ BEGIN
         -- --------------------------------------------------------
         -- Sumar 1 al inventario y marcar como recibida
         -- --------------------------------------------------------
+        EXEC sp_set_session_context N'mov_motivo', N'RECEPCION_PIEZA';
+        DECLARE @MovDoc VARCHAR(50) = CONCAT('Cambio ', @ID_Cambio);
+        EXEC sp_set_session_context N'mov_documento', @MovDoc;
+        EXEC sp_set_session_context N'mov_usuario', @Usuario;
         UPDATE dbo.Accesorios
            SET Cantidad = ISNULL(Cantidad, 0) + 1
          WHERE ID_Accesorio = @ID_Accesorio_Destino;
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_documento', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
 
         UPDATE dbo.Equipo_Cambio_Pieza
            SET Estado_Custodia = 'RECIBIDA',
@@ -2098,10 +2114,17 @@ BEGIN
          WHERE Imei = @Imei;
 
         -- La pieza instalada vuelve al inventario del almacen del cambio
+        EXEC sp_set_session_context N'mov_motivo', N'ANULACION_CAMBIO';
+        DECLARE @MovDoc VARCHAR(50) = CONCAT('Cambio ', @ID_Cambio);
+        EXEC sp_set_session_context N'mov_documento', @MovDoc;
+        EXEC sp_set_session_context N'mov_usuario', @Usuario;
         UPDATE dbo.Accesorios
            SET Cantidad = ISNULL(Cantidad, 0) + 1
          WHERE ID_Accesorio = @ID_Accesorio_Instalado
            AND ID_Almacen = @ID_Almacen;
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_documento', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
 
         -- Modulos: el instalado pasa a retirado y el que salio vuelve a estar instalado
         IF @Mod_Inst IS NOT NULL
@@ -3409,6 +3432,1399 @@ SELECT Q.ID_Usado, Q.ID_Almacen, Q.Descripcion AS Descripcion_Anterior, Q.Existe
  ORDER BY Q.ID_Almacen, Q.ID_Usado;
 
 DROP TABLE #QuitarUsado;
+GO
+
+-- ############################################################
+-- 13. MOVIMIENTOS DE STOCK DE ACCESORIOS (Tarea 12)
+--     Cada cambio de Accesorios.Cantidad queda registrado en Accesorio_Movimiento (quien, cuando, cuanto y por que),
+--     con un trigger: ningun camino que mueva stock queda sin registro.
+--     El motivo, el documento y el usuario los fijan los procedimientos con sp_set_session_context
+--     (mov_motivo, mov_documento, mov_usuario) justo antes del UPDATE y los limpian justo despues.
+--     Sin contexto: INSERT -> ENTRADA, UPDATE -> AJUSTE, usuario = Accesorios.Usuario (o el login de SQL).
+--     Motivos: ENTRADA, AJUSTE, AJUSTE_INVENTARIO, VENTA, ANULACION_FACTURA, TRANSFERENCIA,
+--              CAMBIO_PIEZA, RECEPCION_PIEZA, ANULACION_CAMBIO.
+--     Ejecutar en principal y espejo: cada base registra sus propios movimientos (la tabla no se replica).
+-- ############################################################
+
+IF OBJECT_ID('dbo.Accesorio_Movimiento', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Accesorio_Movimiento (
+        ID_Movimiento     INT          IDENTITY(1,1) NOT NULL CONSTRAINT PK_Accesorio_Movimiento PRIMARY KEY,
+        ID_Accesorio      BIGINT       NOT NULL,
+        ID_Almacen        INT          NOT NULL,
+        Fecha             DATETIME     NOT NULL CONSTRAINT DF_Accesorio_Movimiento_Fecha DEFAULT (DATEADD(HOUR, -4, GETDATE())),
+        Cantidad_Anterior INT          NOT NULL,
+        Cantidad_Nueva    INT          NOT NULL,
+        Diferencia        INT          NOT NULL,   -- + entrada / - salida
+        Motivo            VARCHAR(30)  NOT NULL,
+        Documento         VARCHAR(50)  NULL,       -- factura, laptop, cambio de pieza, transferencia...
+        Usuario           VARCHAR(60)  NULL,
+        Nota              VARCHAR(250) NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Accesorio_Movimiento_Accesorio' AND object_id = OBJECT_ID('dbo.Accesorio_Movimiento'))
+    CREATE INDEX IX_Accesorio_Movimiento_Accesorio ON dbo.Accesorio_Movimiento (ID_Accesorio, Fecha);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Accesorio_Movimiento_Fecha' AND object_id = OBJECT_ID('dbo.Accesorio_Movimiento'))
+    CREATE INDEX IX_Accesorio_Movimiento_Fecha ON dbo.Accesorio_Movimiento (Fecha);
+GO
+
+CREATE OR ALTER TRIGGER dbo.TR_Accesorios_Movimiento
+ON dbo.Accesorios
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM inserted) RETURN;
+
+    DECLARE @Motivo    VARCHAR(30)  = CONVERT(VARCHAR(30),  SESSION_CONTEXT(N'mov_motivo')),
+            @Documento VARCHAR(50)  = CONVERT(VARCHAR(50),  SESSION_CONTEXT(N'mov_documento')),
+            @Usuario   VARCHAR(60)  = CONVERT(VARCHAR(60),  SESSION_CONTEXT(N'mov_usuario')),
+            @Nota      VARCHAR(250) = CONVERT(VARCHAR(250), SESSION_CONTEXT(N'mov_nota')),
+            @EsAlta    BIT          = CASE WHEN EXISTS (SELECT 1 FROM deleted) THEN 0 ELSE 1 END;
+
+    -- Una fila por cada accesorio cuya existencia cambio (en un alta, solo si nace con existencia)
+    INSERT INTO dbo.Accesorio_Movimiento
+        (ID_Accesorio, ID_Almacen, Fecha, Cantidad_Anterior, Cantidad_Nueva, Diferencia, Motivo, Documento, Usuario, Nota)
+    SELECT i.ID_Accesorio, i.ID_Almacen, DATEADD(HOUR, -4, GETDATE()),
+           ISNULL(d.Cantidad, 0), ISNULL(i.Cantidad, 0), ISNULL(i.Cantidad, 0) - ISNULL(d.Cantidad, 0),
+           COALESCE(@Motivo, CASE WHEN @EsAlta = 1 THEN 'ENTRADA' ELSE 'AJUSTE' END),
+           @Documento,
+           COALESCE(@Usuario, NULLIF(LTRIM(RTRIM(i.Usuario)), ''), SUSER_SNAME()),
+           @Nota
+      FROM inserted i
+      LEFT JOIN deleted d ON d.ID_Accesorio = i.ID_Accesorio
+     WHERE ISNULL(i.Cantidad, 0) <> ISNULL(d.Cantidad, 0);
+END
+GO
+
+-- Accesorio_Insert
+-- IMPORTANTE: el original usaba @@IDENTITY para generar el codigo de barras. @@IDENTITY devuelve el ultimo identity
+-- de la sesion INCLUIDO el de los triggers: con TR_Accesorios_Movimiento devolvia el ID del movimiento (no el del accesorio)
+-- y el codigo de barras quedaba mal o en NULL. Se cambia a SCOPE_IDENTITY(); lo demas queda igual.
+CREATE OR ALTER PROCEDURE [dbo].[Accesorio_Insert]
+@Imei_Equipo varchar(30)=null,
+@ID_Modelo int,
+@ID_Almacen int,
+@Numero_de_Factura varchar(20)=null,
+@Descripcion_Accesorio varchar (100),
+@Cantidad smallint,
+@Can_Max smallint=null,
+@Can_Min smallint=null,
+@Precio_Por_Mayor money,
+@Precio_Detalle money,
+@Costo_Equipo money,
+@Codigo_Barra bigint=null,
+@Disponible char(1),
+@Disponible_Detalle varchar(500)=null,
+@Usuario varchar(50)
+as
+begin
+	DECLARE @ID_Nuevo bigint;
+
+	-- No se permite registrar un accesorio que ya existe: mismo modelo y misma descripcion
+	-- (sin distinguir mayusculas ni espacios). Para sumarle cantidad: Accesorio_Coincidencias + Accesorio_Sumar_Existencia.
+	IF EXISTS (SELECT 1 FROM Accesorios X
+	            WHERE X.ID_Modelo = @ID_Modelo
+	              AND REPLACE(X.Descripcion_Accesorio, ' ', '') COLLATE Latin1_General_CI_AI
+	                = REPLACE(@Descripcion_Accesorio, ' ', '') COLLATE Latin1_General_CI_AI)
+		THROW 50800, 'Ya existe un accesorio con ese modelo y esa descripcion. Seleccione el existente y sumele la cantidad.', 1;
+
+	INSERT INTO Accesorios
+			([Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],Descripcion_Accesorio,[Cantidad],[Can_Max],[Can_Min],
+			 [Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],Usuario)
+		VALUES
+			(@Imei_Equipo,@ID_Modelo,@ID_Almacen,@Numero_de_Factura,@Descripcion_Accesorio,@Cantidad,@Can_Max,@Can_Min,
+			 @Precio_Por_Mayor,@Precio_Detalle,@Costo_Equipo,@Disponible,@Disponible_Detalle,@Usuario)
+
+	SET @ID_Nuevo = SCOPE_IDENTITY();
+	SET @Codigo_Barra = 1000000000 + @ID_Nuevo;
+
+	update Accesorios
+	set Codigo_Barra=@Codigo_Barra
+	where ID_Accesorio=@ID_Nuevo
+
+	-- el mismo accesorio en los demas almacenes, con cantidad cero
+	Declare @Secuencia Int
+
+	Select ID_Almacen=Convert(Int,ID_Almacen)
+	Into #Almacen
+	From Almacen_Cata With(NoLock)
+	where ID_Almacen!=@ID_Almacen
+
+	Alter Table #Almacen
+	Add Secuencia Int Identity(1,1)
+
+	Select @Secuencia=Min(Secuencia)
+	From #Almacen
+
+	While @Secuencia Is Not Null
+	Begin
+		Select @ID_Almacen=ID_Almacen
+		From #Almacen With(NoLock)
+		Where Secuencia=@Secuencia
+
+		INSERT INTO Accesorios
+				([Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],Descripcion_Accesorio,[Cantidad],[Can_Max],[Can_Min],
+				 [Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],Usuario)
+			VALUES
+				(@Imei_Equipo,@ID_Modelo,@ID_Almacen,@Numero_de_Factura,@Descripcion_Accesorio,0,@Can_Max,@Can_Min,
+				 @Precio_Por_Mayor,@Precio_Detalle,@Costo_Equipo,@Disponible,@Disponible_Detalle,@Usuario)
+
+		SET @ID_Nuevo = SCOPE_IDENTITY();
+		SET @Codigo_Barra = 1000000000 + @ID_Nuevo;
+
+		update Accesorios
+		set Codigo_Barra=@Codigo_Barra
+		where ID_Accesorio=@ID_Nuevo
+
+		Select @Secuencia=Min(Secuencia)
+		From #Almacen With(NoLock)
+		Where Secuencia > @Secuencia
+	End;
+
+	Drop Table #Almacen
+
+	select Descripcion_Accesorio, Cantidad, Costo_Equipo, Precio_Por_Mayor, Precio_Detalle
+	from Accesorios
+	where Descripcion_Accesorio = @Descripcion_Accesorio
+	and Cantidad = @Cantidad
+end;
+GO
+
+-- Accesorio_Coincidencias: accesorios que ya existen con el mismo modelo y la misma descripcion (para no registrarlo de nuevo)
+CREATE OR ALTER PROCEDURE dbo.Accesorio_Coincidencias
+    @ID_Modelo   INT,
+    @Descripcion VARCHAR(100),
+    @ID_Almacen  INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT A.ID_Accesorio,
+           A.Descripcion_Accesorio,
+           Modelo = M.Descripcion,
+           A.ID_Almacen,
+           AC.Descripcion_Almacen,
+           Cantidad = ISNULL(A.Cantidad, 0),
+           Costo_Equipo = CAST(A.Costo_Equipo AS DECIMAL(18,2)),
+           Precio_Por_Mayor = CAST(A.Precio_Por_Mayor AS DECIMAL(18,2)),
+           Precio_Detalle = CAST(A.Precio_Detalle AS DECIMAL(18,2)),
+           A.Estado,
+           A.Codigo_Barra
+      FROM dbo.Accesorios A
+     INNER JOIN dbo.Modelos M ON M.ID_Modelo = A.ID_Modelo
+      LEFT JOIN dbo.Almacen_Cata AC ON AC.ID_Almacen = A.ID_Almacen
+     WHERE A.ID_Modelo = @ID_Modelo
+       AND REPLACE(A.Descripcion_Accesorio, ' ', '') COLLATE Latin1_General_CI_AI
+         = REPLACE(@Descripcion, ' ', '') COLLATE Latin1_General_CI_AI
+       AND (@ID_Almacen IS NULL OR A.ID_Almacen = @ID_Almacen)
+     ORDER BY A.ID_Almacen, A.ID_Accesorio;
+END
+GO
+
+-- Accesorio_Sumar_Existencia: suma cantidad a un accesorio que ya existe (movimiento ENTRADA). El costo y los precios solo
+-- cambian si @Actualizar_Precios = 1.
+CREATE OR ALTER PROCEDURE dbo.Accesorio_Sumar_Existencia
+    @ID_Accesorio       BIGINT,
+    @Cantidad           INT,
+    @Usuario            VARCHAR(50),
+    @Costo_Equipo       MONEY = NULL,
+    @Precio_Por_Mayor   MONEY = NULL,
+    @Precio_Detalle     MONEY = NULL,
+    @Actualizar_Precios BIT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        IF @Usuario IS NULL OR LTRIM(RTRIM(@Usuario)) = ''
+            THROW 50801, 'El usuario es requerido.', 1;
+
+        IF @Cantidad IS NULL OR @Cantidad <= 0 OR @Cantidad > 9999
+            THROW 50802, 'La cantidad a sumar debe estar entre 1 y 9999.', 1;
+
+        DECLARE @Estado CHAR(1);
+        SELECT @Estado = A.Estado FROM dbo.Accesorios A WHERE A.ID_Accesorio = @ID_Accesorio;
+
+        IF @Estado IS NULL
+            THROW 50803, 'El accesorio no existe.', 1;
+
+        IF @Estado <> 'A'
+            THROW 50804, 'El accesorio esta inactivo. Activelo desde la edicion de accesorios antes de sumarle cantidad.', 1;
+
+        IF @Actualizar_Precios = 1
+        BEGIN
+            IF ISNULL(@Costo_Equipo, 0) <= 0 OR ISNULL(@Precio_Por_Mayor, 0) <= 0 OR ISNULL(@Precio_Detalle, 0) <= 0
+                THROW 50805, 'Para actualizar el costo y los precios debe indicar los tres valores, mayores a 0.', 1;
+
+            IF @Costo_Equipo > @Precio_Por_Mayor OR @Precio_Por_Mayor > @Precio_Detalle
+                THROW 50806, 'El costo no puede superar el precio por mayor, ni este el precio al detalle.', 1;
+        END
+
+        BEGIN TRAN;
+
+        INSERT INTO [dbo].[Accesorios_Historico]
+        ([ID_Accesorio],[Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],[Descripcion_Accesorio],[Cantidad],[Can_Max],[Can_Min],
+         [Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],[Estado],[Usuario],[Fecha_registro],
+         [Numero_Invetario],[Codigo_Barra],[Estado_Historico],[Usuario_Historico],[Fecha_registro_Historico])
+        SELECT [ID_Accesorio],[Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],[Descripcion_Accesorio],[Cantidad],[Can_Max],[Can_Min],
+               [Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],[Estado],[Usuario],[Fecha_registro],
+               [Numero_Invetario],[Codigo_Barra],'A',@Usuario,DATEADD(HOUR, -4, GETDATE())
+          FROM dbo.Accesorios
+         WHERE ID_Accesorio = @ID_Accesorio;
+
+        EXEC sp_set_session_context N'mov_motivo', N'ENTRADA';
+        EXEC sp_set_session_context N'mov_usuario', @Usuario;
+        EXEC sp_set_session_context N'mov_nota', N'Suma de cantidad desde el registro de accesorios';
+
+        UPDATE dbo.Accesorios
+           SET Cantidad         = ISNULL(Cantidad, 0) + @Cantidad,
+               Costo_Equipo     = CASE WHEN @Actualizar_Precios = 1 THEN @Costo_Equipo     ELSE Costo_Equipo     END,
+               Precio_Por_Mayor = CASE WHEN @Actualizar_Precios = 1 THEN @Precio_Por_Mayor ELSE Precio_Por_Mayor END,
+               Precio_Detalle   = CASE WHEN @Actualizar_Precios = 1 THEN @Precio_Detalle   ELSE Precio_Detalle   END,
+               Usuario          = @Usuario,
+               Fecha_registro   = DATEADD(HOUR, -4, GETDATE())
+         WHERE ID_Accesorio = @ID_Accesorio;
+
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
+        EXEC sp_set_session_context N'mov_nota', NULL;
+
+        COMMIT TRAN;
+
+        SELECT A.ID_Accesorio, A.Descripcion_Accesorio, A.Cantidad, A.Costo_Equipo, A.Precio_Por_Mayor, A.Precio_Detalle,
+               Mensaje = 'Cantidad sumada satisfactoriamente'
+          FROM dbo.Accesorios A
+         WHERE A.ID_Accesorio = @ID_Accesorio;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+        -- la conexion vuelve al pool: el contexto no debe quedar fijado
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
+        EXEC sp_set_session_context N'mov_nota', NULL;
+        THROW;
+    END CATCH
+END
+GO
+
+-- Procedimientos del sistema que mueven stock: se agregan SOLO las lineas de sp_set_session_context
+-- (la logica no cambia). Accesorio_Insert, Accesorios_Modifica y Accesorio_Actualiza_Cantidad ya dejan el
+-- usuario en Accesorios.Usuario, por eso el trigger los registra bien sin tocarlos.
+
+-- Ajustar_Inventario
+---------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------
+------------ajuste de inventario-----------------------------------
+
+CREATE OR ALTER PROCEDURE [dbo].[Ajustar_Inventario]
+@codigo				bigint,
+@cantidad			int,
+@Numero_Invetario   int,
+@Estado				char,
+@Usuario			varchar(50),
+@Id_Almacen			int
+as 
+EXEC sp_set_session_context N'mov_motivo', N'AJUSTE_INVENTARIO';
+DECLARE @MovDoc VARCHAR(50) = CONCAT('Inventario ', @Numero_Invetario);
+EXEC sp_set_session_context N'mov_documento', @MovDoc;
+EXEC sp_set_session_context N'mov_usuario', @Usuario;
+update dbo.Accesorios
+set Cantidad = @cantidad,
+Numero_Invetario = @Numero_Invetario,
+Usuario	         = @Usuario
+where Codigo_Barra = @codigo
+--and ID_Almacen = @Id_Almacen
+
+
+update accesorios
+set cantidad = 0
+where isnull(numero_invetario,0) <> @Numero_Invetario
+and ID_Almacen = @Id_Almacen
+
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+
+update dbo.Valida_Inventario
+set Estado = 'C',
+Usuario	   = @Usuario,
+Fecha_registro = (getdate())
+where ID_Articulo = @codigo
+and Numero_Invetario = @Numero_Invetario
+GO
+
+-- Subir_Inventario
+------------Aumentar Inventario en accesorios-----------------------------
+CREATE OR ALTER PROCEDURE [dbo].[Subir_Inventario]
+@ID_Accesorio bigint,
+@Cantidad int,
+@Numero_de_Factura varchar (20) = null,
+@Costo_Equipo money,
+@Precio_Por_Mayor money,
+@Precio_Detalle money,
+@Usuario varchar (50)
+as
+EXEC sp_set_session_context N'mov_motivo', N'ENTRADA';
+EXEC sp_set_session_context N'mov_documento', @Numero_de_Factura;
+EXEC sp_set_session_context N'mov_usuario', @Usuario;
+update dbo.Accesorios
+set Cantidad = Cantidad + @Cantidad,
+Numero_de_Factura = @Numero_de_Factura,
+Costo_Equipo = @Costo_Equipo,
+Precio_Por_Mayor = @Precio_Por_Mayor,
+Precio_Detalle = @Precio_Detalle,
+Fecha_registro = (dateadd (hour,-4,getdate()))
+where ID_Accesorio = @ID_Accesorio
+
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+GO
+
+-- Transfiere_Accesorio
+
+CREATE OR ALTER PROCEDURE [dbo].[Transfiere_Accesorio]
+@Almacen_Salida int,
+@Almacen_Entrada int,
+@Cantidad int,
+@Descripcion_Accesorio varchar(100),
+--@Id_Accesorioint,
+@Id_Transferencia int,
+@Usuario varchar(30)
+
+as
+---------------------------------------------------INSERT IN HISTORICO------------------------------------------------------------------
+
+INSERT INTO[dbo].[Accesorios_Historico]
+([ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+,[Estado_Historico]
+,[Usuario_Historico]
+,[Fecha_registro_Historico])
+
+SELECT[ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+	,'A'
+	,@Usuario
+	,dateadd(hour,-4,getdate())
+FROM[dbo].[Accesorios]
+where ID_Almacen=@Almacen_Salida
+and Descripcion_Accesorio=@Descripcion_Accesorio
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+EXEC sp_set_session_context N'mov_motivo', N'TRANSFERENCIA';
+DECLARE @MovDoc VARCHAR(50) = CONCAT('Transferencia ', @Id_Transferencia);
+EXEC sp_set_session_context N'mov_documento', @MovDoc;
+EXEC sp_set_session_context N'mov_usuario', @Usuario;
+update accesorios
+set Cantidad=Cantidad-@Cantidad
+where ID_Almacen=@Almacen_Salida
+and Descripcion_Accesorio=@Descripcion_Accesorio
+
+
+INSERT INTO[dbo].[Accesorios_Historico]
+([ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+,[Estado_Historico]
+,[Usuario_Historico]
+,[Fecha_registro_Historico])
+
+SELECT[ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+	,'A'
+	,@Usuario
+	,dateadd(hour,-4,getdate())
+FROM[dbo].[Accesorios]
+where ID_Almacen=@Almacen_Entrada
+and Descripcion_Accesorio=@Descripcion_Accesorio
+
+update Accesorios
+set Cantidad=Cantidad+@Cantidad
+where ID_Almacen=@Almacen_Entrada
+and Descripcion_Accesorio=@Descripcion_Accesorio
+
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+
+--------insert in Accesorios_Transferencias_Trans-----------------------------------------------
+exec Transferencias_Trans_Guarda_Accesorio @Id_Transferencia,null,@Almacen_Salida,
+@Almacen_Entrada,@cantidad,@Descripcion_Accesorio,
+										'A',@Usuario,null
+GO
+
+-- Accesorio_trasfiere_actualiza
+
+CREATE OR ALTER PROCEDURE [dbo].[Accesorio_trasfiere_actualiza] --1, 2,6,7,10,'ventura'
+(
+@Id_Accesorio_Salida int,
+@Id_Accesorio_Entrada int,
+@almacen_Salida int,
+@almacen_Entrada int,
+@Cantidad int,
+@Usuario varchar(60)
+
+)
+as
+
+---------------------------------------------------INSERT IN HISTORICO------------------------------------------------------------------
+
+INSERT INTO [dbo].[Accesorios_Historico]
+([ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+,[Estado_Historico]
+,[Usuario_Historico]
+,[Fecha_registro_Historico])
+
+SELECT [ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,'Se restó la cantidad que dice el campo cantidad para transferirla al otro almacen'
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+	,'A'
+	,@Usuario
+	,dateadd(hour,-4,getdate())
+FROM [dbo].[Accesorios]
+where ID_Accesorio= @Id_Accesorio_Salida
+EXEC sp_set_session_context N'mov_motivo', N'TRANSFERENCIA';
+DECLARE @MovDoc VARCHAR(50) = CONCAT('Almacen ', @almacen_Salida, ' a ', @almacen_Entrada);
+EXEC sp_set_session_context N'mov_documento', @MovDoc;
+EXEC sp_set_session_context N'mov_usuario', @Usuario;
+update Accesorios
+set Cantidad = Cantidad - @Cantidad
+where ID_Accesorio = @Id_Accesorio_Salida
+and ID_Almacen = @almacen_Salida
+
+---------------------------------------------------INSERT IN HISTORICO------------------------------------------------------------------
+
+INSERT INTO [dbo].[Accesorios_Historico]
+([ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+,[Estado_Historico]
+,[Usuario_Historico]
+,[Fecha_registro_Historico])
+
+SELECT [ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,'Se sumó la cantidad que dice el campo cantidad para subir el inventario'
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+	,'A'
+	,@Usuario
+	,dateadd(hour,-4,getdate())
+FROM [dbo].[Accesorios]
+where ID_Accesorio= @Id_Accesorio_Entrada
+
+update Accesorios
+set Cantidad = Cantidad + @Cantidad
+where ID_Accesorio = @Id_Accesorio_Entrada
+and ID_Almacen = @almacen_Entrada
+
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+
+----------------------------------------------------------------------------------------------------------
+GO
+
+-- Detalle_Factura_Insert
+-------------------------------------------------------------
+--actualizar sp detalle_factura_insert
+-------------------------------------------------------------
+---- 20160624 modificado para que guarde en el historico equipo
+---- 20170405 modificado para que guarde en el historico de accesorios
+
+--select * from detalle_facturas
+--where numero_factura = 42449
+ --   Detalle_Factura_Insert @Numero_Factura= 42449,
+ --   @ID_Equipo= 5047,
+	--@Descripcion= 'Cover A10',
+	--@ID_Tipo =2,
+	--@ID_Garantia =1,
+	--@ID_Tipo_Factura =1,
+	--@ID_Vendedor =1,
+	--@SubTotal = 600,
+	--@cantidad =1,
+	--@precio=600,
+	--@Descuento = 0,
+	--@Itbis= 0,
+	--@Total= 600,
+	--@Estado ='A',
+	--@Usuario ='fventura',
+	--@fecha_registro ='20200701'
+
+CREATE OR ALTER PROCEDURE [dbo].[Detalle_Factura_Insert] 
+@Numero_Factura int,
+@ID_Equipo varchar(30),
+@Descripcion varchar(100),
+@ID_Tipo int,
+@ID_Garantia int,
+@ID_Tipo_Factura int,
+@ID_Vendedor int,
+@SubTotal money,
+@cantidad int = null,
+@precio money = null,
+@Descuento money = null,
+@Itbis money = null,
+@Total money = null,
+@Estado char(1),
+@Usuario varchar(50),
+@fecha_registro datetime = null
+
+As
+
+Begin
+
+declare @imei_Equipo varchar(60)
+-- con este if es para cuando la fecha venga null, tomara la hora del server pero con 4 horas menos
+-- que es la diferencia debido a la diferencia de horario
+If @fecha_registro is null
+Begin 
+Set @fecha_registro = dateadd (hour,-4,getdate())
+End
+  Declare @literal char(1) = (select literal 
+                                from Facturas With(NoLock)
+								where Codigo = (select max(Codigo)
+                                                  from Facturas With(NoLock)
+												  where Numero_Factura =  @Numero_Factura)
+												    And Estado = 'A')
+declare @numero_factura_literal varchar(20) = @literal + convert(varchar(10),@Numero_Factura)
+--select @numero_factura_literal
+
+if @ID_Tipo = 1 -- equipos
+begin
+
+INSERT INTO [dbo].[Equipos_Historico]
+           ([Imei]
+           ,[ID_Modelo]
+           ,[ID_Tecnologia]
+           ,[ID_Garantia]
+           ,[ID_Condicion]
+           ,[ID_Estado_Bloqueo]
+           ,[ID_Almacen]
+           ,[ID_Suplidor]
+           ,[Numero_de_Factura]
+           ,[Precio_Por_Mayor]
+           ,[Precio_Detalle]
+           ,[Costo_Equipo]
+           ,[Desbloqueado]
+           ,[Disponible]
+           ,[Nota_Adicional]
+		   ,Nota_Historico
+           ,[Usuario]
+           ,[Fecha_registro]
+           ,[Numero_Invetario]
+           ,Numero_Registro
+		   ,Usuario_Historico
+		   ,Fecha_registro_Historico
+		   )
+
+		   SELECT [Imei]
+      ,[ID_Modelo]
+      ,[ID_Tecnologia]
+      ,[ID_Garantia]
+      ,[ID_Condicion]
+      ,[ID_Estado_Bloqueo]
+      ,[ID_Almacen]
+      ,[ID_Suplidor]
+      ,[Numero_de_Factura]
+      ,[Precio_Por_Mayor]
+      ,[Precio_Detalle]
+      ,[Costo_Equipo]
+      ,[Desbloqueado]
+      ,[Disponible]
+      ,[Nota_Adicional]
+	  ,'Vendido en la factura # '+' '+CONVERT(varchar(50),@Numero_Factura)
+      ,[Usuario]
+      ,[Fecha_registro]
+      ,[Numero_Invetario]
+      ,[Numero_Registro]
+	  ,@Usuario
+      ,@fecha_registro
+   from Equipos With(NoLock)
+ where Imei = @ID_Equipo
+
+ SET NOCOUNT OFF
+	DECLARE @Err int
+insert into dbo.Detalle_Facturas(Numero_Factura
+,ID_Equipo
+,Descripcion
+,ID_Tipo
+,ID_Garantia
+,cantidad
+,precio
+,SubTotal
+,Descuento
+,literalF
+,Itbis
+,Total
+,Estado
+,Usuario
+,Fecha_registro
+,Costo_Equipo)
+values (@Numero_Factura
+,@ID_Equipo
+,@Descripcion
+,@ID_Tipo
+,@ID_Garantia
+,@cantidad
+,@precio
+,@SubTotal 
+,@Descuento
+,@numero_factura_literal
+,@Itbis
+,@Total
+,@Estado
+,@Usuario
+,@fecha_registro
+,(select TOP 1 Costo_Equipo from Equipos where Imei = @ID_Equipo))
+
+--begin
+--if @ID_Tipo = 1
+update Equipos
+set Disponible ='N',
+Nota_Adicional = 'Vendido  '+' '+CONVERT(varchar(50),@Numero_Factura)
+--Usuario	       = @Usuario
+--Fecha_registro = @fecha_registro
+where Imei = @ID_Equipo
+
+SET @Err = @@Error
+	RETURN @Err
+End
+
+if @ID_Tipo =2 -- Accesorios
+Begin
+
+ SET NOCOUNT OFF
+	--DECLARE @Err int
+
+INSERT INTO[dbo].[Accesorios_Historico]
+([ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+,[Estado_Historico]
+,[Usuario_Historico]
+,[Fecha_registro_Historico])
+
+SELECT[ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+	,'A'
+	,@Usuario
+	,dateadd(hour,-4,getdate())
+FROM[dbo].[Accesorios]
+where ID_Accesorio = @ID_Equipo
+
+insert into dbo.Detalle_Facturas(Numero_Factura
+,ID_Equipo
+,Descripcion
+,ID_Tipo
+,ID_Garantia
+,cantidad
+,precio
+,SubTotal
+,Descuento
+,literalF
+,Itbis
+,Total
+,Estado
+,Usuario
+,Fecha_registro
+,Costo_Equipo)
+values (@Numero_Factura
+,@ID_Equipo
+,@Descripcion
+,@ID_Tipo
+,@ID_Garantia
+,@cantidad
+,@precio
+,@SubTotal 
+,@Descuento
+,@numero_factura_literal
+,@Itbis
+,@Total
+,@Estado
+,@Usuario
+,@fecha_registro
+,(select top 1 Costo_Equipo from Accesorios where ID_Accesorio = @ID_Equipo))
+
+-- rebaja del inventario
+
+EXEC sp_set_session_context N'mov_motivo', N'VENTA';
+EXEC sp_set_session_context N'mov_documento', @numero_factura_literal;
+EXEC sp_set_session_context N'mov_usuario', @Usuario;
+update Accesorios
+set Cantidad = Cantidad - @cantidad
+where ID_Accesorio = @ID_Equipo
+
+SET @Err = @@Error
+
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+
+	RETURN @Err
+End
+
+if @ID_Tipo in (3,4) -- Reparacion
+Begin
+
+ SET NOCOUNT OFF
+
+declare @idReparacion int;
+
+set @idReparacion = @ID_Equipo;
+
+set @imei_Equipo = (select imei from Reparaciones where ID_Reparacion = @ID_Equipo)
+
+insert into dbo.Detalle_Facturas(Numero_Factura
+,ID_Equipo
+,Descripcion
+,ID_Tipo
+,ID_Garantia
+,cantidad
+,precio
+,SubTotal
+,Costo_Equipo
+,Descuento
+,literalF
+,Itbis
+,Total
+,Estado
+,Usuario
+,Fecha_registro)
+values (@Numero_Factura
+,@imei_Equipo
+,@Descripcion
+,@ID_Tipo
+,@ID_Garantia
+,@cantidad
+,@precio
+,@SubTotal 
+,@Total
+,@Descuento
+,@numero_factura_literal
+,@Itbis
+,@Total
+,@Estado
+,@Usuario
+,@fecha_registro)
+
+-- Actualiza la reparacion
+
+update Reparaciones
+set ID_Estado_Taller = 3,
+SubTotal = @SubTotal,
+Descuento = @Descuento,
+Itbis = @Itbis,
+Numero_Factura = @Numero_Factura
+--ID_Vendedor = @ID_Vendedor
+where ID_Reparacion =CONVERT(INT, @idReparacion) 
+
+SET @Err = @@Error
+
+	RETURN @Err
+End
+
+if @ID_Tipo =5 -- desbloqueos
+Begin
+
+ SET NOCOUNT OFF
+	--DECLARE @Err int
+-- consulta el imei del desbloqueo
+
+set @imei_Equipo = (select imei from Desbloqueos where ID_Desbloqueos = @ID_Equipo)
+
+insert into dbo.Detalle_Facturas(Numero_Factura
+,ID_Equipo
+,Descripcion
+,ID_Tipo
+,ID_Garantia
+,cantidad
+,precio
+,SubTotal
+,Descuento
+,literalF
+,Itbis
+,Total
+,Estado
+,Usuario
+,Fecha_registro)
+values (@Numero_Factura
+,@imei_Equipo
+,@Descripcion
+,@ID_Tipo
+,@ID_Garantia
+,@cantidad
+,@precio
+,@SubTotal 
+,@Descuento
+,@numero_factura_literal
+,@Itbis
+,@Total
+,@Estado
+,@Usuario
+,@fecha_registro)
+
+SET @Err = @@Error
+
+	RETURN @Err
+End
+
+End
+GO
+
+-- Facturas_Anular
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+---modificar el SP Anular_Facturas para que guarde en el historico------------------------------------
+
+----20160623 se le agrego en la nota del equipo el numero de factura y el usuario que la anulo,
+----         de esta manera sabremos porque esta disponible.
+----20160624 se le agrego para que guarde en el historico de equipos.
+----20170405 se le agrego para que guarde en el historico de accesorios.
+
+CREATE OR ALTER PROCEDURE [dbo].[Facturas_Anular]--439,4,1,1,'fventura'
+@Numero_Factura int,
+@Id_Articulo varchar(20),
+@Cantidad int,
+@Tipo int,
+@Usuario varchar (50),
+@ID_Sucursal int
+as
+
+declare @literal char(1) = (select literal from facturas where id_sucursal = @ID_Sucursal and numero_factura = @Numero_Factura)
+if @Tipo = 1
+begin
+--------------insertar en el historico de equipos------------------------
+INSERT INTO [dbo].[Equipos_Historico]
+           ([Imei]
+           ,[ID_Modelo]
+           ,[ID_Tecnologia]
+           ,[ID_Garantia]
+           ,[ID_Condicion]
+           ,[ID_Estado_Bloqueo]
+           ,[ID_Almacen]
+           ,[ID_Suplidor]
+           ,[Numero_de_Factura]
+           ,[Precio_Por_Mayor]
+           ,[Precio_Detalle]
+           ,[Costo_Equipo]
+           ,[Desbloqueado]
+           ,[Disponible]
+           ,[Nota_Adicional]
+		   ,Nota_Historico
+           ,[Usuario]
+           ,[Fecha_registro]
+           ,[Numero_Invetario]
+           ,[Numero_Registro]
+		   ,Usuario_Historico
+		   ,Fecha_registro_Historico)
+
+		   SELECT [Imei]
+      ,[ID_Modelo]
+      ,[ID_Tecnologia]
+      ,[ID_Garantia]
+      ,[ID_Condicion]
+      ,[ID_Estado_Bloqueo]
+      ,[ID_Almacen]
+      ,[ID_Suplidor]
+      ,[Numero_de_Factura]
+      ,[Precio_Por_Mayor]
+      ,[Precio_Detalle]
+      ,[Costo_Equipo]
+      ,[Desbloqueado]
+      ,[Disponible]
+      ,[Nota_Adicional]
+	  ,'Se anuló la Factura # '+CONVERT(varchar(50),@Numero_Factura)+' Por El Usuario: '+@Usuario
+      ,[Usuario]
+      ,[Fecha_registro]
+      ,[Numero_Invetario]
+      ,[Numero_Registro]
+	  ,@Usuario
+      ,(dateadd(hour,(-4),getdate()))
+   from Equipos With(NoLock)
+ where Imei = @Id_Articulo
+
+update  dbo.Equipos
+set Disponible = 'S',
+Nota_Adicional ='Factura # '+CONVERT(varchar(50),@Numero_Factura)+' Anulada Por El Usuario: '+@Usuario +' En Fecha: '+ convert(varchar(50),(dateadd(hour,(-4),getdate()))),
+Usuario =@Usuario
+--Fecha_registro = (getdate())
+where Imei = @Id_Articulo
+
+update dbo.Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and ID_Sucursal = @ID_Sucursal
+and literal = @literal
+
+update dbo.Detalle_Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and ID_Equipo = @Id_Articulo
+and literalF = @literal + convert(varchar(10),@Numero_Factura)
+
+end
+
+if @Tipo = 2
+begin
+-- insert en historico de aacesorio---------------
+
+-----------------------------------------------------INSERT IN HISTORICO------------------------------------------------------------------
+
+INSERT INTO [dbo].[Accesorios_Historico]
+([ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+,[Estado_Historico]
+,[Usuario_Historico]
+,[Fecha_registro_Historico])
+
+SELECT [ID_Accesorio]
+,[Imei_Equipo]
+,[ID_Modelo]
+,[ID_Almacen]
+,[Numero_de_Factura]
+,[Descripcion_Accesorio]
+,[Cantidad]
+,[Can_Max]
+,[Can_Min]
+,[Precio_Por_Mayor]
+,[Precio_Detalle]
+,[Costo_Equipo]
+,[Disponible]
+,[Disponible_Detalle]
+,[Estado]
+,[Usuario]
+,[Fecha_registro]
+,[Numero_Invetario]
+,[Codigo_Barra]
+	,'A'
+	,@Usuario
+	,dateadd(hour,-4,getdate())
+FROM [dbo].[Accesorios]
+where id_accesorio = @Id_Articulo
+---------------------------------------------------------------------------------------------------------
+EXEC sp_set_session_context N'mov_motivo', N'ANULACION_FACTURA';
+DECLARE @MovDoc VARCHAR(50) = CONCAT(@literal, @Numero_Factura);
+EXEC sp_set_session_context N'mov_documento', @MovDoc;
+EXEC sp_set_session_context N'mov_usuario', @Usuario;
+update dbo.Accesorios
+set Cantidad = (select Cantidad from Accesorios where ID_Accesorio = @Id_Articulo) + @Cantidad,
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where ID_Accesorio = @Id_Articulo
+
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+
+
+update dbo.Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura
+and ID_Sucursal = @ID_Sucursal
+and literal = @literal
+
+update dbo.Detalle_Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and ID_Equipo = @Id_Articulo
+and literalF = @literal + convert(varchar(10),@numero_factura)
+end
+
+if @Tipo = 4
+begin
+
+declare @id_desblo int =( select ID_Desbloqueos
+from dbo.Desbloqueos
+where Numero_Factura = @Numero_Factura
+)
+
+update dbo.Desbloqueos
+set ID_Estado_Desbloqueo =1,
+Numero_Factura = null,
+Usuario = @Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where ID_Desbloqueos = @id_desblo
+
+update dbo.Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and literal = @literal
+
+update dbo.Detalle_Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and literalF = @literal + convert(varchar(10),@numero_factura)
+end
+
+if @Tipo = 3
+begin
+
+declare @id_repa int =( select ID_Reparacion
+from dbo.Reparaciones
+where Numero_Factura = @Numero_Factura
+)
+
+update dbo.Reparaciones
+set ID_Estado_Taller =1,
+Numero_Factura = null,
+Usuario = @Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where ID_Reparacion = @id_repa
+
+update dbo.Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and literal = @literal
+
+update dbo.Detalle_Facturas
+set  Estado = 'X',
+Usuario =@Usuario,
+Fecha_registro = (dateadd(hour,(-4),getdate()))
+where Numero_Factura = @Numero_Factura 
+and literalF = @literal + convert(varchar(10),@numero_factura)
+end
+GO
+
+-- Proc_Anular_Factura
+
+-- ------------------------------------------------------------
+-- 2. Proc_Anular_Factura con @Motivo (logica original sin cambios)
+-- ------------------------------------------------------------
+CREATE OR ALTER PROCEDURE [dbo].[Proc_Anular_Factura]
+@NumeroFactura INT,
+@Usuario VARCHAR(60),
+@IdSucursal INT,
+@Motivo VARCHAR(500) = NULL
+AS
+
+    DECLARE @IdTipo INT, @Cantidad INT, @IdEquipo varchar(50), @Tipo INT, @IdAccesorio INT, @LiteralFt char(1), @LiteralCompleta varchar(15);
+
+    SET @LiteralFt = (SELECT literal FROM Facturas WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal)
+    SET @LiteralCompleta = @LiteralFt + CONVERT(VARCHAR(10), @NumeroFactura)
+
+    -- ============================================================
+    -- Reestablecer secuencia del comprobante si es el último asignado
+    -- ============================================================
+    DECLARE @NfcTipo INT, @NfcSecuencia BIGINT
+    SELECT @NfcTipo = NFCTipoNumero, @NfcSecuencia = NFCFISCAL
+    FROM Facturas
+    WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal AND Literal = @LiteralFt
+
+    --IF @NfcTipo IS NOT NULL AND @NfcTipo <> 0 AND @NfcSecuencia IS NOT NULL AND @NfcSecuencia > 0
+    --BEGIN
+    --    -- Solo decrementar si esta factura tiene la última secuencia asignada
+    --    IF @NfcSecuencia = (SELECT NFCTipoSecuencia FROM TIPO_NFC WHERE NFCTipoNumero = @NfcTipo)
+    --    BEGIN
+    --        UPDATE TIPO_NFC
+    --        SET NFCTipoSecuencia = NFCTipoSecuencia - 1
+    --        WHERE NFCTipoNumero = @NfcTipo
+    --    END
+    --END
+    -- ============================================================
+
+DECLARE detalle_cursor CURSOR FOR
+    SELECT df.ID_Tipo, df.Cantidad, df.ID_Equipo
+    FROM Detalle_Facturas df
+    INNER JOIN Facturas ft ON df.Numero_Factura = ft.Numero_Factura AND df.LiteralF = @LiteralCompleta
+    WHERE ft.Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal;
+
+OPEN detalle_cursor;
+FETCH NEXT FROM detalle_cursor INTO @IdTipo, @Cantidad, @IdEquipo;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    IF @IdTipo = 1
+    BEGIN
+       INSERT INTO [dbo].[Equipos_Historico]
+           ([Imei],[ID_Modelo],[ID_Tecnologia],[ID_Garantia],[ID_Condicion],[ID_Estado_Bloqueo],[ID_Almacen],[ID_Suplidor],[Numero_de_Factura],[Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Desbloqueado],[Disponible],[Nota_Adicional],Nota_Historico,[Usuario],[Fecha_registro],[Numero_Invetario],[Numero_Registro],Usuario_Historico,Fecha_registro_Historico)
+       SELECT [Imei],[ID_Modelo],[ID_Tecnologia],[ID_Garantia],[ID_Condicion],[ID_Estado_Bloqueo],[ID_Almacen],[ID_Suplidor],[Numero_de_Factura],[Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Desbloqueado],[Disponible],[Nota_Adicional],'Se anuló la Factura # '+CONVERT(varchar(50),@NumeroFactura)+' Por El Usuario: '+@Usuario,[Usuario],[Fecha_registro],[Numero_Invetario],[Numero_Registro],@Usuario,(dateadd(hour,(-4),getdate()))
+       FROM Equipos WITH(NoLock) WHERE Imei = @IdEquipo
+
+        UPDATE dbo.Equipos
+        SET Disponible = 'S',
+            Nota_Adicional = 'Factura # '+CONVERT(varchar(50),@NumeroFactura)+' Anulada Por El Usuario: '+@Usuario+' En Fecha: '+convert(varchar(50),(dateadd(hour,(-4),getdate()))),
+            Usuario = @Usuario
+        WHERE Imei = @IdEquipo
+
+        UPDATE dbo.Facturas
+        SET Estado = 'X', Usuario = @Usuario,
+            Nota = 'Factura anulada por el usuario: ' + @Usuario + ' en fecha: ' + CONVERT(varchar(19), DATEADD(hour, -4, GETDATE()), 120),
+            Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal AND literal = @LiteralFt
+
+        UPDATE dbo.Detalle_Facturas
+        SET Estado = 'X', Usuario = @Usuario, Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE Numero_Factura = @NumeroFactura AND ID_Equipo = @IdEquipo AND literalF = @LiteralCompleta
+    END
+    ELSE IF @IdTipo = 2
+    BEGIN
+        INSERT INTO [dbo].[Accesorios_Historico]
+            ([ID_Accesorio],[Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],[Descripcion_Accesorio],[Cantidad],[Can_Max],[Can_Min],[Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],[Estado],[Usuario],[Fecha_registro],[Numero_Invetario],[Codigo_Barra],[Estado_Historico],[Usuario_Historico],[Fecha_registro_Historico])
+        SELECT [ID_Accesorio],[Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],[Descripcion_Accesorio],[Cantidad],[Can_Max],[Can_Min],[Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],[Estado],[Usuario],[Fecha_registro],[Numero_Invetario],[Codigo_Barra],'A',@Usuario,dateadd(hour,-4,getdate())
+        FROM [dbo].[Accesorios] WHERE id_accesorio = @IdEquipo
+
+        EXEC sp_set_session_context N'mov_motivo', N'ANULACION_FACTURA';
+        EXEC sp_set_session_context N'mov_documento', @LiteralCompleta;
+        EXEC sp_set_session_context N'mov_usuario', @Usuario;
+        UPDATE dbo.Accesorios
+        SET Cantidad = (SELECT Cantidad FROM Accesorios WHERE ID_Accesorio = @IdEquipo) + @Cantidad,
+            Usuario = @Usuario, Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE ID_Accesorio = @IdEquipo
+
+        EXEC sp_set_session_context N'mov_motivo', NULL;
+        EXEC sp_set_session_context N'mov_documento', NULL;
+        EXEC sp_set_session_context N'mov_usuario', NULL;
+
+        UPDATE dbo.Facturas
+        SET Estado = 'X', Usuario = @Usuario,
+            Nota = 'Factura anulada por el usuario: ' + @Usuario + ' en fecha: ' + CONVERT(varchar(19), DATEADD(hour, -4, GETDATE()), 120),
+            Fecha_Registro = DATEADD(hour, -4, GETDATE())
+        WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal AND Literal = @LiteralFt;
+
+        UPDATE dbo.Detalle_Facturas
+        SET Estado = 'X', Usuario = @Usuario, Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE Numero_Factura = @NumeroFactura AND ID_Equipo = @IdEquipo AND literalF = @LiteralCompleta
+    END
+    ELSE IF @IdTipo = 4
+    BEGIN
+        DECLARE @id_repa int = (SELECT ID_Reparacion FROM dbo.Reparaciones WHERE Numero_Factura = @NumeroFactura)
+
+        UPDATE dbo.Reparaciones
+        SET ID_Estado_Taller = 3, estado = 'X', Usuario = @Usuario, Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE ID_Reparacion = @id_repa
+
+        UPDATE dbo.Facturas
+        SET Estado = 'X', Usuario = @Usuario,
+            Nota = 'Factura anulada por el usuario: ' + @Usuario + ' en fecha: ' + CONVERT(varchar(19), DATEADD(hour, -4, GETDATE()), 120),
+            Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal AND literal = @LiteralFt
+
+        UPDATE dbo.Detalle_Facturas
+        SET Estado = 'X', Usuario = @Usuario, Fecha_registro = (dateadd(hour,(-4),getdate()))
+        WHERE Numero_Factura = @NumeroFactura AND literalF = @LiteralCompleta
+    END
+
+    FETCH NEXT FROM detalle_cursor INTO @IdTipo, @Cantidad, @IdEquipo;
+END
+
+CLOSE detalle_cursor;
+DEALLOCATE detalle_cursor;
+
+-- ============================================================
+-- NUEVO: motivo, usuario y fecha de la anulacion (fuera del cursor).
+-- Solo si la factura quedo anulada (Estado = 'X').
+-- ============================================================
+UPDATE dbo.Facturas
+SET Motivo_Anulacion = NULLIF(LTRIM(RTRIM(@Motivo)), ''),
+    Usuario_Anulacion = @Usuario,
+    Fecha_Anulacion = DATEADD(hour, -4, GETDATE())
+WHERE Numero_Factura = @NumeroFactura AND ID_Sucursal = @IdSucursal AND Literal = @LiteralFt AND Estado = 'X'
 GO
 
 -- ============================================================

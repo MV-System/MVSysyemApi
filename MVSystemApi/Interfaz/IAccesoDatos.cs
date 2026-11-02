@@ -147,6 +147,8 @@ namespace MVSystemApi.Interfaz
         public DataTable GetAccesorioById(int id);
         public DataTable GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen);
         public DataTable UpdateAccesorio(AccesorioDTO accesorio);
+        DataTable Accesorio_Coincidencias(int idModelo, string descripcion, int idAlmacen);
+        DataTable Accesorio_Sumar_Existencia(AccesorioSumarDTO datos);
 
 
         #endregion

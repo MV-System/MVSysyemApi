@@ -1068,7 +1068,8 @@ BEGIN
        AND A.ID_Almacen = @ID_Almacen
        AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
        AND A.Descripcion_Accesorio NOT LIKE '%(Usado)'
-     ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END, A.ID_Accesorio;
+     -- mismo orden que la lista de la pantalla (Equipo_Cambio_Pieza_Accesorios): con varios accesorios iguales, el front y el SP eligen el mismo
+     ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END, A.Descripcion_Accesorio, A.ID_Accesorio;
 
     -- Referencia: el mismo modelo y capacidad en cualquier almacen (de ahi salen descripcion, costo y precios)
     DECLARE @Desc VARCHAR(100), @Costo MONEY = 0, @Mayor MONEY = 0, @Detalle MONEY = 0,
@@ -1155,7 +1156,7 @@ BEGIN
            AND A.ID_Almacen = @ID_Almacen
            AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
            AND A.Descripcion_Accesorio NOT LIKE '%(Usado)'
-         ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END, A.ID_Accesorio;
+         ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END, A.Descripcion_Accesorio, A.ID_Accesorio;
 END
 GO
 
@@ -1183,7 +1184,13 @@ BEGIN
            E.ID_Almacen,
            AC.Descripcion_Almacen,
            E.Disponible,
-           Es_Laptop = CAST(CASE WHEN M.ID_Grupo = @ID_Grupo_Laptops THEN 1 ELSE 0 END AS BIT)
+           Es_Laptop = CAST(CASE WHEN M.ID_Grupo = @ID_Grupo_Laptops THEN 1 ELSE 0 END AS BIT),
+           -- prefactura pendiente que incluye la laptop (la pantalla avisa al buscarla, antes de llenar el cambio)
+           PreFactura_Pendiente = (SELECT TOP 1 pf.Numero_PreFactura
+                                     FROM dbo.PreDetalle_Facturas pf
+                                    INNER JOIN dbo.PreFacturas p ON p.Numero_PreFactura = pf.Numero_PreFactura
+                                    WHERE pf.ID_Equipo = E.Imei AND pf.ID_Tipo = 1 AND pf.Estado = 'P' AND p.Estado = 'P'
+                                    ORDER BY pf.Numero_PreFactura DESC)
     FROM dbo.Equipos E
     INNER JOIN dbo.Modelos M ON M.ID_Modelo = E.ID_Modelo
     INNER JOIN dbo.Marcas Ma ON Ma.ID_Marca = M.ID_Marca
@@ -1225,7 +1232,7 @@ BEGIN
       AND (ISNULL(@Filtro, '') = ''
            OR A.Descripcion_Accesorio LIKE '%' + @Filtro + '%'
            OR M.Descripcion LIKE '%' + @Filtro + '%')
-    ORDER BY M.Descripcion, A.Descripcion_Accesorio;
+    ORDER BY M.Descripcion, A.Descripcion_Accesorio, A.ID_Accesorio;
 END
 GO
 
@@ -1355,7 +1362,7 @@ BEGIN
         -- (en la replicacion no se aplica: la base de trabajo ya lo valido)
         IF @PreFactura_Pendiente IS NOT NULL AND @ID_Cambio IS NULL
         BEGIN
-            DECLARE @MsgPre NVARCHAR(300) = CONCAT('La laptop esta en la prefactura pendiente #', @PreFactura_Pendiente, '. Procesela o anulela antes de cambiar piezas.');
+            DECLARE @MsgPre NVARCHAR(300) = CONCAT('La laptop esta en la prefactura pendiente #', @PreFactura_Pendiente, '. Anule la prefactura antes de cambiar piezas.');
             THROW 50014, @MsgPre, 1;
         END
 
@@ -1916,7 +1923,7 @@ BEGIN
 
         IF @PreFactura_Pendiente IS NOT NULL
         BEGIN
-            DECLARE @MsgPre NVARCHAR(300) = CONCAT('La laptop esta en la prefactura pendiente #', @PreFactura_Pendiente, '. Procesela o anulela antes de entregar la pieza al cliente.');
+            DECLARE @MsgPre NVARCHAR(300) = CONCAT('La laptop esta en la prefactura pendiente #', @PreFactura_Pendiente, '. Anule la prefactura antes de entregar la pieza al cliente.');
             THROW 50206, @MsgPre, 1;
         END
 
@@ -2089,7 +2096,7 @@ BEGIN
 
         IF @PreFactura_Pendiente IS NOT NULL
         BEGIN
-            DECLARE @MsgPre NVARCHAR(300) = CONCAT('La laptop esta en la prefactura pendiente #', @PreFactura_Pendiente, '. Procesela o anulela antes de anular el cambio de pieza.');
+            DECLARE @MsgPre NVARCHAR(300) = CONCAT('La laptop esta en la prefactura pendiente #', @PreFactura_Pendiente, '. Anule la prefactura antes de anular el cambio de pieza.');
             THROW 50607, @MsgPre, 1;
         END
 
@@ -3011,7 +3018,9 @@ BEGIN
         FROM PreDetalle_Facturas pf
         INNER JOIN PreFacturas p
             ON pf.Numero_PreFactura = p.Numero_PreFactura
+        -- el numero de prefactura se repite entre literales/sucursales: solo la prefactura pendiente (si no, el detalle se inserta una vez por cada prefactura con ese numero)
         WHERE p.Numero_PreFactura = @Numero_PreFactura
+          AND p.Estado = 'P'
           AND pf.Estado = 'P';
 
         SET @RowsAffected = @@ROWCOUNT;
@@ -3457,6 +3466,49 @@ begin
 	where Descripcion_Accesorio = @Descripcion_Accesorio
 	and Cantidad = @Cantidad
 end;
+GO
+
+-- Accesorios_Modifica: igual que el original, pero no deja repetir la descripcion de otro accesorio del mismo modelo y almacen
+CREATE OR ALTER PROCEDURE [dbo].[Accesorios_Modifica]
+	@ID_Accesorio bigint
+	,@Codigo varchar(100)
+	,@Descripcion_Accesorio varchar(100)
+	,@Precio_Por_Mayor money
+	,@Precio_Detalle money
+	,@Usuario VARCHAR(50)
+	,@Estado char(1)
+	,@Cantidad int
+	,@Costo_Equipo money
+AS
+BEGIN
+	IF EXISTS (SELECT 1 FROM Accesorios A
+	             INNER JOIN Accesorios X ON X.ID_Modelo = A.ID_Modelo AND X.ID_Almacen = A.ID_Almacen AND X.ID_Accesorio <> A.ID_Accesorio
+	            WHERE A.ID_Accesorio = @ID_Accesorio
+	              AND REPLACE(X.Descripcion_Accesorio, ' ', '') COLLATE Latin1_General_CI_AI
+	                = REPLACE(@Descripcion_Accesorio, ' ', '') COLLATE Latin1_General_CI_AI)
+		THROW 50801, 'Ya existe otro accesorio con ese modelo y esa descripcion. Use otra descripcion o sumele la cantidad al existente.', 1;
+
+	INSERT INTO [dbo].[Accesorios_Historico]
+	([ID_Accesorio],[Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],[Descripcion_Accesorio],[Cantidad],[Can_Max],[Can_Min],
+	 [Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],[Estado],[Usuario],[Fecha_registro],
+	 [Numero_Invetario],[Codigo_Barra],[Estado_Historico],[Usuario_Historico],[Fecha_registro_Historico])
+	SELECT [ID_Accesorio],[Imei_Equipo],[ID_Modelo],[ID_Almacen],[Numero_de_Factura],[Descripcion_Accesorio],[Cantidad],[Can_Max],[Can_Min],
+	 [Precio_Por_Mayor],[Precio_Detalle],[Costo_Equipo],[Disponible],[Disponible_Detalle],[Estado],[Usuario],[Fecha_registro],
+	 [Numero_Invetario],[Codigo_Barra],'A',@Usuario,dateadd(hour,-4,getdate())
+	FROM [dbo].[Accesorios]
+	WHERE ID_Accesorio = @ID_Accesorio
+
+	UPDATE dbo.Accesorios
+	SET Descripcion_Accesorio = LTRIM(RTRIM(@Descripcion_Accesorio))
+	    ,Numero_de_Factura = @Codigo
+		,Precio_Por_Mayor = @Precio_Por_Mayor
+		,Precio_Detalle = @Precio_Detalle
+		,Estado = @Estado
+		,Usuario = @Usuario
+		,Costo_Equipo = @Costo_Equipo
+		,Cantidad = @Cantidad
+	WHERE ID_accesorio = @ID_Accesorio
+END;
 GO
 
 -- Accesorio_Coincidencias: accesorios que ya existen con el mismo modelo y la misma descripcion (para no registrarlo de nuevo)

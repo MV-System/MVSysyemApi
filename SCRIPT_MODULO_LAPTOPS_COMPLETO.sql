@@ -1042,7 +1042,7 @@ GO
 
 
 -- ############################################################
--- 4. ACCESORIOS DE COMPONENTES: alta automatica de la pieza retirada (nueva / usada)
+-- 4. ACCESORIOS DE COMPONENTES: alta automatica de la pieza retirada (el mismo accesorio, sin variante usada)
 -- ############################################################
 
 CREATE OR ALTER PROCEDURE dbo.Accesorio_Componente_Asegurar
@@ -1052,9 +1052,7 @@ CREATE OR ALTER PROCEDURE dbo.Accesorio_Componente_Asegurar
     @Usuario                 VARCHAR(60),
     @Ids_Explicitos          NVARCHAR(MAX) = NULL,
     @ID_Accesorio            BIGINT OUTPUT,
-    @Creados                 NVARCHAR(MAX) = NULL OUTPUT,
-    @Usado                   BIT = 0,
-    @Porcentaje_Costo_Usado  DECIMAL(5,2) = 50
+    @Creados                 NVARCHAR(MAX) = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1063,16 +1061,16 @@ BEGIN
     SET @Creados = NULL;
     DECLARE @UsuarioAcc VARCHAR(50) = 'Sistema';     -- creado automaticamente por el sistema
 
-    -- Ya existe en el almacen (del mismo tipo: nueva o usada; se prefiere el activo)
+    -- Ya existe en el almacen (se prefiere el activo; las variantes '(Usado)' de versiones anteriores no cuentan)
     SELECT TOP 1 @ID_Accesorio = A.ID_Accesorio
       FROM dbo.Accesorios A
      WHERE A.ID_Modelo = @ID_Modelo
        AND A.ID_Almacen = @ID_Almacen
        AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
-       AND (CASE WHEN A.Descripcion_Accesorio LIKE '%(Usado)' THEN 1 ELSE 0 END) = @Usado
+       AND A.Descripcion_Accesorio NOT LIKE '%(Usado)'
      ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END, A.ID_Accesorio;
 
-    -- Referencia: el mismo modelo, capacidad y tipo (nueva / usada) en cualquier almacen
+    -- Referencia: el mismo modelo y capacidad en cualquier almacen (de ahi salen descripcion, costo y precios)
     DECLARE @Desc VARCHAR(100), @Costo MONEY = 0, @Mayor MONEY = 0, @Detalle MONEY = 0,
             @CanMax INT = 2, @CanMin INT = 1, @EstadoNuevo CHAR(1) = 'I';
 
@@ -1082,40 +1080,16 @@ BEGIN
       FROM dbo.Accesorios A
      WHERE A.ID_Modelo = @ID_Modelo
        AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
-       AND (CASE WHEN A.Descripcion_Accesorio LIKE '%(Usado)' THEN 1 ELSE 0 END) = @Usado
+       AND A.Descripcion_Accesorio NOT LIKE '%(Usado)'
      ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END,
               CASE WHEN A.Precio_Detalle > 0 THEN 0 ELSE 1 END, A.ID_Accesorio;
-
-    IF @Desc IS NULL AND @Usado = 1
-    BEGIN
-        -- No hay variante usada: se deriva de la pieza nueva (costo = % del costo de la nueva, precios 0, inactiva)
-        DECLARE @DescNueva VARCHAR(100), @CostoNueva MONEY = 0;
-
-        SELECT TOP 1 @DescNueva = A.Descripcion_Accesorio, @CostoNueva = A.Costo_Equipo,
-                     @CanMax = ISNULL(A.Can_Max, 2), @CanMin = ISNULL(A.Can_Min, 1)
-          FROM dbo.Accesorios A
-         WHERE A.ID_Modelo = @ID_Modelo
-           AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
-           AND A.Descripcion_Accesorio NOT LIKE '%(Usado)'
-         ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END,
-                  CASE WHEN A.Costo_Equipo > 0 THEN 0 ELSE 1 END, A.ID_Accesorio;
-
-        SET @Desc = @DescNueva;
-        SET @Costo = ROUND(ISNULL(@CostoNueva, 0) * @Porcentaje_Costo_Usado / 100, 2);
-        SET @Mayor = 0;
-        SET @Detalle = 0;
-        SET @EstadoNuevo = 'I';
-    END
 
     IF @Desc IS NULL
         SET @Desc = CASE WHEN @Capacidad_GB >= 1024 AND @Capacidad_GB % 1024 = 0
                          THEN CAST(@Capacidad_GB / 1024 AS VARCHAR(10)) + 'TB'
                          ELSE CAST(@Capacidad_GB AS VARCHAR(10)) + 'GB' END;
 
-    IF @Usado = 1 AND @Desc NOT LIKE '%(Usado)'
-        SET @Desc = LEFT(@Desc, 100 - LEN(' (Usado)')) + ' (Usado)';
-
-    -- Almacenes que aun no tienen el accesorio (del mismo tipo: nueva / usada)
+    -- Almacenes que aun no tienen el accesorio
     DECLARE @Faltan TABLE (Orden INT IDENTITY(1, 1) PRIMARY KEY, ID_Almacen INT NOT NULL, ID_Explicito BIGINT NULL);
 
     INSERT INTO @Faltan (ID_Almacen)
@@ -1124,7 +1098,7 @@ BEGIN
      WHERE NOT EXISTS (SELECT 1 FROM dbo.Accesorios A
                         WHERE A.ID_Modelo = @ID_Modelo AND A.ID_Almacen = AC.ID_Almacen
                           AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
-                          AND (CASE WHEN A.Descripcion_Accesorio LIKE '%(Usado)' THEN 1 ELSE 0 END) = @Usado)
+                          AND A.Descripcion_Accesorio NOT LIKE '%(Usado)')
      ORDER BY AC.ID_Almacen;
 
     IF @Ids_Explicitos IS NOT NULL AND ISJSON(@Ids_Explicitos) = 1
@@ -1180,7 +1154,7 @@ BEGIN
          WHERE A.ID_Modelo = @ID_Modelo
            AND A.ID_Almacen = @ID_Almacen
            AND dbo.fn_Componente_Capacidad_GB(A.Descripcion_Accesorio) = @Capacidad_GB
-           AND (CASE WHEN A.Descripcion_Accesorio LIKE '%(Usado)' THEN 1 ELSE 0 END) = @Usado
+           AND A.Descripcion_Accesorio NOT LIKE '%(Usado)'
          ORDER BY CASE WHEN A.Estado = 'A' THEN 0 ELSE 1 END, A.ID_Accesorio;
 END
 GO
@@ -1280,8 +1254,7 @@ CREATE OR ALTER PROCEDURE dbo.Equipo_Cambio_Pieza_Registrar
     @ID_Cambio              INT = NULL,           -- solo lo envia el API al replicar en la espejo (mismo ID)
     @ID_Modulo_Retirado     INT = NULL,           -- NUEVO: modulo de la laptop que sale (NULL = slot libre)
     @ID_Modulo_Instalado    INT = NULL,           -- NUEVO: solo al replicar (mismo ID del modulo nuevo)
-    @Accesorios_Ids         NVARCHAR(MAX) = NULL, -- solo al replicar (JSON de accesorios creados)
-    @Porcentaje_Costo_Usado DECIMAL(5,2) = 50     -- NUEVO: Laptops:PorcentajeCostoUsado (costo de la pieza usada)
+    @Accesorios_Ids         NVARCHAR(MAX) = NULL  -- solo al replicar (JSON de accesorios creados)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1464,7 +1437,8 @@ BEGIN
 
             IF @ID_Cambio IS NULL
             BEGIN
-                -- (principal) 1) si el accesorio del modulo ya es una pieza USADA, se usa tal cual (con su propio costo)
+                -- (principal) la pieza retirada vuelve al MISMO accesorio del catalogo, al costo de catalogo:
+                -- 1) el accesorio del modulo (o su equivalente en el almacen del cambio)
                 SET @ID_Accesorio_Retirado = NULL;
 
                 IF @Mod_Ret_Acc IS NOT NULL
@@ -1472,17 +1446,17 @@ BEGIN
                       FROM dbo.Accesorios R
                      INNER JOIN dbo.Accesorios X ON X.ID_Accesorio = R.ID_Accesorio
                             OR (X.ID_Modelo = R.ID_Modelo AND X.Descripcion_Accesorio = R.Descripcion_Accesorio)
-                     WHERE R.ID_Accesorio = @Mod_Ret_Acc AND R.Descripcion_Accesorio LIKE '%(Usado)'
+                     WHERE R.ID_Accesorio = @Mod_Ret_Acc AND R.Descripcion_Accesorio NOT LIKE '%(Usado)'
                        AND X.ID_Almacen = @ID_Almacen
                      ORDER BY CASE WHEN X.ID_Accesorio = R.ID_Accesorio THEN 0 ELSE 1 END, X.ID_Accesorio;
 
-                -- 2) y 3) la variante USADA del componente (mismo modelo y capacidad) del almacen; si no existe, se crea
+                -- 2) si el modulo no tiene accesorio (configuracion inicial): el componente del mismo modelo y capacidad
+                --    del almacen; si no existe, se crea (cantidad 0)
                 IF @ID_Accesorio_Retirado IS NULL
                     EXEC dbo.Accesorio_Componente_Asegurar
                          @ID_Modelo = @Mod_Ret_Modelo, @Capacidad_GB = @Mod_Ret_Cap, @ID_Almacen = @ID_Almacen,
                          @Usuario = @Usuario, @Ids_Explicitos = NULL,
-                         @ID_Accesorio = @ID_Accesorio_Retirado OUTPUT, @Creados = @Creados OUTPUT,
-                         @Usado = 1, @Porcentaje_Costo_Usado = @Porcentaje_Costo_Usado;
+                         @ID_Accesorio = @ID_Accesorio_Retirado OUTPUT, @Creados = @Creados OUTPUT;
             END
             ELSE IF @Accesorios_Ids IS NOT NULL
             BEGIN
@@ -1491,8 +1465,7 @@ BEGIN
                 EXEC dbo.Accesorio_Componente_Asegurar
                      @ID_Modelo = @Mod_Ret_Modelo, @Capacidad_GB = @Mod_Ret_Cap, @ID_Almacen = @ID_Almacen,
                      @Usuario = @Usuario, @Ids_Explicitos = @Accesorios_Ids,
-                     @ID_Accesorio = @IdDescartado OUTPUT, @Creados = @Creados OUTPUT,
-                     @Usado = 1, @Porcentaje_Costo_Usado = @Porcentaje_Costo_Usado;
+                     @ID_Accesorio = @IdDescartado OUTPUT, @Creados = @Creados OUTPUT;
                 IF @ID_Accesorio_Retirado IS NULL SET @ID_Accesorio_Retirado = @IdDescartado;
             END
         END
@@ -1704,9 +1677,7 @@ CREATE OR ALTER PROCEDURE dbo.Equipo_Cambio_Pieza_Recibir
     @Costo_Equipo      DECIMAL(18,2) = NULL,     -- solo si el accesorio no tiene costo / precios
     @Precio_Por_Mayor  DECIMAL(18,2) = NULL,
     @Precio_Detalle    DECIMAL(18,2) = NULL,
-    @ID_Accesorio_Nuevo BIGINT = NULL,           -- solo al replicar (mismo ID del accesorio creado, Tarea 4)
-    @Accesorios_Ids     NVARCHAR(MAX) = NULL,    -- NUEVO: solo al replicar (JSON de las piezas usadas creadas)
-    @Porcentaje_Costo_Usado DECIMAL(5,2) = 50    -- NUEVO: Laptops:PorcentajeCostoUsado
+    @ID_Accesorio_Nuevo BIGINT = NULL            -- solo al replicar (mismo ID del accesorio creado, Tarea 4)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1743,22 +1714,8 @@ BEGIN
         -- --------------------------------------------------------
         -- Fila del accesorio retirado en el almacen del cambio
         -- --------------------------------------------------------
-        DECLARE @ID_Accesorio_Destino BIGINT, @ID_Accesorio_Creado BIGINT = NULL, @Creados NVARCHAR(MAX) = NULL;
-
-        -- Cambios anteriores a la Tarea 5: el accesorio retirado es la pieza NUEVA; la pieza entra a su variante USADA
-        DECLARE @R_Modelo INT, @R_Desc VARCHAR(100), @R_Cap INT;
-        SELECT @R_Modelo = A.ID_Modelo, @R_Desc = A.Descripcion_Accesorio
-          FROM dbo.Accesorios A
-         WHERE A.ID_Accesorio = @ID_Accesorio_Retirado;
-        SET @R_Cap = dbo.fn_Componente_Capacidad_GB(@R_Desc);
-
-        IF @R_Modelo IS NOT NULL AND @R_Cap IS NOT NULL AND @R_Desc NOT LIKE '%(Usado)'
-           AND EXISTS (SELECT 1 FROM dbo.Componente_Modelo_Tipo WHERE ID_Modelo = @R_Modelo)
-            EXEC dbo.Accesorio_Componente_Asegurar
-                 @ID_Modelo = @R_Modelo, @Capacidad_GB = @R_Cap, @ID_Almacen = @ID_Almacen,
-                 @Usuario = @Usuario, @Ids_Explicitos = @Accesorios_Ids,
-                 @ID_Accesorio = @ID_Accesorio_Destino OUTPUT, @Creados = @Creados OUTPUT,
-                 @Usado = 1, @Porcentaje_Costo_Usado = @Porcentaje_Costo_Usado;
+        -- La pieza vuelve al MISMO accesorio que se retiro (Tarea 11: ya no hay variante '(Usado)')
+        DECLARE @ID_Accesorio_Destino BIGINT, @ID_Accesorio_Creado BIGINT = NULL;
 
         IF @ID_Accesorio_Destino IS NULL
             SELECT @ID_Accesorio_Destino = A.ID_Accesorio
@@ -1871,7 +1828,7 @@ BEGIN
 
         COMMIT TRAN;
 
-        SELECT C.*, Accesorio_Creado = @ID_Accesorio_Creado, Accesorios_Creados = @Creados, Mensaje = 'Pieza recibida satisfactoriamente'
+        SELECT C.*, Accesorio_Creado = @ID_Accesorio_Creado, Mensaje = 'Pieza recibida satisfactoriamente'
         FROM dbo.Equipo_Cambio_Pieza C
         WHERE C.ID_Cambio = @ID_Cambio;
     END TRY
@@ -2335,8 +2292,7 @@ RETURN
 
     UNION ALL
 
-    -- Recepcion de la pieza retirada: entra a la variante del almacen del cambio
-    -- (la pieza usada; en cambios anteriores a la Tarea 5 puede ser la misma pieza o su variante '(Usado)')
+    -- Recepcion de la pieza retirada: entra al mismo accesorio (o a su equivalente en el almacen del cambio)
     SELECT A.ID_Accesorio,
            C.Fecha_Recepcion,
            'RECEPCION',
@@ -2350,18 +2306,9 @@ RETURN
      INNER JOIN dbo.Accesorios A
              ON A.ID_Almacen = C.ID_Almacen
             AND (A.ID_Accesorio = R.ID_Accesorio
-                 OR (A.ID_Modelo = R.ID_Modelo
-                     AND (A.Descripcion_Accesorio = R.Descripcion_Accesorio
-                          OR (R.Descripcion_Accesorio NOT LIKE '%(Usado)'
-                              AND A.Descripcion_Accesorio = R.Descripcion_Accesorio + ' (Usado)'))))
+                 OR (A.ID_Modelo = R.ID_Modelo AND A.Descripcion_Accesorio = R.Descripcion_Accesorio))
      WHERE C.Estado_Custodia = 'RECIBIDA'
        AND C.Fecha_Recepcion IS NOT NULL
-       -- Pieza que aun no era usada: si existe su variante '(Usado)' en el almacen, la entrada fue a esa variante
-       AND (R.Descripcion_Accesorio LIKE '%(Usado)'
-            OR A.Descripcion_Accesorio LIKE '%(Usado)'
-            OR NOT EXISTS (SELECT 1 FROM dbo.Accesorios U
-                            WHERE U.ID_Almacen = C.ID_Almacen AND U.ID_Modelo = R.ID_Modelo
-                              AND U.Descripcion_Accesorio = R.Descripcion_Accesorio + ' (Usado)'))
 )
 GO
 
@@ -2727,268 +2674,133 @@ Begin
 End;
 GO
 
+-- Version vigente de produccion (2025-12-10, simplificada) + columna Configuracion
 CREATE OR ALTER PROCEDURE [dbo].[Proc_Equipo_Consulta_Vendidos]
-@PageIndex int ,
-@PageSize Int ,
+@PageIndex int,
+@PageSize Int,
 @Almacen int = 0,
-@Imei varchar(30) ='',
-@Telefono bigint= 0,
-@Suplidor varchar(150)='',
-@Vendedor varchar(150)='',
-@ID_Modelo int = 0,  -- CAMBIADO: De @Modelo varchar(60) a @ID_Modelo int
+@Imei varchar(30) = '',
+@Telefono bigint = 0,
+@Suplidor varchar(150) = '',
+@Vendedor varchar(150) = '',
+@ID_Modelo int = 0,
 @Fecha_factura_Inicial datetime = '',
 @Fecha_factura_Final datetime = '',
-@Fecha_Inicio datetime ='',
-@Fecha_Final datetime =''
+@Fecha_Inicio datetime = '',
+@Fecha_Final datetime = ''
 AS
-
 BEGIN
-
-IF @Almacen = 4
-BEGIN
-    SET @Almacen = 0;
-END
-ELSE
-BEGIN
-    SET @Almacen = (SELECT Id_almacen FROM Sucursales_cata WHERE ID_Sucursal = @Almacen);
-END
-
---Set DateFormat MDY;
---Rangos por fecha facturacion--
-
-DECLARE @FechaRi datetime,
-@FechaRf datetime
-
-SET @FechaRi = @Fecha_factura_Inicial
-SET @FechaRf = @Fecha_factura_Final
-
-DECLARE @FrIni int,
-        @FrFin int
-
-SET @FrIni = Year(@FechaRi)*10000+
-             Month(@FechaRi)*100+
-             Day(@FechaRi)
-SET @FrFin = Year(@FechaRf)*10000+
-             Month(@FechaRf)*100+
-             Day(@FechaRf)
-------------------------------
---Rangos por fecha registro---
-
-DECLARE @FechaI Datetime,
-@FechaF Datetime
-
-SET @FechaI =@Fecha_Inicio
-SET @FechaF =@Fecha_Final
-
-DECLARE @FIni int,
-        @FFin Int
-
-  SET @FIni = Year(@FechaI)*10000+
-              Month(@FechaI)*100+
-              Day(@FechaI)
-  SET @FFin = Year(@FechaF)*10000+
-              Month(@FechaF)*100+
-              Day(@FechaF)
--------------------------
---------Pagination-------
-    DECLARE @PageIni int;
-    DECLARE @PageEnd int;
-    DECLARE @Linea int;
-
-    SET @PageIni = 0;
-    SET @PageEnd = 0;
-
-    SET @PageIndex = CASE WHEN @PageIndex = 0 THEN 1 ELSE @PageIndex END;  -- Si es 0 Cambia a 1
-    SET @Pageend = (@PageIndex*@PageSize); -- Multiplicamos el indice por el size y obtenemos la pagina final
-    SET @PageIni = (@Pageend-@PageSize); -- Este Proceso Captura la pag inicial
----------------------------
-
--- MEJORADO: CTE más eficiente usando ROW_NUMBER() en lugar de MAX()
-WITH EquipoFacturas AS (
-    SELECT E.Imei,
-           dt.numero_factura,
-           ROW_NUMBER() OVER (PARTITION BY E.Imei ORDER BY ft.fecha_registro DESC) as rn
-    FROM Equipos AS E
-    INNER JOIN detalle_facturas AS dt ON dt.ID_Equipo = e.imei AND dt.estado = 'A'
-    INNER JOIN facturas AS ft ON ft.numero_factura = dt.numero_factura AND ft.estado = 'A'
-    WHERE ((@Fecha_Inicio ='' AND @Fecha_Final ='') OR
-           (Year(E.Fecha_registro) * 10000+Month(E.Fecha_registro)* 100+Day(E.Fecha_registro)) BETWEEN @FIni AND @FFin)
-)
-SELECT Imei, numero_factura
-INTO #CTE
-FROM EquipoFacturas
-WHERE rn = 1;
-
-
-   --Suma total inventario
-    DECLARE @TotalInventario money;
-    DECLARE @TotalFacturado  money;
-    DECLARE @TotalGanancia   money;
-    DECLARE @TotalComisionDetalle  money;
-    DECLARE @TotalComisionXMayor   money;
-    DECLARE @TotalItbis   money;
-
-     SELECT @TotalInventario =  SUM(df.Costo_Equipo ),
-            @TotalFacturado =SUM(df.total),
-            @TotalGanancia =@TotalFacturado- @TotalInventario ,
-            @TotalComisionDetalle = SUM(e.Comision_Detalle),
-            @TotalComisionXMayor = SUM(e.Comision_Por_Mayor),
-            @TotalItbis = SUM(df.Itbis)
-       FROM equipos E
-      INNER JOIN Modelos AS M
-         ON e.ID_Modelo= M.ID_Modelo
-       LEFT JOIN dbo.Suplidores AS su
-         ON su.id_suplidor = e.ID_Suplidor
-       LEFT JOIN contactos AS CS
-         ON CS.id_contacto = su.id_contacto
-      INNER JOIN Detalle_Facturas df
-         ON e.Imei = df.ID_Equipo and df.estado = 'A'
-       LEFT JOIN facturas AS ft
-         ON ft.numero_factura = df.numero_factura and df.estado = 'A'
-      INNER JOIN Vendedores v
-         ON v.ID_Vendedor = ft.ID_Vendedor
-       LEFT JOIN clientes AS cl
-         ON cl.id_cliente = ft.id_cliente
-      INNER JOIN Contactos c
-         ON c.ID_Contacto = v.ID_Contacto
-       LEFT JOIN contactos AS co
-         ON co.id_contacto = cl.id_contacto
-            JOIN Telefonos AS te
-         ON co.ID_Contacto = te.ID_Contacto
-      WHERE ( CS.Nombres ='' OR CS.Nombres +' '+ CS.Apellidos like '%'+ @Suplidor  + '%' )
-        AND ( c.Nombres ='' OR c.Nombres +' '+ c.Apellidos like '%'+ @Vendedor  + '%' )
-        AND ((@Almacen=0) OR  (E.ID_Almacen =@Almacen ))
-        AND ((@imei ='') OR (df.ID_Equipo = @Imei	))
-        AND ((@Telefono =0) OR (te.Numero_Telefono = @Telefono	))
-        AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))  -- CAMBIADO: Filtro por ID en lugar de LIKE con descripción
-        AND (
-     (@Imei <> '')
-     OR (
-          ((@Fecha_factura_Inicial ='' AND @Fecha_factura_Final ='')
-           OR (Year(df.Fecha_registro) * 10000 + Month(df.Fecha_registro) * 100 + Day(df.Fecha_registro)) BETWEEN @FrIni AND @FrFin
-          )
-         AND
-          ((@Fecha_Inicio ='' AND @Fecha_Final ='')
-           OR (Year(E.Fecha_registro) * 10000 + Month(E.Fecha_registro) * 100 + Day(E.Fecha_registro)) BETWEEN @FIni AND @FFin
-          )
-     )
-)
-        AND	((@Fecha_Inicio ='' AND @Fecha_Final ='') or (Year(E.Fecha_registro) * 10000+Month(E.Fecha_registro)* 100+Day(E.Fecha_registro) ) BETWEEN @FIni AND @FFin)
-         AND e.disponible = 'N' -- equipo este vendido
-         AND df.Estado = 'A' -- que la factura no este anulada
-         --AND ft.id_tipo_pagos = 1 -- tipo de pago sea de contado
-         AND df.ID_Tipo = 1 -- que sea equipo
-         AND ft.ID_Tipo_Factura <>3 -- diferente de consignacion
-        AND ft.Literal+Convert(Varchar(10),Ft.Numero_Factura) =df.literalF
-
-    SELECT
-            E.ID_Equipo numero,
+    SET NOCOUNT ON;
+    
+    SET @PageIndex = CASE WHEN @PageIndex <= 0 THEN 1 ELSE @PageIndex END;
+    
+    -- Convertir almacén si es necesario
+    IF @Almacen = 4 SET @Almacen = 0;
+    IF @Almacen > 0 SET @Almacen = ISNULL((SELECT TOP 1 Id_almacen FROM Sucursales_cata WHERE ID_Sucursal = @Almacen), 0);
+    
+    -- Tabla temporal para resultados
+    CREATE TABLE #Resultado (
+        RowNum INT,
+        ID_Equipo INT,
+        Imei VARCHAR(50),
+        Descripcion VARCHAR(MAX),
+        [Por Mayor] DECIMAL(18,2),
+        [Al Detalle] DECIMAL(18,2),
+        [Costo] DECIMAL(18,2),
+        [Precio Vendido] DECIMAL(18,2),
+        [Tipo Factura] VARCHAR(100),
+        Desb VARCHAR(50),
+        Itbis DECIMAL(18,2),
+        Nota VARCHAR(MAX),
+        Descripcion_Almacen VARCHAR(100),
+        Suplidor VARCHAR(MAX),
+        Vendedor VARCHAR(MAX),
+        cliente VARCHAR(MAX),
+        [Fecha facturado] DATETIME,
+        Factura VARCHAR(50),
+        Fecha_registro DATETIME,
+        [Comision Detalle] DECIMAL(18,2),
+        [Comision Por Mayor] DECIMAL(18,2),
+        Configuracion VARCHAR(100)
+    );
+    
+    -- CTE para numeración eficiente
+    WITH DatosNumerados AS (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY ft.fecha_registro DESC, e.Imei ASC) as RowNum,
+            E.ID_Equipo,
             e.Imei,
             M.Descripcion,
             E.Precio_Por_Mayor AS [Por Mayor],
             E.Precio_Detalle AS [Al Detalle],
             E.Costo_Equipo AS [Costo],
             df.total AS [Precio Vendido],
-            tpc.descripcion_tipo_pagos AS [Tipo Factura],
-            E.Desbloqueado AS Desb,
-            df.Itbis,
-            e.Nota_Adicional AS Nota,
-            al.Descripcion_Almacen,
-            cs.Nombres +' '+cs.Apellidos AS Suplidor,
-            c.Nombres +' '+c.Apellidos AS Vendedor,
-            co.Nombres +' '+co.Apellidos AS cliente,
+            ISNULL(tpc.descripcion_tipo_pagos, '') AS [Tipo Factura],
+            ISNULL(E.Desbloqueado, '') AS Desb,
+            ISNULL(df.Itbis, 0) AS Itbis,
+            ISNULL(e.Nota_Adicional, '') AS Nota,
+            ISNULL(al.Descripcion_Almacen, '') AS Descripcion_Almacen,
+            ISNULL(cs.Nombres + ' ' + ISNULL(cs.Apellidos, ''), '') AS Suplidor,
+            ISNULL(c.Nombres + ' ' + ISNULL(c.Apellidos, ''), '') AS Vendedor,
+            ISNULL(co.Nombres + ' ' + ISNULL(co.Apellidos, ''), '') AS cliente,
             df.fecha_registro AS [Fecha facturado],
             ft.Numero_Factura AS Factura,
-            E.Fecha_registro ,
-            e.Comision_Detalle AS [Comision Detalle],
-            e.Comision_Por_Mayor AS [Comision Por Mayor],
-            TotalInventario = @TotalInventario,
-            TotalFacturado  = @TotalFacturado,
-            TotalGanancia   = @TotalGanancia,
-            TotalComisionDetalle = @TotalComisionDetalle,
-            TotalComisionXMayor =@TotalComisionXMayor,
-            TotalItbis= @TotalItbis,
+            E.Fecha_registro,
+            ISNULL(e.Comision_Detalle, 0) AS [Comision Detalle],
+            ISNULL(e.Comision_Por_Mayor, 0) AS [Comision Por Mayor],
             dbo.fn_Equipo_Configuracion_Texto(e.Imei) AS Configuracion
-            INTO #Temporal
-      FROM #CTE cte WITH(NOLOCK)
-     INNER JOIN equipos e
-        ON e.imei = cte.imei
-     INNER JOIN Modelos AS M
-        ON e.ID_Modelo= M.ID_Modelo
-     INNER JOIN dbo.Tecnologias_Cata AS T
-        ON E.ID_Tecnologia = T.ID_Tecnologia
-     INNER JOIN Almacen_Cata AS al
-        ON E.ID_Almacen = al.ID_Almacen
-      LEFT JOIN facturas AS ft
-        ON cte.numero_factura = ft.numero_factura and ft.estado = 'A'
-      LEFT JOIN clientes AS cl
-        ON cl.id_cliente = ft.id_cliente
-      LEFT JOIN contactos AS co
-        ON co.id_contacto = cl.id_contacto
-      JOIN Telefonos AS te
-        ON co.ID_Contacto = te.ID_Contacto
-      LEFT JOIN dbo.Suplidores AS su
-        ON su.id_suplidor = e.ID_Suplidor
-      LEFT JOIN contactos AS CS
-        ON CS.id_contacto = su.id_contacto
-     INNER JOIN Detalle_Facturas df
-        ON e.Imei = df.ID_Equipo
-     INNER JOIN Vendedores v
-        ON v.ID_Vendedor = ft.ID_Vendedor
-     INNER JOIN Contactos c
-        ON c.ID_Contacto = v.ID_Contacto
-     INNER JOIN Tipos_Facturas_Cata tfc
-        ON tfc.ID_Tipo_Factura = ft.ID_Tipo_Factura
-     INNER JOIN tipos_pagos_cata tpc
-        ON tpc.id_tipo_pagos = ft.id_tipo_pagos
+        FROM Equipos e WITH(NOLOCK)
+        INNER JOIN Modelos M WITH(NOLOCK) ON e.ID_Modelo = M.ID_Modelo
+        INNER JOIN Detalle_Facturas df WITH(NOLOCK) ON e.Imei = df.ID_Equipo AND df.estado = 'A' AND df.ID_Tipo = 1
+        INNER JOIN Facturas ft WITH(NOLOCK) ON ft.numero_factura = df.numero_factura AND ft.estado = 'A' AND ft.ID_Tipo_Factura <> 3
+        INNER JOIN Almacen_Cata al WITH(NOLOCK) ON E.ID_Almacen = al.ID_Almacen
+        LEFT JOIN Vendedores v WITH(NOLOCK) ON v.ID_Vendedor = ft.ID_Vendedor
+        LEFT JOIN Contactos c WITH(NOLOCK) ON c.ID_Contacto = v.ID_Contacto
+        LEFT JOIN Clientes cl WITH(NOLOCK) ON cl.id_cliente = ft.id_cliente
+        LEFT JOIN Contactos co WITH(NOLOCK) ON co.id_contacto = cl.id_contacto
 
-     WHERE ( CS.Nombres ='' OR CS.Nombres +' '+ CS.Apellidos like '%'+ @Suplidor  + '%' )
-        AND ( c.Nombres ='' OR c.Nombres +' '+ c.Apellidos like '%'+ @Vendedor  + '%' )
-        AND ((@Almacen=0) OR  (E.ID_Almacen =@Almacen ))
-        AND ((@imei ='') OR (df.ID_Equipo = @Imei	))
-        AND ((@Telefono =0) OR (te.Numero_Telefono = @Telefono	))
-        AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))  -- CAMBIADO: Filtro por ID en lugar de LIKE con descripción
-        AND (
-     (@Imei <> '')
-     OR (
-          ((@Fecha_factura_Inicial ='' AND @Fecha_factura_Final ='')
-           OR (Year(df.Fecha_registro) * 10000 + Month(df.Fecha_registro) * 100 + Day(df.Fecha_registro)) BETWEEN @FrIni AND @FrFin
-          )
-         AND
-          ((@Fecha_Inicio ='' AND @Fecha_Final ='')
-           OR (Year(E.Fecha_registro) * 10000 + Month(E.Fecha_registro) * 100 + Day(E.Fecha_registro)) BETWEEN @FIni AND @FFin
-          )
-     )
-)
-        AND	((@Fecha_Inicio ='' AND @Fecha_Final ='') or (Year(E.Fecha_registro) * 10000+Month(E.Fecha_registro)* 100+Day(E.Fecha_registro) ) BETWEEN @FIni AND @FFin)
-         AND e.disponible = 'N' -- equipo este vendido
-         AND df.Estado = 'A' -- que la factura no este anulada
-         --AND ft.id_tipo_pagos = 1 -- tipo de pago sea de contado
-         AND df.ID_Tipo = 1 -- que sea equipo
-         AND ft.ID_Tipo_Factura <>3 -- diferente de consignacion
-        AND ft.Literal+Convert(Varchar(10),Ft.Numero_Factura) =df.literalF
-   ORDER BY ft.fecha_registro ASC
-
-         -- Registros
-  DECLARE @Registros Int
-  SET @Registros = (SELECT COUNT(numero) From #Temporal);
-  --SELECT  @Registros = Max(Linea) FROM #Temporal
-    IF @PageEnd > @Registros
-    BEGIN
-        SET @PageEnd = @Registros
-    END
-   -- Devolver Resultado
-      SELECT  *,
-              Linea = @PageIni + 1,
-              Ultima_Linea = @PageEnd,
-              Cantidad_Registros = @Registros
-         FROM #Temporal
-     ORDER BY Linea
-     OFFSET @PageSize * (@PageIndex - 1) ROWS
-    FETCH NEXT @PageSize ROWS ONLY  ;
-
-      DROP TABLE #CTE
-      DROP TABLE #Temporal
+        LEFT JOIN Suplidores su WITH(NOLOCK) ON su.id_suplidor = e.ID_Suplidor
+        LEFT JOIN Contactos cs WITH(NOLOCK) ON cs.id_contacto = su.id_contacto
+        LEFT JOIN tipos_pagos_cata tpc WITH(NOLOCK) ON tpc.id_tipo_pagos = ft.id_tipo_pagos
+        WHERE e.disponible = 'N'
+          AND ((@Almacen = 0) OR (E.ID_Almacen = @Almacen))
+          AND ((@Imei = '') OR (e.Imei = @Imei))
+          AND ((@Suplidor = '') OR (cs.Nombres + ' ' + ISNULL(cs.Apellidos, '') LIKE '%' + @Suplidor + '%'))
+          AND ((@Vendedor = '') OR (c.Nombres + ' ' + ISNULL(c.Apellidos, '') LIKE '%' + @Vendedor + '%'))
+          AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))
+          AND ((@Fecha_factura_Inicial = '' OR @Fecha_factura_Final = '') OR (CAST(df.fecha_registro AS DATE) BETWEEN CAST(@Fecha_factura_Inicial AS DATE) AND CAST(@Fecha_factura_Final AS DATE)))
+          AND ((@Fecha_Inicio = '' OR @Fecha_Final = '') OR (CAST(e.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)))
+    )
+    INSERT INTO #Resultado
+    SELECT * FROM DatosNumerados;
+    
+    -- Calcular totales de manera eficiente
+    DECLARE @TotalRegistros INT = (SELECT COUNT(*) FROM #Resultado);
+    DECLARE @TotalInventario MONEY = (SELECT ISNULL(SUM([Costo]), 0) FROM #Resultado);
+    DECLARE @TotalFacturado MONEY = (SELECT ISNULL(SUM([Precio Vendido]), 0) FROM #Resultado);
+    DECLARE @TotalGanancia MONEY = (@TotalFacturado - @TotalInventario);
+    DECLARE @TotalComisionDetalle MONEY = (SELECT ISNULL(SUM([Comision Detalle]), 0) FROM #Resultado);
+    DECLARE @TotalComisionXMayor MONEY = (SELECT ISNULL(SUM([Comision Por Mayor]), 0) FROM #Resultado);
+    DECLARE @TotalItbis MONEY = (SELECT ISNULL(SUM(Itbis), 0) FROM #Resultado);
+    
+    -- Retornar datos paginados
+    SELECT 
+        *,
+        TotalInventario = @TotalInventario,
+        TotalFacturado = @TotalFacturado,
+        TotalGanancia = @TotalGanancia,
+        TotalComisionDetalle = @TotalComisionDetalle,
+        TotalComisionXMayor = @TotalComisionXMayor,
+        TotalItbis = @TotalItbis,
+        Linea = (@PageSize * (@PageIndex - 1) + 1),
+        Ultima_Linea = CASE WHEN (@PageSize * @PageIndex) > @TotalRegistros THEN @TotalRegistros ELSE (@PageSize * @PageIndex) END,
+        Cantidad_Registros = @TotalRegistros
+    FROM #Resultado
+    WHERE RowNum > (@PageSize * (@PageIndex - 1))
+      AND RowNum <= (@PageSize * @PageIndex)
+    ORDER BY RowNum;
+    
+    DROP TABLE #Resultado;
 END
 GO
 
@@ -3511,6 +3323,92 @@ BEGIN
 
     SET @Orden += 1;
 END
+GO
+
+-- ############################################################
+-- 12. PIEZAS RETIRADAS: se elimina la variante "(Usado)" (Tarea 11)
+--     La pieza retirada vuelve al MISMO accesorio, al costo de catalogo. Para los accesorios "(Usado)" creados antes:
+--       - si el almacen ya tiene el accesorio normal (misma descripcion sin " (Usado)"), su existencia se suma al normal,
+--         las referencias (cambios de pieza y modulos de laptops) se pasan al normal y el "(Usado)" queda en 0 e inactivo;
+--       - si no lo tiene, el "(Usado)" se renombra (sin el sufijo) y se conserva con su ID y existencia.
+--     Idempotente; no crea accesorios (los ID quedan iguales en la base principal y en la espejo).
+-- ############################################################
+
+IF OBJECT_ID('tempdb..#QuitarUsado') IS NOT NULL DROP TABLE #QuitarUsado;
+CREATE TABLE #QuitarUsado (
+    ID_Usado      BIGINT       NOT NULL,
+    ID_Almacen    INT          NOT NULL,
+    Descripcion   VARCHAR(100) NOT NULL,
+    Existencia    INT          NOT NULL,
+    ID_Normal     BIGINT       NULL,
+    Accion        VARCHAR(40)  NULL
+);
+
+INSERT INTO #QuitarUsado (ID_Usado, ID_Almacen, Descripcion, Existencia)
+SELECT A.ID_Accesorio, A.ID_Almacen, A.Descripcion_Accesorio, ISNULL(A.Cantidad, 0)
+  FROM dbo.Accesorios A
+ WHERE A.Descripcion_Accesorio LIKE '%(Usado)'
+   AND EXISTS (SELECT 1 FROM dbo.Componente_Modelo_Tipo T WHERE T.ID_Modelo = A.ID_Modelo);
+
+UPDATE Q
+   SET ID_Normal = (SELECT TOP 1 N.ID_Accesorio
+                      FROM dbo.Accesorios N
+                      INNER JOIN dbo.Accesorios U ON U.ID_Accesorio = Q.ID_Usado
+                     WHERE N.ID_Almacen = Q.ID_Almacen
+                       AND N.ID_Modelo = U.ID_Modelo
+                       AND N.Descripcion_Accesorio NOT LIKE '%(Usado)'
+                       AND N.Descripcion_Accesorio = RTRIM(LEFT(Q.Descripcion, LEN(Q.Descripcion) - LEN('(Usado)')))
+                     ORDER BY CASE WHEN N.Estado = 'A' THEN 0 ELSE 1 END, N.ID_Accesorio)
+  FROM #QuitarUsado Q;
+
+BEGIN TRY
+    BEGIN TRAN;
+
+    -- Con accesorio normal en el almacen: se suma la existencia, se pasan las referencias y el "(Usado)" queda inactivo
+    UPDATE N
+       SET Cantidad = ISNULL(N.Cantidad, 0) + Q.Existencia
+      FROM dbo.Accesorios N
+     INNER JOIN (SELECT ID_Normal, SUM(Existencia) AS Existencia FROM #QuitarUsado WHERE ID_Normal IS NOT NULL GROUP BY ID_Normal) Q
+             ON Q.ID_Normal = N.ID_Accesorio;
+
+    UPDATE C SET ID_Accesorio_Retirado = Q.ID_Normal
+      FROM dbo.Equipo_Cambio_Pieza C INNER JOIN #QuitarUsado Q ON Q.ID_Usado = C.ID_Accesorio_Retirado
+     WHERE Q.ID_Normal IS NOT NULL;
+
+    UPDATE C SET ID_Accesorio_Instalado = Q.ID_Normal
+      FROM dbo.Equipo_Cambio_Pieza C INNER JOIN #QuitarUsado Q ON Q.ID_Usado = C.ID_Accesorio_Instalado
+     WHERE Q.ID_Normal IS NOT NULL;
+
+    UPDATE M SET ID_Accesorio = Q.ID_Normal
+      FROM dbo.Equipo_Configuracion_Modulo M INNER JOIN #QuitarUsado Q ON Q.ID_Usado = M.ID_Accesorio
+     WHERE Q.ID_Normal IS NOT NULL;
+
+    UPDATE A SET Cantidad = 0, Estado = 'I'
+      FROM dbo.Accesorios A INNER JOIN #QuitarUsado Q ON Q.ID_Usado = A.ID_Accesorio
+     WHERE Q.ID_Normal IS NOT NULL;
+
+    UPDATE #QuitarUsado SET Accion = 'ABSORBIDO POR EL NORMAL' WHERE ID_Normal IS NOT NULL;
+
+    -- Sin accesorio normal: se renombra (se quita el sufijo " (Usado)") y conserva su ID y existencia
+    UPDATE A SET Descripcion_Accesorio = RTRIM(LEFT(A.Descripcion_Accesorio, LEN(A.Descripcion_Accesorio) - LEN('(Usado)')))
+      FROM dbo.Accesorios A INNER JOIN #QuitarUsado Q ON Q.ID_Usado = A.ID_Accesorio
+     WHERE Q.ID_Normal IS NULL;
+
+    UPDATE #QuitarUsado SET Accion = 'RENOMBRADO (SIN SUFIJO)' WHERE ID_Normal IS NULL;
+
+    COMMIT TRAN;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRAN;
+    THROW;
+END CATCH
+
+-- Lo que se movio
+SELECT Q.ID_Usado, Q.ID_Almacen, Q.Descripcion AS Descripcion_Anterior, Q.Existencia, Q.ID_Normal, Q.Accion
+  FROM #QuitarUsado Q
+ ORDER BY Q.ID_Almacen, Q.ID_Usado;
+
+DROP TABLE #QuitarUsado;
 GO
 
 -- ============================================================

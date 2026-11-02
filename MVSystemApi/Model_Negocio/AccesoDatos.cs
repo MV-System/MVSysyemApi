@@ -23,7 +23,6 @@ namespace MVSystemApi.Model
         private readonly string _dgiQrBaseUrlFiscal;
         private readonly int _laptopsHorasMaxCustodia;
         private readonly bool _laptopsBloquearVencidos;
-        private readonly decimal _laptopsPorcentajeCostoUsado;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
@@ -40,7 +39,6 @@ namespace MVSystemApi.Model
             _dgiQrBaseUrlFiscal = configuration["Dgi:QrBaseUrlFiscal"] ?? string.Empty;
             _laptopsHorasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
             _laptopsBloquearVencidos = configuration.GetValue("Laptops:BloquearTecnicoConPendientesVencidos", false);
-            _laptopsPorcentajeCostoUsado = configuration.GetValue("Laptops:PorcentajeCostoUsado", 50m);
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -4929,8 +4927,6 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Usuario", cambio.Usuario);
                 cmd.Parameters.AddWithValue("@Horas_Max_Custodia", _laptopsHorasMaxCustodia);
                 cmd.Parameters.AddWithValue("@Bloquear_Vencidos", _laptopsBloquearVencidos);
-                // La pieza retirada es una pieza USADA: su costo es este % del costo de la nueva
-                cmd.Parameters.AddWithValue("@Porcentaje_Costo_Usado", _laptopsPorcentajeCostoUsado);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -4981,7 +4977,6 @@ WHERE ENCF = @encf", connection);
                 cmd.Parameters.AddWithValue("@Costo_Equipo", (object)accion.Accesorio_Costo ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Precio_Por_Mayor", (object)accion.Accesorio_Precio_Por_Mayor ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Precio_Detalle", (object)accion.Accesorio_Precio_Detalle ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@Porcentaje_Costo_Usado", _laptopsPorcentajeCostoUsado);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -4990,9 +4985,6 @@ WHERE ENCF = @encf", connection);
                 // Si la recepcion creo el accesorio en el almacen del cambio, la espejo debe crearlo con el mismo ID
                 if (dt.Rows.Count > 0 && dt.Columns.Contains("Accesorio_Creado") && dt.Rows[0]["Accesorio_Creado"] != DBNull.Value)
                     cmd.Parameters.AddWithValue("@ID_Accesorio_Nuevo", Convert.ToInt64(dt.Rows[0]["Accesorio_Creado"]));
-                // Piezas usadas creadas al redirigir la entrada: la espejo las crea con los mismos ID
-                if (dt.Rows.Count > 0 && dt.Columns.Contains("Accesorios_Creados") && dt.Rows[0]["Accesorios_Creados"] != DBNull.Value)
-                    cmd.Parameters.AddWithValue("@Accesorios_Ids", Convert.ToString(dt.Rows[0]["Accesorios_Creados"]));
 
                 _sync.Ejecutar("Equipo_Cambio_Pieza_Recibir", cmd.Parameters);
                 return dt;

@@ -1,274 +1,142 @@
 -- ============================================================
--- Feature: Módulo de Laptops - Fase 2, Tarea 7 (paso final)
--- Propósito: Proc_Equipo_Consulta_Vendidos devuelve la columna nueva
---            Configuracion = dbo.fn_Equipo_Configuracion_Texto(Imei)
---            (ej. '12GB DDR4 / 256GB SSD SATA'; NULL si no tiene).
---            No se quita ni se renombra ninguna columna ni parámetro.
--- Requiere: CREATE_Equipo_Configuracion.sql ejecutado.
--- Autor: MVSystem
--- Fecha: 2026-10-27
+-- Proc_Equipo_Consulta_Vendidos + columna Configuracion (modulo de laptops)
+-- (Reemplaza la version anterior de este archivo, que traia una version vieja del SP.)
+-- El script del modulo de laptops reemplazo la version vigente (2025-12-10, "simplificada y funcional")
+-- por una version vieja (CTE, INNER JOIN a Telefonos, otro orden y otros filtros de fecha).
+-- Este script restaura la version vigente y SOLO le agrega la columna Configuracion (laptops).
+-- Ejecutar en las bases donde ya se corrio SCRIPT_MODULO_LAPTOPS_COMPLETO.sql (principal y espejo).
+-- Requiere dbo.fn_Equipo_Configuracion_Texto (ya creada por el script de laptops).
+-- Fecha: 2026-11-01
 -- ============================================================
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE OR ALTER PROCEDURE [dbo].[Proc_Equipo_Consulta_Vendidos]
-@PageIndex int ,
-@PageSize Int ,
+@PageIndex int,
+@PageSize Int,
 @Almacen int = 0,
-@Imei varchar(30) ='',
-@Telefono bigint= 0,
-@Suplidor varchar(150)='',
-@Vendedor varchar(150)='',
-@ID_Modelo int = 0,  -- CAMBIADO: De @Modelo varchar(60) a @ID_Modelo int
+@Imei varchar(30) = '',
+@Telefono bigint = 0,
+@Suplidor varchar(150) = '',
+@Vendedor varchar(150) = '',
+@ID_Modelo int = 0,
 @Fecha_factura_Inicial datetime = '',
 @Fecha_factura_Final datetime = '',
-@Fecha_Inicio datetime ='',
-@Fecha_Final datetime =''
+@Fecha_Inicio datetime = '',
+@Fecha_Final datetime = ''
 AS
-
 BEGIN
-
-IF @Almacen = 4
-BEGIN
-    SET @Almacen = 0;
-END
-ELSE
-BEGIN
-    SET @Almacen = (SELECT Id_almacen FROM Sucursales_cata WHERE ID_Sucursal = @Almacen);
-END
-
---Set DateFormat MDY;
---Rangos por fecha facturacion--
-
-DECLARE @FechaRi datetime,
-@FechaRf datetime
-
-SET @FechaRi = @Fecha_factura_Inicial
-SET @FechaRf = @Fecha_factura_Final
-
-DECLARE @FrIni int,
-        @FrFin int
-
-SET @FrIni = Year(@FechaRi)*10000+
-             Month(@FechaRi)*100+
-             Day(@FechaRi)
-SET @FrFin = Year(@FechaRf)*10000+
-             Month(@FechaRf)*100+
-             Day(@FechaRf)
-------------------------------
---Rangos por fecha registro---
-
-DECLARE @FechaI Datetime,
-@FechaF Datetime
-
-SET @FechaI =@Fecha_Inicio
-SET @FechaF =@Fecha_Final
-
-DECLARE @FIni int,
-        @FFin Int
-
-  SET @FIni = Year(@FechaI)*10000+
-              Month(@FechaI)*100+
-              Day(@FechaI)
-  SET @FFin = Year(@FechaF)*10000+
-              Month(@FechaF)*100+
-              Day(@FechaF)
--------------------------
---------Pagination-------
-    DECLARE @PageIni int;
-    DECLARE @PageEnd int;
-    DECLARE @Linea int;
-
-    SET @PageIni = 0;
-    SET @PageEnd = 0;
-
-    SET @PageIndex = CASE WHEN @PageIndex = 0 THEN 1 ELSE @PageIndex END;  -- Si es 0 Cambia a 1
-    SET @Pageend = (@PageIndex*@PageSize); -- Multiplicamos el indice por el size y obtenemos la pagina final
-    SET @PageIni = (@Pageend-@PageSize); -- Este Proceso Captura la pag inicial
----------------------------
-
--- MEJORADO: CTE más eficiente usando ROW_NUMBER() en lugar de MAX()
-WITH EquipoFacturas AS (
-    SELECT E.Imei,
-           dt.numero_factura,
-           ROW_NUMBER() OVER (PARTITION BY E.Imei ORDER BY ft.fecha_registro DESC) as rn
-    FROM Equipos AS E
-    INNER JOIN detalle_facturas AS dt ON dt.ID_Equipo = e.imei AND dt.estado = 'A'
-    INNER JOIN facturas AS ft ON ft.numero_factura = dt.numero_factura AND ft.estado = 'A'
-    WHERE ((@Fecha_Inicio ='' AND @Fecha_Final ='') OR
-           (Year(E.Fecha_registro) * 10000+Month(E.Fecha_registro)* 100+Day(E.Fecha_registro)) BETWEEN @FIni AND @FFin)
-)
-SELECT Imei, numero_factura
-INTO #CTE
-FROM EquipoFacturas
-WHERE rn = 1;
-
-
-   --Suma total inventario
-    DECLARE @TotalInventario money;
-    DECLARE @TotalFacturado  money;
-    DECLARE @TotalGanancia   money;
-    DECLARE @TotalComisionDetalle  money;
-    DECLARE @TotalComisionXMayor   money;
-    DECLARE @TotalItbis   money;
-
-     SELECT @TotalInventario =  SUM(df.Costo_Equipo ),
-            @TotalFacturado =SUM(df.total),
-            @TotalGanancia =@TotalFacturado- @TotalInventario ,
-            @TotalComisionDetalle = SUM(e.Comision_Detalle),
-            @TotalComisionXMayor = SUM(e.Comision_Por_Mayor),
-            @TotalItbis = SUM(df.Itbis)
-       FROM equipos E
-      INNER JOIN Modelos AS M
-         ON e.ID_Modelo= M.ID_Modelo
-       LEFT JOIN dbo.Suplidores AS su
-         ON su.id_suplidor = e.ID_Suplidor
-       LEFT JOIN contactos AS CS
-         ON CS.id_contacto = su.id_contacto
-      INNER JOIN Detalle_Facturas df
-         ON e.Imei = df.ID_Equipo and df.estado = 'A'
-       LEFT JOIN facturas AS ft
-         ON ft.numero_factura = df.numero_factura and df.estado = 'A'
-      INNER JOIN Vendedores v
-         ON v.ID_Vendedor = ft.ID_Vendedor
-       LEFT JOIN clientes AS cl
-         ON cl.id_cliente = ft.id_cliente
-      INNER JOIN Contactos c
-         ON c.ID_Contacto = v.ID_Contacto
-       LEFT JOIN contactos AS co
-         ON co.id_contacto = cl.id_contacto
-            JOIN Telefonos AS te
-         ON co.ID_Contacto = te.ID_Contacto
-      WHERE ( CS.Nombres ='' OR CS.Nombres +' '+ CS.Apellidos like '%'+ @Suplidor  + '%' )
-        AND ( c.Nombres ='' OR c.Nombres +' '+ c.Apellidos like '%'+ @Vendedor  + '%' )
-        AND ((@Almacen=0) OR  (E.ID_Almacen =@Almacen ))
-        AND ((@imei ='') OR (df.ID_Equipo = @Imei	))
-        AND ((@Telefono =0) OR (te.Numero_Telefono = @Telefono	))
-        AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))  -- CAMBIADO: Filtro por ID en lugar de LIKE con descripción
-        AND (
-     (@Imei <> '')
-     OR (
-          ((@Fecha_factura_Inicial ='' AND @Fecha_factura_Final ='')
-           OR (Year(df.Fecha_registro) * 10000 + Month(df.Fecha_registro) * 100 + Day(df.Fecha_registro)) BETWEEN @FrIni AND @FrFin
-          )
-         AND
-          ((@Fecha_Inicio ='' AND @Fecha_Final ='')
-           OR (Year(E.Fecha_registro) * 10000 + Month(E.Fecha_registro) * 100 + Day(E.Fecha_registro)) BETWEEN @FIni AND @FFin
-          )
-     )
-)
-        AND	((@Fecha_Inicio ='' AND @Fecha_Final ='') or (Year(E.Fecha_registro) * 10000+Month(E.Fecha_registro)* 100+Day(E.Fecha_registro) ) BETWEEN @FIni AND @FFin)
-         AND e.disponible = 'N' -- equipo este vendido
-         AND df.Estado = 'A' -- que la factura no este anulada
-         --AND ft.id_tipo_pagos = 1 -- tipo de pago sea de contado
-         AND df.ID_Tipo = 1 -- que sea equipo
-         AND ft.ID_Tipo_Factura <>3 -- diferente de consignacion
-        AND ft.Literal+Convert(Varchar(10),Ft.Numero_Factura) =df.literalF
-
-    SELECT
-            E.ID_Equipo numero,
+    SET NOCOUNT ON;
+    
+    SET @PageIndex = CASE WHEN @PageIndex <= 0 THEN 1 ELSE @PageIndex END;
+    
+    -- Convertir almacén si es necesario
+    IF @Almacen = 4 SET @Almacen = 0;
+    IF @Almacen > 0 SET @Almacen = ISNULL((SELECT TOP 1 Id_almacen FROM Sucursales_cata WHERE ID_Sucursal = @Almacen), 0);
+    
+    -- Tabla temporal para resultados
+    CREATE TABLE #Resultado (
+        RowNum INT,
+        ID_Equipo INT,
+        Imei VARCHAR(50),
+        Descripcion VARCHAR(MAX),
+        [Por Mayor] DECIMAL(18,2),
+        [Al Detalle] DECIMAL(18,2),
+        [Costo] DECIMAL(18,2),
+        [Precio Vendido] DECIMAL(18,2),
+        [Tipo Factura] VARCHAR(100),
+        Desb VARCHAR(50),
+        Itbis DECIMAL(18,2),
+        Nota VARCHAR(MAX),
+        Descripcion_Almacen VARCHAR(100),
+        Suplidor VARCHAR(MAX),
+        Vendedor VARCHAR(MAX),
+        cliente VARCHAR(MAX),
+        [Fecha facturado] DATETIME,
+        Factura VARCHAR(50),
+        Fecha_registro DATETIME,
+        [Comision Detalle] DECIMAL(18,2),
+        [Comision Por Mayor] DECIMAL(18,2),
+        Configuracion VARCHAR(100)
+    );
+    
+    -- CTE para numeración eficiente
+    WITH DatosNumerados AS (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY ft.fecha_registro DESC, e.Imei ASC) as RowNum,
+            E.ID_Equipo,
             e.Imei,
             M.Descripcion,
             E.Precio_Por_Mayor AS [Por Mayor],
             E.Precio_Detalle AS [Al Detalle],
             E.Costo_Equipo AS [Costo],
             df.total AS [Precio Vendido],
-            tpc.descripcion_tipo_pagos AS [Tipo Factura],
-            E.Desbloqueado AS Desb,
-            df.Itbis,
-            e.Nota_Adicional AS Nota,
-            al.Descripcion_Almacen,
-            cs.Nombres +' '+cs.Apellidos AS Suplidor,
-            c.Nombres +' '+c.Apellidos AS Vendedor,
-            co.Nombres +' '+co.Apellidos AS cliente,
+            ISNULL(tpc.descripcion_tipo_pagos, '') AS [Tipo Factura],
+            ISNULL(E.Desbloqueado, '') AS Desb,
+            ISNULL(df.Itbis, 0) AS Itbis,
+            ISNULL(e.Nota_Adicional, '') AS Nota,
+            ISNULL(al.Descripcion_Almacen, '') AS Descripcion_Almacen,
+            ISNULL(cs.Nombres + ' ' + ISNULL(cs.Apellidos, ''), '') AS Suplidor,
+            ISNULL(c.Nombres + ' ' + ISNULL(c.Apellidos, ''), '') AS Vendedor,
+            ISNULL(co.Nombres + ' ' + ISNULL(co.Apellidos, ''), '') AS cliente,
             df.fecha_registro AS [Fecha facturado],
             ft.Numero_Factura AS Factura,
-            E.Fecha_registro ,
-            e.Comision_Detalle AS [Comision Detalle],
-            e.Comision_Por_Mayor AS [Comision Por Mayor],
-            TotalInventario = @TotalInventario,
-            TotalFacturado  = @TotalFacturado,
-            TotalGanancia   = @TotalGanancia,
-            TotalComisionDetalle = @TotalComisionDetalle,
-            TotalComisionXMayor =@TotalComisionXMayor,
-            TotalItbis= @TotalItbis,
+            E.Fecha_registro,
+            ISNULL(e.Comision_Detalle, 0) AS [Comision Detalle],
+            ISNULL(e.Comision_Por_Mayor, 0) AS [Comision Por Mayor],
             dbo.fn_Equipo_Configuracion_Texto(e.Imei) AS Configuracion
-            INTO #Temporal
-      FROM #CTE cte WITH(NOLOCK)
-     INNER JOIN equipos e
-        ON e.imei = cte.imei
-     INNER JOIN Modelos AS M
-        ON e.ID_Modelo= M.ID_Modelo
-     INNER JOIN dbo.Tecnologias_Cata AS T
-        ON E.ID_Tecnologia = T.ID_Tecnologia
-     INNER JOIN Almacen_Cata AS al
-        ON E.ID_Almacen = al.ID_Almacen
-      LEFT JOIN facturas AS ft
-        ON cte.numero_factura = ft.numero_factura and ft.estado = 'A'
-      LEFT JOIN clientes AS cl
-        ON cl.id_cliente = ft.id_cliente
-      LEFT JOIN contactos AS co
-        ON co.id_contacto = cl.id_contacto
-      JOIN Telefonos AS te
-        ON co.ID_Contacto = te.ID_Contacto
-      LEFT JOIN dbo.Suplidores AS su
-        ON su.id_suplidor = e.ID_Suplidor
-      LEFT JOIN contactos AS CS
-        ON CS.id_contacto = su.id_contacto
-     INNER JOIN Detalle_Facturas df
-        ON e.Imei = df.ID_Equipo
-     INNER JOIN Vendedores v
-        ON v.ID_Vendedor = ft.ID_Vendedor
-     INNER JOIN Contactos c
-        ON c.ID_Contacto = v.ID_Contacto
-     INNER JOIN Tipos_Facturas_Cata tfc
-        ON tfc.ID_Tipo_Factura = ft.ID_Tipo_Factura
-     INNER JOIN tipos_pagos_cata tpc
-        ON tpc.id_tipo_pagos = ft.id_tipo_pagos
+        FROM Equipos e WITH(NOLOCK)
+        INNER JOIN Modelos M WITH(NOLOCK) ON e.ID_Modelo = M.ID_Modelo
+        INNER JOIN Detalle_Facturas df WITH(NOLOCK) ON e.Imei = df.ID_Equipo AND df.estado = 'A' AND df.ID_Tipo = 1
+        INNER JOIN Facturas ft WITH(NOLOCK) ON ft.numero_factura = df.numero_factura AND ft.estado = 'A' AND ft.ID_Tipo_Factura <> 3
+        INNER JOIN Almacen_Cata al WITH(NOLOCK) ON E.ID_Almacen = al.ID_Almacen
+        LEFT JOIN Vendedores v WITH(NOLOCK) ON v.ID_Vendedor = ft.ID_Vendedor
+        LEFT JOIN Contactos c WITH(NOLOCK) ON c.ID_Contacto = v.ID_Contacto
+        LEFT JOIN Clientes cl WITH(NOLOCK) ON cl.id_cliente = ft.id_cliente
+        LEFT JOIN Contactos co WITH(NOLOCK) ON co.id_contacto = cl.id_contacto
 
-     WHERE ( CS.Nombres ='' OR CS.Nombres +' '+ CS.Apellidos like '%'+ @Suplidor  + '%' )
-        AND ( c.Nombres ='' OR c.Nombres +' '+ c.Apellidos like '%'+ @Vendedor  + '%' )
-        AND ((@Almacen=0) OR  (E.ID_Almacen =@Almacen ))
-        AND ((@imei ='') OR (df.ID_Equipo = @Imei	))
-        AND ((@Telefono =0) OR (te.Numero_Telefono = @Telefono	))
-        AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))  -- CAMBIADO: Filtro por ID en lugar de LIKE con descripción
-        AND (
-     (@Imei <> '')
-     OR (
-          ((@Fecha_factura_Inicial ='' AND @Fecha_factura_Final ='')
-           OR (Year(df.Fecha_registro) * 10000 + Month(df.Fecha_registro) * 100 + Day(df.Fecha_registro)) BETWEEN @FrIni AND @FrFin
-          )
-         AND
-          ((@Fecha_Inicio ='' AND @Fecha_Final ='')
-           OR (Year(E.Fecha_registro) * 10000 + Month(E.Fecha_registro) * 100 + Day(E.Fecha_registro)) BETWEEN @FIni AND @FFin
-          )
-     )
-)
-        AND	((@Fecha_Inicio ='' AND @Fecha_Final ='') or (Year(E.Fecha_registro) * 10000+Month(E.Fecha_registro)* 100+Day(E.Fecha_registro) ) BETWEEN @FIni AND @FFin)
-         AND e.disponible = 'N' -- equipo este vendido
-         AND df.Estado = 'A' -- que la factura no este anulada
-         --AND ft.id_tipo_pagos = 1 -- tipo de pago sea de contado
-         AND df.ID_Tipo = 1 -- que sea equipo
-         AND ft.ID_Tipo_Factura <>3 -- diferente de consignacion
-        AND ft.Literal+Convert(Varchar(10),Ft.Numero_Factura) =df.literalF
-   ORDER BY ft.fecha_registro ASC
-
-         -- Registros
-  DECLARE @Registros Int
-  SET @Registros = (SELECT COUNT(numero) From #Temporal);
-  --SELECT  @Registros = Max(Linea) FROM #Temporal
-    IF @PageEnd > @Registros
-    BEGIN
-        SET @PageEnd = @Registros
-    END
-   -- Devolver Resultado
-      SELECT  *,
-              Linea = @PageIni + 1,
-              Ultima_Linea = @PageEnd,
-              Cantidad_Registros = @Registros
-         FROM #Temporal
-     ORDER BY Linea
-     OFFSET @PageSize * (@PageIndex - 1) ROWS
-    FETCH NEXT @PageSize ROWS ONLY  ;
-
-      DROP TABLE #CTE
-      DROP TABLE #Temporal
+        LEFT JOIN Suplidores su WITH(NOLOCK) ON su.id_suplidor = e.ID_Suplidor
+        LEFT JOIN Contactos cs WITH(NOLOCK) ON cs.id_contacto = su.id_contacto
+        LEFT JOIN tipos_pagos_cata tpc WITH(NOLOCK) ON tpc.id_tipo_pagos = ft.id_tipo_pagos
+        WHERE e.disponible = 'N'
+          AND ((@Almacen = 0) OR (E.ID_Almacen = @Almacen))
+          AND ((@Imei = '') OR (e.Imei = @Imei))
+          AND ((@Suplidor = '') OR (cs.Nombres + ' ' + ISNULL(cs.Apellidos, '') LIKE '%' + @Suplidor + '%'))
+          AND ((@Vendedor = '') OR (c.Nombres + ' ' + ISNULL(c.Apellidos, '') LIKE '%' + @Vendedor + '%'))
+          AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))
+          AND ((@Fecha_factura_Inicial = '' OR @Fecha_factura_Final = '') OR (CAST(df.fecha_registro AS DATE) BETWEEN CAST(@Fecha_factura_Inicial AS DATE) AND CAST(@Fecha_factura_Final AS DATE)))
+          AND ((@Fecha_Inicio = '' OR @Fecha_Final = '') OR (CAST(e.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)))
+    )
+    INSERT INTO #Resultado
+    SELECT * FROM DatosNumerados;
+    
+    -- Calcular totales de manera eficiente
+    DECLARE @TotalRegistros INT = (SELECT COUNT(*) FROM #Resultado);
+    DECLARE @TotalInventario MONEY = (SELECT ISNULL(SUM([Costo]), 0) FROM #Resultado);
+    DECLARE @TotalFacturado MONEY = (SELECT ISNULL(SUM([Precio Vendido]), 0) FROM #Resultado);
+    DECLARE @TotalGanancia MONEY = (@TotalFacturado - @TotalInventario);
+    DECLARE @TotalComisionDetalle MONEY = (SELECT ISNULL(SUM([Comision Detalle]), 0) FROM #Resultado);
+    DECLARE @TotalComisionXMayor MONEY = (SELECT ISNULL(SUM([Comision Por Mayor]), 0) FROM #Resultado);
+    DECLARE @TotalItbis MONEY = (SELECT ISNULL(SUM(Itbis), 0) FROM #Resultado);
+    
+    -- Retornar datos paginados
+    SELECT 
+        *,
+        TotalInventario = @TotalInventario,
+        TotalFacturado = @TotalFacturado,
+        TotalGanancia = @TotalGanancia,
+        TotalComisionDetalle = @TotalComisionDetalle,
+        TotalComisionXMayor = @TotalComisionXMayor,
+        TotalItbis = @TotalItbis,
+        Linea = (@PageSize * (@PageIndex - 1) + 1),
+        Ultima_Linea = CASE WHEN (@PageSize * @PageIndex) > @TotalRegistros THEN @TotalRegistros ELSE (@PageSize * @PageIndex) END,
+        Cantidad_Registros = @TotalRegistros
+    FROM #Resultado
+    WHERE RowNum > (@PageSize * (@PageIndex - 1))
+      AND RowNum <= (@PageSize * @PageIndex)
+    ORDER BY RowNum;
+    
+    DROP TABLE #Resultado;
 END
 GO

@@ -18,7 +18,6 @@ namespace MVSystemApi.Controllers
         private readonly IAccesoDatos _accesoDatos;
         private readonly int _horasMaxCustodia;
         private readonly bool _bloquearVencidos;
-        private readonly decimal _porcentajeCostoUsado;
 
         // Permisos del módulo (seg.Permisos). Llegan en el token como claims "role".
         private const string PermisoCambioPieza = "LAPTOP_CAMBIO_PIEZA";
@@ -34,7 +33,6 @@ namespace MVSystemApi.Controllers
             _accesoDatos = accesoDatos;
             _horasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
             _bloquearVencidos = configuration.GetValue("Laptops:BloquearTecnicoConPendientesVencidos", false);
-            _porcentajeCostoUsado = configuration.GetValue("Laptops:PorcentajeCostoUsado", 50m);
         }
 
         /// <summary>True si el usuario tiene al menos uno de los permisos indicados.</summary>
@@ -57,7 +55,7 @@ namespace MVSystemApi.Controllers
         public ActionResult CustodiaConfiguracion()
         {
             if (!TienePermiso(PermisoCambioPieza, PermisoCustodiaConsulta)) { return SinPermiso(); }
-            return Ok(new { horasMax = _horasMaxCustodia, bloquearVencidos = _bloquearVencidos, porcentajeCostoUsado = _porcentajeCostoUsado });
+            return Ok(new { horasMax = _horasMaxCustodia, bloquearVencidos = _bloquearVencidos });
         }
 
         /// <summary>

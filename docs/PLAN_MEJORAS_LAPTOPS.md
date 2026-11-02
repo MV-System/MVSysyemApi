@@ -131,6 +131,51 @@
 - Hoy se mezclan `GETDATE()` y `DATEADD(HOUR,-4,GETDATE())` (ej. `Fecha_Recepcion` usa `GETDATE()`, `Equipos_Historico` usa −4h).
 - Revisar cómo guarda la fecha el resto del sistema en el servidor de producción y **preguntar al usuario** cuál es la correcta. Unificar todos los SP del módulo a esa forma. Las horas de custodia (`DATEDIFF`) deben comparar fechas del mismo tipo.
 
+### Tarea 10 – Botón "Actualizar lista" en la pantalla de cambio de pieza
+**Contexto:** si la pieza a instalar no existe o no tiene existencia, no sale en la lista. El técnico avisa al encargado, que la registra en Accesorios (con su permiso, en otra pestaña). El técnico necesita ver la pieza nueva **sin salir de la pantalla ni perder lo que ya llenó**.
+- Solo front (`laptop-cambio-pieza`). No cambia API, SP ni permisos.
+- Agregar un botón pequeño de **actualizar** (icono `bi-arrow-clockwise`, con tooltip "Actualizar lista") junto a la lista **"Pieza que se instala"**.
+- Al pulsarlo, volver a cargar esa lista con los mismos filtros (almacén de la laptop y tipo de pieza). Mientras carga, botón deshabilitado con spinner.
+- **No borrar nada del formulario.** Si la pieza que estaba elegida sigue en la lista, mantenerla seleccionada; si ya no está (se quedó sin existencia), limpiar solo ese campo y avisar con un toast.
+- Deshabilitado si todavía no se buscó una laptop o no se eligió el tipo de pieza.
+- Aceptación: con el formulario a medio llenar, registrar en otra pestaña una pieza con existencia en ese almacén → pulsar actualizar → la pieza aparece y el resto del formulario sigue igual.
+
+### Tarea 11 – Quitar la variante "(Usado)": la pieza retirada vuelve al mismo accesorio
+**Decisión del usuario:** las piezas retiradas se reutilizan y el precio de venta lo acuerdan vendedor y encargado al facturar. No hace falta separar nuevo/usado. **Reemplaza la regla de la Tarea 5** (costo al 50% y accesorio "(Usado)").
+- `Accesorio_Componente_Asegurar`: dejar de usar `@Usado` (ignorarlo si llega). Busca el accesorio por modelo de componente + capacidad **sin "(Usado)"**; si no existe en ningún almacén, se crea como hoy (todos los almacenes, cantidad 0, inactivo si no hay precios).
+- `Equipo_Cambio_Pieza_Registrar`: `Costo_Retirado` = **costo del accesorio en catálogo** (sin porcentaje). Ya no crear ni buscar "(Usado)".
+- `Equipo_Cambio_Pieza_Recibir`: suma +1 a **ese mismo accesorio** en el almacén del cambio.
+- **Regla que no cambia:** el stock **solo sube cuando el encargado recibe la pieza** en la pantalla de Custodia (`Recibir`). Al registrar el cambio, la pieza queda `PENDIENTE` y el accesorio no se toca (si hay que crearlo, se crea con cantidad 0).
+- API/appsettings: se eliminó `Laptops:PorcentajeCostoUsado` y su uso (decisión del usuario).
+- **Datos ya creados en la base de prueba** (sección 12 de `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql`, idempotente, principal y espejo; no hay script aparte): por cada accesorio "(Usado)", sumar su `Cantidad` (solo lo ya recibido) al accesorio normal equivalente del mismo almacén (si no existe, el "(Usado)" se renombra sin el sufijo y conserva su ID, para que los ID coincidan en la espejo), cambiar las referencias en `Equipo_Cambio_Pieza` y `Equipo_Configuracion_Modulo` al accesorio normal, poner la cantidad del "(Usado)" en 0 e inactivarlo. Mostrar al final la lista de lo movido.
+- Actualizar `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql` con las versiones nuevas.
+- Aceptación: retirar una RAM 16GB DDR4 3200 → al recibirla sube el stock del accesorio "16GB DDR4 3200" (no se crea "(Usado)"); el costo descontado a la laptop = costo de catálogo de ese accesorio.
+
+### Tarea 12 – Registro de TODOS los movimientos de stock de accesorios
+**Problema:** el kardex no sabe de entradas de mercancía, ajustes manuales de cantidad ni devoluciones por anulación; solo cambia `Accesorios.Cantidad`. Se necesita saber **quién, cuándo, cuánto y por qué** de cada cambio de existencia.
+- Tabla nueva `dbo.Accesorio_Movimiento`: `ID_Movimiento INT IDENTITY PK, ID_Accesorio BIGINT NOT NULL, ID_Almacen INT NOT NULL, Fecha DATETIME NOT NULL (hora local), Cantidad_Anterior INT, Cantidad_Nueva INT, Diferencia INT (+ entrada / − salida), Motivo VARCHAR(30) NOT NULL, Documento VARCHAR(50) NULL (factura, serial de laptop, ID de cambio…), Usuario VARCHAR(60) NULL, Nota VARCHAR(250) NULL`. Índices `(ID_Accesorio, Fecha)` y `(Fecha)`.
+- **Captura con trigger** `TR_Accesorios_Movimiento` (AFTER INSERT, UPDATE) sobre `dbo.Accesorios`: inserta una fila por cada accesorio cuya `Cantidad` cambió (incluye la creación con cantidad > 0). Así **ningún camino** que mueva stock queda sin registro, aunque se nos escape un SP.
+- **Contexto (motivo, documento, usuario):** los SP que mueven stock ponen `EXEC sp_set_session_context 'mov_motivo', '<MOTIVO>'; … 'mov_documento', …; … 'mov_usuario', @Usuario;` antes del UPDATE, y el trigger los lee con `SESSION_CONTEXT()`. Limpiarlos al final del SP. Si un cambio llega **sin contexto**, el trigger guarda `Motivo = 'AJUSTE'` y `Usuario = SUSER_SNAME()`.
+- Motivos: `ENTRADA` (registro de accesorio o aumento de stock), `AJUSTE` (edición manual de cantidad), `VENTA` (factura / prefactura procesada), `ANULACION_FACTURA` (devolución por anular), `CAMBIO_PIEZA` (instalada), `RECEPCION_PIEZA` (retirada recibida), `ANULACION_CAMBIO`, `TRANSFERENCIA` si existe para accesorios.
+- **Encontrar todos los SP que cambian la existencia**: pedir al usuario que ejecute en la base de prueba y pase el resultado:
+  ```sql
+  SELECT o.name FROM sys.sql_modules m JOIN sys.objects o ON o.object_id = m.object_id
+   WHERE m.definition LIKE '%Accesorios%' AND m.definition LIKE '%Cantidad%' ORDER BY o.name;
+  ```
+  Para cada uno: pedir su definición actual (`sp_helptext`) y **solo agregar** las líneas de `sp_set_session_context` (G3/G5). No cambiar nada más de su lógica.
+- El usuario de la aplicación debe llegar al SP (la mayoría ya recibe `@Usuario`); si un SP no lo recibe, no cambiar su firma: el trigger usa `SUSER_SNAME()`.
+- Réplica en la espejo: el trigger también existe en la espejo y registra al replicarse el SP; no replicar la tabla de movimientos por separado.
+- Aceptación: registrar un accesorio con 5, editarlo a 7, venderle 1, anular esa factura, instalarlo en un cambio de laptop y recibir una retirada → `Accesorio_Movimiento` tiene 6 filas con su motivo, documento, usuario y fecha correctos.
+
+### Tarea 13 – Vista "Movimientos" dentro de la consulta de accesorios (eliminar pantallas)
+**Decisión del usuario:** lo mínimo pero funcional; no crear pantallas que solo amplían el menú.
+- En `Accesorios → Consulta`, el selector **Disponibles | Vendidos** pasa a **Disponibles | Vendidos | Movimientos**.
+- "Movimientos": lista desde `Accesorio_Movimiento` con filtros de fecha, almacén, motivo y usuario/técnico (los filtros solo se muestran en esta vista). Si el buscador tiene un accesorio específico, mostrar además su **saldo** fila a fila. Totales de entradas y salidas por motivo. **Sin exportar a Excel** (decisión del usuario: quien necesite la información la consulta en el sistema); la exportación de la pantalla de Consumo se elimina con ella.
+- Historia anterior a la Tarea 12: unir la información que ya existe (ventas por factura y cambios de pieza) solo para fechas anteriores al primer registro de `Accesorio_Movimiento`, marcada como "histórico".
+- Mostrar la opción "Movimientos" solo con el permiso nuevo `ACCESORIOS_MOVIMIENTOS` (decisión del usuario; hay que crearlo en la BD de seguridad y darle el script de alta). El permiso `LAPTOP_CONSUMO_COMPONENTES` queda sin uso al eliminar la pantalla de Consumo.
+- **Eliminar** las pantallas *Kardex de accesorios* y *Consumo de componentes* (componentes, rutas y opciones del menú). Los SP de kardex que ya no se usen se dejan de llamar; borrarlos del script completo solo si nada más los usa.
+- Aceptación: el menú queda sin "Kardex de accesorios" ni "Consumo de componentes"; desde la consulta de accesorios se ven todos los movimientos de un accesorio normal (ej. un cargador) y de una pieza de laptop.
+
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).
 2. Scripts SQL a ejecutar y en qué orden (siempre en **principal y espejo**).

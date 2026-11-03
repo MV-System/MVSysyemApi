@@ -3,7 +3,7 @@
 -- Fecha: 2026-10-30
 --
 -- Incluye: grupos y tablas base, especificacion de componentes (Tarea 1), modulos por laptop (Tarea 2),
--- cambio de pieza por modulos, pieza usada, anulacion, custodia, kardex y comprobante (Tareas 3 a 8),
+-- cambio de pieza por modulos, pieza usada, anulacion, custodia, kardex (Tareas 3 a 8),
 -- fechas en hora local (Tarea 9) y los procedimientos de consulta que muestran la configuracion.
 --
 -- Ejecutar en TODAS las bases (principal y espejo de cada empresa), de una sola vez y de arriba hacia abajo.
@@ -1238,7 +1238,7 @@ GO
 
 
 -- ############################################################
--- 6. CAMBIO DE PIEZA: registrar, recibir, entregar al cliente, pendientes, anular, historial y comprobante
+-- 6. CAMBIO DE PIEZA: registrar, recibir, entregar al cliente, pendientes, anular e historial
 -- ############################################################
 
 CREATE OR ALTER PROCEDURE dbo.Equipo_Cambio_Pieza_Registrar
@@ -2226,43 +2226,6 @@ BEGIN
     LEFT JOIN dbo.Equipos E ON E.Imei = C.Imei
     WHERE C.Imei = @Imei
     ORDER BY C.Fecha_Registro DESC, C.ID_Cambio DESC;
-END
-GO
-
-CREATE OR ALTER PROCEDURE dbo.Equipo_Cambio_Pieza_Comprobante
-    @ID_Cambio INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT C.ID_Cambio,
-           C.Fecha_Registro,
-           C.Imei,
-           Marca = Ma.Descripcion,
-           Modelo = M.Descripcion,
-           C.Tipo_Pieza,
-           Pieza_Retirada = AR.Descripcion_Accesorio,
-           Modelo_Retirada = MR.Descripcion,
-           Pieza_Instalada = AI.Descripcion_Accesorio,
-           Modelo_Instalada = MI.Descripcion,
-           C.Config_Anterior,
-           C.Config_Nueva,
-           C.Costo_Retirado,
-           C.Tecnico,
-           C.Usuario_Registro,
-           C.Estado_Custodia,
-           C.ID_Almacen,
-           AC.Descripcion_Almacen
-      FROM dbo.Equipo_Cambio_Pieza C
-      LEFT JOIN dbo.Equipos E ON E.Imei = C.Imei
-      LEFT JOIN dbo.Modelos M ON M.ID_Modelo = E.ID_Modelo
-      LEFT JOIN dbo.Marcas Ma ON Ma.ID_Marca = M.ID_Marca
-      LEFT JOIN dbo.Accesorios AR ON AR.ID_Accesorio = C.ID_Accesorio_Retirado
-      LEFT JOIN dbo.Modelos MR ON MR.ID_Modelo = AR.ID_Modelo
-      LEFT JOIN dbo.Accesorios AI ON AI.ID_Accesorio = C.ID_Accesorio_Instalado
-      LEFT JOIN dbo.Modelos MI ON MI.ID_Modelo = AI.ID_Modelo
-      LEFT JOIN dbo.Almacen_Cata AC ON AC.ID_Almacen = C.ID_Almacen
-     WHERE C.ID_Cambio = @ID_Cambio;
 END
 GO
 
@@ -5024,6 +4987,10 @@ BEGIN
            Salidas_Historicas   = ISNULL(SUM(CASE WHEN Origen = 'HISTORICO' THEN Salida  END), 0)
       FROM M;
 END
+GO
+
+-- Tarea 16: el comprobante de custodia ya no se usa
+DROP PROCEDURE IF EXISTS dbo.Equipo_Cambio_Pieza_Comprobante;
 GO
 
 -- ============================================================

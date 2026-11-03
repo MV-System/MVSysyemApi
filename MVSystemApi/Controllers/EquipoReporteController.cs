@@ -16,96 +16,12 @@ namespace MVSystemApi.Controllers
         private readonly Equipos_Negocio _equipos_Negocio;
         private readonly SeguridadService _SS;
         private readonly AccesoDatos _accesoDatos;
-        private readonly int _laptopsHorasMaxCustodia;
 
         public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS, AccesoDatos accesoDatos, IConfiguration configuration)
         {
-            _laptopsHorasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
             _equipos_Negocio = equipos_Negocio;
             _SS = SS;
             _accesoDatos = accesoDatos;
-        }
-
-        /// <summary>
-        /// Comprobante (ticket de 80 mm) de la pieza retirada que queda en custodia del técnico.
-        /// GET: EquipoReporte/ComprobanteCustodia?idCambio=&idEmpresa=&idSucursal=&tecnicoNombre=
-        /// </summary>
-        [HttpGet]
-        [Authorize]
-        [Route("ComprobanteCustodia")]
-        public IActionResult ComprobanteCustodia(int idCambio, int idEmpresa, int idSucursal, string tecnicoNombre = null)
-        {
-            try
-            {
-                // Mismos permisos que la pantalla de cambio de pieza y la consulta de custodia
-                bool autorizado = User.Claims.Any(claim =>
-                    (claim.Type == "role" || claim.Type == ClaimTypes.Role)
-                    && (claim.Value == "LAPTOP_CAMBIO_PIEZA" || claim.Value == "LAPTOP_CUSTODIA_CONSULTA"));
-                if (!autorizado)
-                {
-                    return StatusCode(StatusCodes.Status403Forbidden, "No tiene permisos para realizar esta acción.");
-                }
-
-                var tabla = _accesoDatos.Equipo_Cambio_Pieza_Comprobante(idCambio);
-                if (tabla == null || tabla.Rows.Count == 0)
-                {
-                    return NotFound("No se encontró el cambio de pieza.");
-                }
-
-                var fila = tabla.Rows[0];
-                string Texto(string columna) => fila[columna] == DBNull.Value ? null : Convert.ToString(fila[columna]);
-
-                var fechaRegistro = Convert.ToDateTime(fila["Fecha_Registro"]);
-                var comprobante = new ComprobanteCustodiaDTO
-                {
-                    IdCambio = Convert.ToInt32(fila["ID_Cambio"]),
-                    FechaRegistro = fechaRegistro,
-                    HorasMax = _laptopsHorasMaxCustodia,
-                    FechaLimite = fechaRegistro.AddHours(_laptopsHorasMaxCustodia),
-                    Imei = Texto("Imei"),
-                    Marca = Texto("Marca"),
-                    Modelo = Texto("Modelo"),
-                    TipoPieza = Texto("Tipo_Pieza"),
-                    PiezaRetirada = Texto("Pieza_Retirada"),
-                    ModeloRetirada = Texto("Modelo_Retirada"),
-                    PiezaInstalada = Texto("Pieza_Instalada"),
-                    ModeloInstalada = Texto("Modelo_Instalada"),
-                    ConfigAnterior = Texto("Config_Anterior"),
-                    ConfigNueva = Texto("Config_Nueva"),
-                    CostoRetirado = fila["Costo_Retirado"] == DBNull.Value ? 0 : Convert.ToDecimal(fila["Costo_Retirado"]),
-                    Tecnico = Texto("Tecnico"),
-                    TecnicoNombre = tecnicoNombre,
-                    UsuarioRegistro = Texto("Usuario_Registro"),
-                    EstadoCustodia = Texto("Estado_Custodia"),
-                    Almacen = Texto("Descripcion_Almacen")
-                };
-
-                if (comprobante.EstadoCustodia != "PENDIENTE")
-                {
-                    return BadRequest("Solo las piezas en custodia (pendientes de recibir) tienen comprobante.");
-                }
-
-                DatosEmpresa datosEmpresa = _SS.GetDatosEmpresa(idEmpresa, idSucursal);
-                if (datosEmpresa == null)
-                {
-                    return BadRequest("No se pudieron obtener los datos de empresa para generar el comprobante.");
-                }
-
-                string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
-                datosEmpresa.Logo = baseUrl + "/assets/" + datosEmpresa.Logo + ".png";
-
-                var data = new EmpresaReportes
-                {
-                    DatosEmpresaFactura = datosEmpresa,
-                    ComprobanteCustodia = comprobante
-                };
-
-                return new ViewAsPdf(data);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, "Se produjo un error al generar el comprobante de custodia.");
-            }
         }
 
         [HttpPost]

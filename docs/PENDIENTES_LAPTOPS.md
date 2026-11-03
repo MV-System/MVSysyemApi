@@ -21,4 +21,12 @@
 - [x] **Quitar la variante "(Usado)":** la pieza retirada vuelve al mismo accesorio, al costo de catálogo (reemplaza la regla de la Tarea 5). (Tarea 11)
 - [x] **Registro de todos los movimientos de stock de accesorios** (entradas, ajustes, ventas, anulaciones, cambios): quién, cuándo, cuánto y por qué. (Tarea 12)
 - [x] **Vista "Movimientos" en la consulta de accesorios** y eliminar las pantallas de Kardex y Consumo. (Tarea 13)
-- [ ] **Separación técnico / encargado:** técnico automático, sin destino "cliente" al registrar, recibir/entregar/anular solo por otro usuario con permiso (validado en el API). (Tarea 14)
+- [x] **Separación técnico / encargado:** técnico automático, sin destino "cliente" al registrar, recibir/entregar/anular solo por otro usuario con permiso (validado en el API). (Tarea 14)
+- [x] **Una sola entrada "Laptops" en el menú** (selector Cambio de pieza | Custodia según permiso). (Tarea 15)
+- [x] **Quitar el comprobante de custodia** (front, API y script). (Tarea 16)
+- [ ] **Quitar el campo "Tipo de pieza"**: se deduce de lo que sale o entra; lista agrupada cuando sale "Ninguna". (Tarea 17)
+
+## Para evaluar más adelante (no implementar todavía)
+- **Quitar una pieza sin poner otra** (ej. laptop 8+8 que se vende con 8): hoy "Pieza que entra" es obligatoria.
+- **Pieza retirada dañada:** hoy toda pieza retirada vuelve al stock como buena al recibirla; no hay forma de marcarla como dañada.
+- **Agrupar permisos** (técnico / encargado): esperar a ver en la práctica quién hace cada tarea.

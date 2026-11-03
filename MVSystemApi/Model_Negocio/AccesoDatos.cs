@@ -5273,29 +5273,6 @@ WHERE ENCF = @encf", connection);
             }
         }
 
-        /// <summary>Datos del comprobante de custodia (ticket) de un cambio de pieza.</summary>
-        public DataTable Equipo_Cambio_Pieza_Comprobante(int idCambio)
-        {
-            try
-            {
-                cn.Open();
-                SqlCommand cmd = cn.CreateCommand();
-                cmd.CommandText = "Equipo_Cambio_Pieza_Comprobante";
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@ID_Cambio", idCambio);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                cn.Close();
-                return dt;
-            }
-            catch (Exception)
-            {
-                if (cn.State == ConnectionState.Open) cn.Close();
-                throw;
-            }
-        }
-
         public DataTable Equipo_Cambio_Pieza_Historial(string imei)
         {
             try

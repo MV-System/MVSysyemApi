@@ -193,6 +193,33 @@
 - Actualizar `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql`. Solo base de pruebas (ver aviso ⛔).
 - Aceptación: (a) el técnico no puede elegir otro técnico ni marcar "cliente"; (b) el técnico no puede recibir, entregar ni anular su propio cambio aunque tenga los permisos por error; (c) llamando al API directo sin el permiso → 403.
 
+### Tarea 15 – Una sola entrada "Laptops" en el menú
+**Decisión del usuario:** menos opciones de menú; mismo patrón que la consulta de accesorios (selector de vistas).
+- Reemplazar las dos opciones del menú "Cambio de pieza (laptop)" y "Custodia de piezas (laptop)" por **una sola: "Laptops"**.
+- En esa pantalla, un selector **Cambio de pieza | Custodia**. Cada opción se muestra solo si el usuario tiene su permiso (`LAPTOP_CAMBIO_PIEZA` / `LAPTOP_CUSTODIA_CONSULTA`); si solo tiene uno, se abre directo en esa vista y el selector no se muestra.
+- Reutilizar los componentes actuales (`laptop-cambio-pieza`, `laptop-custodia`) dentro de la nueva pantalla; no duplicar lógica. Mantener las rutas viejas redirigiendo a la nueva para no romper accesos guardados.
+- Los permisos **no cambian** (se evaluará más adelante si se agrupan).
+- Solo front. Aceptación: el menú muestra una sola opción "Laptops"; técnico ve solo Cambio de pieza; encargado ve solo Custodia; un usuario con ambos permisos ve el selector.
+
+### Tarea 16 – Quitar el comprobante de custodia
+**Decisión del usuario:** el técnico es automático y el sistema lleva el registro; el ticket es un paso que no se va a usar.
+- Front: quitar el botón/ofrecimiento de imprimir comprobante (pantalla de cambio, custodia e historial) y su llamada al servicio.
+- API: quitar el endpoint del comprobante, la vista `ComprobanteCustodia.cshtml` y el DTO si no se usan en otro lugar.
+- SQL: quitar `Equipo_Cambio_Pieza_Comprobante` del `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql` y agregar al final del script un `DROP PROCEDURE IF EXISTS dbo.Equipo_Cambio_Pieza_Comprobante;` (para las bases donde ya se creó).
+- Aceptación: no queda ninguna referencia al comprobante en front, API ni script; compila.
+
+### Tarea 17 – Quitar el campo "Tipo de pieza" del cambio de pieza
+**Decisión del usuario** (evaluada con 8 escenarios: RAM 1 o 2 slots, discos 1 o 2, cambiar uno o ambos, agregar en slot libre). El sistema deduce el tipo de lo que sale o de lo que entra.
+- Pantalla `laptop-cambio-pieza`: quitar el campo **"Tipo de pieza"**. Quedan: **serial, pieza que sale, pieza que entra** (+ precios solo si hace falta).
+- **Pieza que sale:** lista de **todos los módulos activos** de la laptop (RAM y discos), con la etiqueta del tipo (`RAM 8GB DDR4`, `SSD 256GB SATA`, `HDD 1TB`), más la opción **"Ninguna (agregar en slot libre)"**.
+- **Pieza que entra** (solo con existencia en el almacén de la laptop):
+  - Si sale un módulo de **RAM** → solo RAM del **mismo DDR** de la laptop.
+  - Si sale un **disco** → solo discos (aviso si el modelo de disco es distinto, como hoy).
+  - Si sale **"Ninguna"** → RAM del mismo DDR **y** discos, **agrupados** (encabezado "Memorias" y "Discos") para que no se confundan.
+- El **tipo de pieza** que se envía al API se calcula en el front así: el del módulo que sale; si sale "Ninguna", el del accesorio que entra. El SP **no cambia**: sigue recibiendo `@Tipo_Pieza` y validando que todo coincida (RAM/almacenamiento y DDR).
+- El botón **Actualizar lista** (Tarea 10) se mantiene junto a "Pieza que entra" y recarga con el mismo filtro.
+- Aceptación (los 8 escenarios): (1) RAM 1 slot 8→16; (2) RAM 8+8 cambiar una → 8+16; (3) RAM 8+8 → 16+16 en dos cambios; (4) agregar RAM en slot libre; (5) disco único SSD 256→512; (6) SSD+HDD cambiar el HDD; (7) cambiar los dos discos en dos cambios; (8) agregar segundo disco. En todos el resultado de módulos y el costo son correctos y no se pide el tipo.
+
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).
 2. Scripts SQL a ejecutar y en qué orden (siempre en **principal y espejo**).

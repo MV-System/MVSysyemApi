@@ -208,17 +208,34 @@
 - SQL: quitar `Equipo_Cambio_Pieza_Comprobante` del `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql` y agregar al final del script un `DROP PROCEDURE IF EXISTS dbo.Equipo_Cambio_Pieza_Comprobante;` (para las bases donde ya se creó).
 - Aceptación: no queda ninguna referencia al comprobante en front, API ni script; compila.
 
-### Tarea 17 – Quitar el campo "Tipo de pieza" del cambio de pieza
-**Decisión del usuario** (evaluada con 8 escenarios: RAM 1 o 2 slots, discos 1 o 2, cambiar uno o ambos, agregar en slot libre). El sistema deduce el tipo de lo que sale o de lo que entra.
-- Pantalla `laptop-cambio-pieza`: quitar el campo **"Tipo de pieza"**. Quedan: **serial, pieza que sale, pieza que entra** (+ precios solo si hace falta).
-- **Pieza que sale:** lista de **todos los módulos activos** de la laptop (RAM y discos), con la etiqueta del tipo (`RAM 8GB DDR4`, `SSD 256GB SATA`, `HDD 1TB`), más la opción **"Ninguna (agregar en slot libre)"**.
-- **Pieza que entra** (solo con existencia en el almacén de la laptop):
-  - Si sale un módulo de **RAM** → solo RAM del **mismo DDR** de la laptop.
-  - Si sale un **disco** → solo discos (aviso si el modelo de disco es distinto, como hoy).
-  - Si sale **"Ninguna"** → RAM del mismo DDR **y** discos, **agrupados** (encabezado "Memorias" y "Discos") para que no se confundan.
-- El **tipo de pieza** que se envía al API se calcula en el front así: el del módulo que sale; si sale "Ninguna", el del accesorio que entra. El SP **no cambia**: sigue recibiendo `@Tipo_Pieza` y validando que todo coincida (RAM/almacenamiento y DDR).
-- El botón **Actualizar lista** (Tarea 10) se mantiene junto a "Pieza que entra" y recarga con el mismo filtro.
-- Aceptación (los 8 escenarios): (1) RAM 1 slot 8→16; (2) RAM 8+8 cambiar una → 8+16; (3) RAM 8+8 → 16+16 en dos cambios; (4) agregar RAM en slot libre; (5) disco único SSD 256→512; (6) SSD+HDD cambiar el HDD; (7) cambiar los dos discos en dos cambios; (8) agregar segundo disco. En todos el resultado de módulos y el costo son correctos y no se pide el tipo.
+### Tarea 17 – Quitar el campo "Tipo de pieza": se elige lo que ENTRA y el sistema propone lo que SALE
+**Decisión del usuario.** El técnico sabe qué pieza va a poner; el sistema deduce el tipo y propone qué módulo sale. Evaluado con 8 escenarios (RAM 1 o 2 slots, discos 1 o 2, cambiar uno o ambos, agregar en slot libre).
+- Pantalla `laptop-cambio-pieza`: quitar el campo **"Tipo de pieza"**. Orden de los campos: **serial → pieza que entra → pieza que sale** (+ precios solo si hace falta).
+- **1. Pieza que entra** (solo con existencia en el almacén de la laptop): RAM del **mismo DDR** que la laptop **y** discos, **agrupados** con encabezados "Memorias" y "Discos". El botón **Actualizar lista** (Tarea 10) se mantiene aquí.
+- **2. Pieza que sale:** se filtra a los **módulos activos de la laptop del mismo tipo** que la pieza que entra (RAM o disco), más la opción **"Ninguna (agregar en slot libre)"**.
+  - **Preselección automática:** si hay **un solo** módulo de ese tipo, o **todos son iguales** (misma capacidad y modelo, ej. 8+8), se preselecciona uno. Si hay módulos **distintos** (ej. 8+4, o SSD+HDD), queda vacío y el usuario debe elegir (obligatorio: un módulo o "Ninguna").
+  - Al cambiar la pieza que entra, se recalcula la lista y la preselección.
+  - Mostrar debajo, en texto pequeño, el resultado: `RAM: 8+8 = 16GB → 8+16 = 24GB`.
+- **Tipo de pieza** enviado al API = el del accesorio que entra. El SP **no cambia** (sigue validando RAM/almacenamiento, DDR y que el módulo pertenezca a la laptop). Para disco, si el modelo del que sale es distinto al que entra, mantener el aviso de ranura.
+- Aceptación (8 escenarios):
+  1. RAM 1 slot (8) → entra 16 → sale preseleccionada la de 8 → [16].
+  2. RAM 8+8 → entra 16 → preselecciona una de 8 → [8][16].
+  3. RAM 8+8 → 16+16: dos cambios seguidos, cada uno con preselección.
+  4. RAM 8 + slot libre → entra 8 → el usuario cambia a "Ninguna" → [8][8].
+  5. Disco único SSD 256 → entra SSD 512 → preseleccionado el 256 → [512].
+  6. SSD + HDD → entra SSD → **no** preselecciona; el usuario elige el HDD → [SSD][SSD].
+  7. Cambiar los dos discos: dos cambios.
+  8. Agregar segundo disco → entra disco → el usuario elige "Ninguna".
+  9. RAM 8+4 → entra 16 → **no** preselecciona; el usuario elige cuál sale.
+
+### Tarea 18 – Retirar una pieza sin instalar otra  ⏸️ PARA DESPUÉS (no ejecutar hasta que el usuario lo indique)
+**Caso:** laptop 8+8 que se vende con 8; quitar un disco sin poner otro.
+- **Pieza que entra:** agregar la opción **"Ninguna (solo retirar)"**. Con esa opción, "Pieza que sale" muestra **todos** los módulos activos de la laptop (RAM y discos) y es obligatoria. No se permite "Ninguna" en las dos listas a la vez.
+- **SP `Equipo_Cambio_Pieza_Registrar`:** aceptar `@ID_Accesorio_Instalado = NULL` cuando hay módulo retirado: no se descuenta stock, `Costo nuevo = Costo actual − Costo retirado`, el módulo retirado pasa a `'R'`, no se crea módulo nuevo, se recalcula la configuración y la pieza queda **PENDIENTE** en custodia (igual que siempre). `Tipo_Pieza` = el del módulo retirado.
+- **Validación:** rechazar si la laptop quedaría **sin ninguna RAM** o **sin ningún disco**.
+- **Anular** este tipo de cambio: revertir el módulo retirado a `'A'` y el costo; no hay pieza instalada que devolver.
+- Réplica en la espejo con los mismos ID (igual que los demás cambios).
+- Aceptación: 8+8 → quitar una → [8], costo baja el de la pieza, pieza en custodia; intentar quitar la única RAM → error.
 
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).

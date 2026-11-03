@@ -24,9 +24,10 @@
 - [x] **Separación técnico / encargado:** técnico automático, sin destino "cliente" al registrar, recibir/entregar/anular solo por otro usuario con permiso (validado en el API). (Tarea 14)
 - [x] **Una sola entrada "Laptops" en el menú** (selector Cambio de pieza | Custodia según permiso). (Tarea 15)
 - [x] **Quitar el comprobante de custodia** (front, API y script). (Tarea 16)
-- [ ] **Quitar el campo "Tipo de pieza"**: se deduce de lo que sale o entra; lista agrupada cuando sale "Ninguna". (Tarea 17)
+- [x] **Quitar el campo "Tipo de pieza"**: se elige la pieza que entra y el sistema filtra y preselecciona la que sale (si hay un solo candidato o son iguales). (Tarea 17)
+
+- [ ] **Retirar una pieza sin instalar otra** — ⏸️ para después, no ejecutar hasta que el usuario lo indique. (Tarea 18)
 
 ## Para evaluar más adelante (no implementar todavía)
-- **Quitar una pieza sin poner otra** (ej. laptop 8+8 que se vende con 8): hoy "Pieza que entra" es obligatoria.
 - **Pieza retirada dañada:** hoy toda pieza retirada vuelve al stock como buena al recibirla; no hay forma de marcarla como dañada.
 - **Agrupar permisos** (técnico / encargado): esperar a ver en la práctica quién hace cada tarea.

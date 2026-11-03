@@ -40,6 +40,18 @@ namespace MVSystemApi.Controllers
                 (claim.Type == "role" || claim.Type == ClaimTypes.Role) && permisos.Contains(claim.Value));
         }
 
+        /// <summary>Usuario del token (claim name); nunca el que llegue en el body.</summary>
+        private string UsuarioToken()
+        {
+            var usuario = (User.Identity?.Name ?? User.FindFirst("name")?.Value)?.Trim();
+            return string.IsNullOrEmpty(usuario) ? null : usuario;
+        }
+
+        private ActionResult SinUsuario()
+        {
+            return StatusCode(StatusCodes.Status401Unauthorized, "No se pudo identificar al usuario de la sesión.");
+        }
+
         private ActionResult SinPermiso()
         {
             return StatusCode(StatusCodes.Status403Forbidden, "No tiene permisos para realizar esta acción.");
@@ -173,7 +185,8 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El módulo es requerido.");
                 }
-                correccion.Usuario = User.Identity?.Name ?? correccion.Usuario;
+                correccion.Usuario = UsuarioToken();
+                if (correccion.Usuario == null) { return SinUsuario(); }
                 var result = _accesoDatos.Equipo_Configuracion_Modulo_Corregir(correccion);
                 return Ok(result);
             }
@@ -198,7 +211,8 @@ namespace MVSystemApi.Controllers
                     return BadRequest("El serial/IMEI es requerido.");
                 }
                 // El tecnico es siempre quien registra el cambio (token), no lo que llegue en el body
-                cambio.Usuario = User.Identity?.Name ?? cambio.Usuario;
+                cambio.Usuario = UsuarioToken();
+                if (cambio.Usuario == null) { return SinUsuario(); }
                 cambio.Tecnico = cambio.Usuario;
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Registrar(cambio);
                 return Ok(result);
@@ -223,7 +237,8 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El cambio de pieza es requerido.");
                 }
-                anulacion.Usuario = User.Identity?.Name ?? anulacion.Usuario;
+                anulacion.Usuario = UsuarioToken();
+                if (anulacion.Usuario == null) { return SinUsuario(); }
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Anular(anulacion);
                 return Ok(result);
             }
@@ -247,7 +262,8 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El cambio de pieza es requerido.");
                 }
-                accion.Usuario = User.Identity?.Name ?? accion.Usuario;
+                accion.Usuario = UsuarioToken();
+                if (accion.Usuario == null) { return SinUsuario(); }
                 var result = _accesoDatos.Equipo_Cambio_Pieza_Recibir(accion);
                 return Ok(result);
             }
@@ -271,7 +287,8 @@ namespace MVSystemApi.Controllers
                 {
                     return BadRequest("El cambio de pieza es requerido.");
                 }
-                accion.Usuario = User.Identity?.Name ?? accion.Usuario;
+                accion.Usuario = UsuarioToken();
+                if (accion.Usuario == null) { return SinUsuario(); }
                 var result = _accesoDatos.Equipo_Cambio_Pieza_EntregarCliente(accion);
                 return Ok(result);
             }

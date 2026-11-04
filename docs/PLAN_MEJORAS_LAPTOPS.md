@@ -268,14 +268,23 @@
 - `AuthenticationGuard` y `LoginGuard` (`src/app/core/guards/`) solo verifican `loginService.getUserName()` (que haya usuario en el token guardado), **no si el token está vencido**.
 - `HandleErrorsResponseService.handleError`: con `status 0` navega a `'**'` (`PageNotFoundComponent`) **sin borrar el token**. Con `401` sí limpia y va al login.
 - "Reintentar" (`routerLink="/"`) → login → `LoginGuard` ve usuario → `home` → la petición vuelve a fallar → otra vez "Conexión lenta".
-**Cambios (solo front, sin API ni SQL):**
-1. `LoginService`: agregar `sesionVigente(): boolean` que lea el token de `localStorage`, lo decodifique con `jwt_decode` y compare `exp` (segundos) con la hora actual. Sin token, token ilegible o vencido → `false`. Agregar también `cerrarSesionVencida()` que haga `localStorage.clear()` y navegue a `auth/login`.
-2. `AuthenticationGuard`: permitir solo si `sesionVigente()`; si no, `cerrarSesionVencida()` y devolver `false`.
+**Cambios (front + un cambio en el API, sin SQL). Ajustado con la revisión del agente (04/11/2026):**
+1. **Función simple en `src/app/helpers`** (NO en `LoginService`, para no agregar otra dependencia al ciclo `HandleErrorsResponseService` ↔ `LoginService`): `sesionVigente(): boolean` lee el token de `localStorage`, lo decodifica con `jwt_decode` y compara solo `exp` (segundos) con la hora actual, sin márgenes. Sin token, token ilegible o vencido → `false`. La usan `LoginService`, los guards y el manejador de errores.
+2. `AuthenticationGuard`: permitir solo si `sesionVigente()`; si no, `localStorage.clear()`, ir a `auth/login` y devolver `false`.
 3. `LoginGuard`: mandar a `home` solo si `sesionVigente()`; si hay token vencido, limpiar `localStorage` y mostrar el login (devolver `true`).
-4. `HandleErrorsResponseService.handleError`, caso `status 0`: si `!sesionVigente()` tratarlo como 401 (limpiar, toast "Sesión expirada…", ir al login). Si la sesión es válida, se mantiene el comportamiento actual.
-5. `PageNotFoundComponent`, botón **Reintentar**: si la sesión es válida, volver a la página anterior y recargarla (`location.back()` o `window.location.reload()` según corresponda); si está vencida, `cerrarSesionVencida()`.
-6. Revisar que `handleError` se use con el `this` correcto donde se pasa como referencia (`catchError(this.handleErrorsRespService.handleError)`): si pierde el contexto, usar `.bind(...)` o una función flecha. Reportar cuántos usos se ajustaron.
-- Aceptación: (a) con un token vencido en `localStorage`, abrir el sistema → va directo al login, sin pantalla de conexión ni bucle; (b) con sesión válida y el API apagado → pantalla de conexión; al encender el API, "Reintentar" vuelve a la pantalla donde estaba; (c) con token vencido y el API apagado → login, no la pantalla de conexión; (d) el logout y el 401 siguen igual; (e) compila sin errores.
+4. `HandleErrorsResponseService.handleError`, caso `status 0`: si `!sesionVigente()`, tratarlo como 401 (limpiar, toast "Sesión expirada…", ir al login). Con sesión válida, se mantiene el comportamiento actual.
+5. `PageNotFoundComponent`, botón **Reintentar**: con sesión válida, `location.back()`; si no hay historial (enlace directo), ir a `/`. Con sesión vencida, limpiar e ir al login. No usar `window.location.reload()` sobre la pantalla de conexión.
+6. `login.service.ts` (línea ~115, único uso): **quitar** `catchError(this.handleErrorsRespService.handleError)` (pierde el `this` y lanza `TypeError`; el interceptor ya maneja ese error) y **quitar `retry(2)`** (repite un login fallido). No usar `.bind`.
+7. `login.component.ts` (líneas ~43–58): el `(err) => { this.isLoading = false; }` quedó **fuera** del `subscribe`; moverlo dentro, como segundo argumento, para que el botón no quede cargando si el login falla. (Incluido en esta tarea por estar en el mismo flujo de login.)
+8. **API – vencimiento a la medianoche LOCAL (decisión del usuario 04/11/2026).** Hoy, en `MVSystemApi/Model_Negocio/Seguridad/JwtService.cs`, `var expires = DateTime.UtcNow.Date.AddDays(1);` vence a la medianoche **UTC** = **8:00 p. m. hora local**, y expulsa a quien trabaja de noche. Cambiar a la medianoche local (UTC-4, la misma diferencia fija que usa todo el sistema):
+```csharp
+            // Vence a la medianoche hora local (UTC-4); el valor queda en UTC (Kind = Utc)
+            var ahoraLocal = DateTime.UtcNow.AddHours(-4);
+            var expires = ahoraLocal.Date.AddDays(1).AddHours(4);
+```
+   Verificar que `expires` conserve `DateTimeKind.Utc` (lo conserva: viene de `UtcNow`). El front no cambia: sigue leyendo `exp` del token.
+- Riesgo conocido: si el reloj de la PC está muy adelantado, el guard podría ver vencido un token recién emitido; se acepta (caso raro) comparando solo `exp` sin márgenes.
+- Aceptación: (a) con un token vencido en `localStorage`, abrir el sistema → va directo al login, sin pantalla de conexión ni bucle; (b) con sesión válida y el API apagado → pantalla de conexión; al encender el API, "Reintentar" vuelve a la pantalla donde estaba; (c) con token vencido y el API apagado → login, no la pantalla de conexión; (d) el logout y el 401 siguen igual; (e) iniciar sesión a las 8:30 p. m. → el token vence a las 12:00 a. m. (revisar `exp` en jwt.io o en `expires` de la respuesta); (f) login con clave incorrecta → mensaje de error, el botón deja de cargar y se envía **una sola** petición (Network); (g) front y API compilan sin errores.
 
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).

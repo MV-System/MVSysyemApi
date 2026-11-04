@@ -33,15 +33,16 @@
 - **Agrupar permisos** (técnico / encargado): esperar a ver en la práctica quién hace cada tarea.
 
 ## Mejoras generales (fuera del módulo de laptops)
-- [x] **Consulta de equipos vendidos – búsqueda por teléfono:** hoy se envía una consulta por cada dígito. Decidido: buscar solo cuando el campo tenga los 10 dígitos o cuando el usuario presione Enter (sin búsqueda por nombre). → **Tarea 19** del plan.
+- [x] **Consulta de equipos vendidos – búsqueda por teléfono:** hoy se envía una consulta por cada dígito. Decidido: buscar solo cuando el campo tenga los 10 dígitos o cuando el usuario presione Enter (sin búsqueda por nombre). → **Tarea 19** ✅ (commit 7abcd7c, 04/11/2026).
 - [ ] **Ayuda interactiva dentro del sistema:** un menú "Ayuda" donde el usuario que no sepa usar un módulo vea cómo funciona (para después).
 - [ ] **Sincronización de accesorios con la espejo:** revisar que todo lo que rebaje o sume cantidad de accesorios en la principal se replique igual en la espejo (mismo comportamiento que equipos).
+  - Revisar también la posibilidad de **sincronizar las reparaciones** que se registran en la principal, para poder **facturarlas en la espejo**.
 - [ ] **Nota de crédito electrónica que anula la factura:**
   - Contexto: se factura con comprobante electrónico en las bases ESPEJO. En la base Seguridad (tabla Empresa) el campo Certificada y el campo del proveedor dicen si la empresa está certificada y con qué proveedor.
   - Proveedor 2 (BESTPHONE, TECNO_STYLE): ya genera nota de crédito desde el sistema. Proveedor 1 (GAPMOVILES): no; hoy se hace en la plataforma del proveedor.
   1. Programar la nota de crédito para el **proveedor 1** desde el sistema.
   2. Al generar la nota de crédito (cualquier proveedor), **anular la factura automáticamente**.
   - Decidido: la nota de crédito siempre es **total** (no hay parcial por ahora). El botón Anular NO se oculta por código: en las certificadas el usuario le quita el permiso; en las no certificadas Anular sigue igual (solo a nivel de sistema, sin enviar a DGII).
-- [ ] **Sesión vencida: el botón "Reintentar" no sirve.** → **Tarea 20** del plan (después de la 19). Causa (revisado en el código): los guards (`AuthenticationGuard`, `LoginGuard`) solo verifican que haya usuario en el token guardado, no que esté vencido. Si la primera petición del día falla con status 0 (red / API dormida), se va a la pantalla "Conexión lenta" sin borrar el token; "Reintentar" va a `/` → login → LoginGuard ve usuario → `home` → falla otra vez → bucle.
+- [x] **Sesión vencida: el botón "Reintentar" no sirve.** → **Tarea 20** del plan (después de la 19). Causa (revisado en el código): los guards (`AuthenticationGuard`, `LoginGuard`) solo verifican que haya usuario en el token guardado, no que esté vencido. Si la primera petición del día falla con status 0 (red / API dormida), se va a la pantalla "Conexión lenta" sin borrar el token; "Reintentar" va a `/` → login → LoginGuard ve usuario → `home` → falla otra vez → bucle.
   - Propuesta (solo front): 1) un método `sesionVigente()` en LoginService que revise `expires` (o el `exp` del JWT); 2) los dos guards lo usan: si está vencida, `localStorage.clear()` y al login; 3) en el error status 0, si la sesión está vencida, tratarlo como 401 (ir al login, no a "Conexión lenta"); 4) "Reintentar" recarga la página anterior si la sesión es válida, o va al login si está vencida.
 - [x] **Proc_Equipo_Consulta_Vendidos:** recuperado filtro por teléfono, IMEI ignora fechas, unión factura por número + literal (sin duplicados) y "Cliente no encontrado" cuando la venta no tiene cliente. Probado en PRUEBAS 04/11/2026.

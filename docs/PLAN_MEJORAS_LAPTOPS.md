@@ -237,6 +237,46 @@
 - Réplica en la espejo con los mismos ID (igual que los demás cambios).
 - Aceptación: 8+8 → quitar una → [8], costo baja el de la pieza, pieza en custodia; intentar quitar la única RAM → error.
 
+### Tarea 19 – Consulta de equipos vendidos: buscar por teléfono solo con 10 dígitos o Enter
+**Decisión del usuario.** Hoy el campo teléfono llama al API con cada tecla. Sin búsqueda por nombre (el SP solo acepta número).
+- Archivos: `src/app/MVSystem/pages/Equipo/Equipo-consulta/Equipo-consulta-vendido/equipo-consulta-vendido.component.html` y `.ts`.
+- HTML: en el input `formControlName="telefono"` cambiar `(keyup)="obtenerEquiposVendidos()"` por `(keyup)="onSearchByTelefono($event)" (search)="onSearchByTelefono()"`. En el botón de limpiar (`clear-search-btn`) del teléfono, después de `setValue('')`, llamar `onSearchByTelefono()` en lugar de `obtenerEquiposVendidos()`.
+- TS: reemplazar el método existente `onSearchByTelefono()` (hoy no se usa) por:
+```ts
+  // Busca solo con los 10 digitos del telefono, al presionar Enter o al dejar el campo vacio
+  onSearchByTelefono(event?: KeyboardEvent) {
+    const telefono = (this.form.controls.telefono.value || '').toString().replace(/\D/g, '');
+    if (event && event.key === 'Enter') {
+      this.obtenerEquiposVendidos();
+      return;
+    }
+    // Flechas, Tab, Shift, etc. no cambian el texto: no buscar
+    if (event && event.key.length > 1 && event.key !== 'Backspace' && event.key !== 'Delete') {
+      return;
+    }
+    if (telefono.length === 10 || telefono.length === 0) {
+      this.obtenerEquiposVendidos();
+    }
+  }
+```
+- No tocar el filtro por IMEI (queda igual por ahora). Solo front; sin cambios en API ni SQL.
+- Aceptación: (a) al escribir 1–9 dígitos no se envía ninguna petición (ver pestaña Network); (b) al llegar a 10 dígitos se envía **una**; (c) Enter busca con lo escrito; (d) borrar el campo, la X del navegador o el botón limpiar recargan la lista sin filtro; (e) flechas/Tab no disparan búsqueda; (f) compila sin errores.
+
+### Tarea 20 – Sesión vencida: el botón "Reintentar" entra en bucle
+**Problema reportado por el usuario:** si el sistema queda abierto de un día para otro, a veces aparece la pantalla "Conexión a internet lenta" con **Reintentar**, y el botón no hace nada útil.
+**Causa (revisada en el código):**
+- `AuthenticationGuard` y `LoginGuard` (`src/app/core/guards/`) solo verifican `loginService.getUserName()` (que haya usuario en el token guardado), **no si el token está vencido**.
+- `HandleErrorsResponseService.handleError`: con `status 0` navega a `'**'` (`PageNotFoundComponent`) **sin borrar el token**. Con `401` sí limpia y va al login.
+- "Reintentar" (`routerLink="/"`) → login → `LoginGuard` ve usuario → `home` → la petición vuelve a fallar → otra vez "Conexión lenta".
+**Cambios (solo front, sin API ni SQL):**
+1. `LoginService`: agregar `sesionVigente(): boolean` que lea el token de `localStorage`, lo decodifique con `jwt_decode` y compare `exp` (segundos) con la hora actual. Sin token, token ilegible o vencido → `false`. Agregar también `cerrarSesionVencida()` que haga `localStorage.clear()` y navegue a `auth/login`.
+2. `AuthenticationGuard`: permitir solo si `sesionVigente()`; si no, `cerrarSesionVencida()` y devolver `false`.
+3. `LoginGuard`: mandar a `home` solo si `sesionVigente()`; si hay token vencido, limpiar `localStorage` y mostrar el login (devolver `true`).
+4. `HandleErrorsResponseService.handleError`, caso `status 0`: si `!sesionVigente()` tratarlo como 401 (limpiar, toast "Sesión expirada…", ir al login). Si la sesión es válida, se mantiene el comportamiento actual.
+5. `PageNotFoundComponent`, botón **Reintentar**: si la sesión es válida, volver a la página anterior y recargarla (`location.back()` o `window.location.reload()` según corresponda); si está vencida, `cerrarSesionVencida()`.
+6. Revisar que `handleError` se use con el `this` correcto donde se pasa como referencia (`catchError(this.handleErrorsRespService.handleError)`): si pierde el contexto, usar `.bind(...)` o una función flecha. Reportar cuántos usos se ajustaron.
+- Aceptación: (a) con un token vencido en `localStorage`, abrir el sistema → va directo al login, sin pantalla de conexión ni bucle; (b) con sesión válida y el API apagado → pantalla de conexión; al encender el API, "Reintentar" vuelve a la pantalla donde estaba; (c) con token vencido y el API apagado → login, no la pantalla de conexión; (d) el logout y el 401 siguen igual; (e) compila sin errores.
+
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).
 2. Scripts SQL a ejecutar y en qué orden (siempre en **principal y espejo**).

@@ -1,17 +1,17 @@
 -- ============================================================
--- Proc_Equipo_Consulta_Vendidos + columna Configuracion (modulo de laptops)
--- (Reemplaza la version anterior de este archivo, que traia una version vieja del SP.)
--- El script del modulo de laptops reemplazo la version vigente (2025-12-10, "simplificada y funcional")
--- por una version vieja (CTE, INNER JOIN a Telefonos, otro orden y otros filtros de fecha).
--- Este script restaura la version vigente y SOLO le agrega la columna Configuracion (laptops).
--- Ejecutar en las bases donde ya se corrio SCRIPT_MODULO_LAPTOPS_COMPLETO.sql (principal y espejo).
--- Requiere dbo.fn_Equipo_Configuracion_Texto (ya creada por el script de laptops).
--- Fecha: 2026-11-01
+-- FIX Proc_Equipo_Consulta_Vendidos (04/11/2026)
+-- Ejecutar en las bases donde YA se corrio SCRIPT_MODULO_LAPTOPS_COMPLETO.sql antes de esta correccion:
+--   INVERTER, VISIONTECH, DATAMOVIL (y la de PRUEBAS).
+-- Las demas lo reciben con el script completo (ya corregido).
+-- Recupera: filtro por telefono, IMEI ignora fechas, union factura por numero + literal.
 -- ============================================================
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+-- Version vigente de produccion (2025-12-10, simplificada) + columna Configuracion
+-- 04/11/2026: se recuperan 3 reglas de la version anterior: filtro por telefono del cliente,
+--             la busqueda por IMEI ignora las fechas, y la factura se une por numero + literal (evita duplicados)
 CREATE OR ALTER PROCEDURE [dbo].[Proc_Equipo_Consulta_Vendidos]
 @PageIndex int,
 @PageSize Int,
@@ -79,7 +79,7 @@ BEGIN
             ISNULL(al.Descripcion_Almacen, '') AS Descripcion_Almacen,
             ISNULL(cs.Nombres + ' ' + ISNULL(cs.Apellidos, ''), '') AS Suplidor,
             ISNULL(c.Nombres + ' ' + ISNULL(c.Apellidos, ''), '') AS Vendedor,
-            ISNULL(co.Nombres + ' ' + ISNULL(co.Apellidos, ''), '') AS cliente,
+            ISNULL(NULLIF(LTRIM(RTRIM(co.Nombres + ' ' + ISNULL(co.Apellidos, ''))), ''), 'Cliente no encontrado') AS cliente,
             df.fecha_registro AS [Fecha facturado],
             ft.Numero_Factura AS Factura,
             E.Fecha_registro,
@@ -89,7 +89,9 @@ BEGIN
         FROM Equipos e WITH(NOLOCK)
         INNER JOIN Modelos M WITH(NOLOCK) ON e.ID_Modelo = M.ID_Modelo
         INNER JOIN Detalle_Facturas df WITH(NOLOCK) ON e.Imei = df.ID_Equipo AND df.estado = 'A' AND df.ID_Tipo = 1
-        INNER JOIN Facturas ft WITH(NOLOCK) ON ft.numero_factura = df.numero_factura AND ft.estado = 'A' AND ft.ID_Tipo_Factura <> 3
+        INNER JOIN Facturas ft WITH(NOLOCK) ON ft.numero_factura = df.numero_factura
+                                            AND ft.Literal + CONVERT(VARCHAR(10), ft.Numero_Factura) = df.literalF
+                                            AND ft.estado = 'A' AND ft.ID_Tipo_Factura <> 3
         INNER JOIN Almacen_Cata al WITH(NOLOCK) ON E.ID_Almacen = al.ID_Almacen
         LEFT JOIN Vendedores v WITH(NOLOCK) ON v.ID_Vendedor = ft.ID_Vendedor
         LEFT JOIN Contactos c WITH(NOLOCK) ON c.ID_Contacto = v.ID_Contacto
@@ -105,8 +107,14 @@ BEGIN
           AND ((@Suplidor = '') OR (cs.Nombres + ' ' + ISNULL(cs.Apellidos, '') LIKE '%' + @Suplidor + '%'))
           AND ((@Vendedor = '') OR (c.Nombres + ' ' + ISNULL(c.Apellidos, '') LIKE '%' + @Vendedor + '%'))
           AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))
-          AND ((@Fecha_factura_Inicial = '' OR @Fecha_factura_Final = '') OR (CAST(df.fecha_registro AS DATE) BETWEEN CAST(@Fecha_factura_Inicial AS DATE) AND CAST(@Fecha_factura_Final AS DATE)))
-          AND ((@Fecha_Inicio = '' OR @Fecha_Final = '') OR (CAST(e.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)))
+          -- Telefono del cliente (EXISTS: un cliente con varios telefonos no duplica la venta)
+          AND ((@Telefono = 0) OR EXISTS (SELECT 1 FROM Telefonos te WITH(NOLOCK)
+                                           WHERE te.ID_Contacto = co.ID_Contacto AND te.Numero_Telefono = @Telefono))
+          -- Buscando por IMEI se ignoran las fechas (se encuentra sin importar cuando se vendio)
+          AND (@Imei <> '' OR (
+                ((@Fecha_factura_Inicial = '' OR @Fecha_factura_Final = '') OR (CAST(df.fecha_registro AS DATE) BETWEEN CAST(@Fecha_factura_Inicial AS DATE) AND CAST(@Fecha_factura_Final AS DATE)))
+            AND ((@Fecha_Inicio = '' OR @Fecha_Final = '') OR (CAST(e.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)))
+          ))
     )
     INSERT INTO #Resultado
     SELECT * FROM DatosNumerados;

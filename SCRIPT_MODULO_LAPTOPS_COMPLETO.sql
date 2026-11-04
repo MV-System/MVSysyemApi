@@ -2546,6 +2546,8 @@ End;
 GO
 
 -- Version vigente de produccion (2025-12-10, simplificada) + columna Configuracion
+-- 04/11/2026: se recuperan 3 reglas de la version anterior: filtro por telefono del cliente,
+--             la busqueda por IMEI ignora las fechas, y la factura se une por numero + literal (evita duplicados)
 CREATE OR ALTER PROCEDURE [dbo].[Proc_Equipo_Consulta_Vendidos]
 @PageIndex int,
 @PageSize Int,
@@ -2613,7 +2615,7 @@ BEGIN
             ISNULL(al.Descripcion_Almacen, '') AS Descripcion_Almacen,
             ISNULL(cs.Nombres + ' ' + ISNULL(cs.Apellidos, ''), '') AS Suplidor,
             ISNULL(c.Nombres + ' ' + ISNULL(c.Apellidos, ''), '') AS Vendedor,
-            ISNULL(co.Nombres + ' ' + ISNULL(co.Apellidos, ''), '') AS cliente,
+            ISNULL(NULLIF(LTRIM(RTRIM(co.Nombres + ' ' + ISNULL(co.Apellidos, ''))), ''), 'Cliente no encontrado') AS cliente,
             df.fecha_registro AS [Fecha facturado],
             ft.Numero_Factura AS Factura,
             E.Fecha_registro,
@@ -2623,7 +2625,9 @@ BEGIN
         FROM Equipos e WITH(NOLOCK)
         INNER JOIN Modelos M WITH(NOLOCK) ON e.ID_Modelo = M.ID_Modelo
         INNER JOIN Detalle_Facturas df WITH(NOLOCK) ON e.Imei = df.ID_Equipo AND df.estado = 'A' AND df.ID_Tipo = 1
-        INNER JOIN Facturas ft WITH(NOLOCK) ON ft.numero_factura = df.numero_factura AND ft.estado = 'A' AND ft.ID_Tipo_Factura <> 3
+        INNER JOIN Facturas ft WITH(NOLOCK) ON ft.numero_factura = df.numero_factura
+                                            AND ft.Literal + CONVERT(VARCHAR(10), ft.Numero_Factura) = df.literalF
+                                            AND ft.estado = 'A' AND ft.ID_Tipo_Factura <> 3
         INNER JOIN Almacen_Cata al WITH(NOLOCK) ON E.ID_Almacen = al.ID_Almacen
         LEFT JOIN Vendedores v WITH(NOLOCK) ON v.ID_Vendedor = ft.ID_Vendedor
         LEFT JOIN Contactos c WITH(NOLOCK) ON c.ID_Contacto = v.ID_Contacto
@@ -2639,8 +2643,14 @@ BEGIN
           AND ((@Suplidor = '') OR (cs.Nombres + ' ' + ISNULL(cs.Apellidos, '') LIKE '%' + @Suplidor + '%'))
           AND ((@Vendedor = '') OR (c.Nombres + ' ' + ISNULL(c.Apellidos, '') LIKE '%' + @Vendedor + '%'))
           AND ((@ID_Modelo = 0) OR (M.ID_Modelo = @ID_Modelo))
-          AND ((@Fecha_factura_Inicial = '' OR @Fecha_factura_Final = '') OR (CAST(df.fecha_registro AS DATE) BETWEEN CAST(@Fecha_factura_Inicial AS DATE) AND CAST(@Fecha_factura_Final AS DATE)))
-          AND ((@Fecha_Inicio = '' OR @Fecha_Final = '') OR (CAST(e.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)))
+          -- Telefono del cliente (EXISTS: un cliente con varios telefonos no duplica la venta)
+          AND ((@Telefono = 0) OR EXISTS (SELECT 1 FROM Telefonos te WITH(NOLOCK)
+                                           WHERE te.ID_Contacto = co.ID_Contacto AND te.Numero_Telefono = @Telefono))
+          -- Buscando por IMEI se ignoran las fechas (se encuentra sin importar cuando se vendio)
+          AND (@Imei <> '' OR (
+                ((@Fecha_factura_Inicial = '' OR @Fecha_factura_Final = '') OR (CAST(df.fecha_registro AS DATE) BETWEEN CAST(@Fecha_factura_Inicial AS DATE) AND CAST(@Fecha_factura_Final AS DATE)))
+            AND ((@Fecha_Inicio = '' OR @Fecha_Final = '') OR (CAST(e.Fecha_registro AS DATE) BETWEEN CAST(@Fecha_Inicio AS DATE) AND CAST(@Fecha_Final AS DATE)))
+          ))
     )
     INSERT INTO #Resultado
     SELECT * FROM DatosNumerados;
@@ -3477,13 +3487,14 @@ begin
 	set Codigo_Barra=@Codigo_Barra
 	where ID_Accesorio=@ID_Nuevo
 
-	-- el mismo accesorio en los demas almacenes, con cantidad cero
+	-- el mismo accesorio en los demas almacenes ACTIVOS (no los eliminados, estado 'X'), con cantidad cero
 	Declare @Secuencia Int
 
 	Select ID_Almacen=Convert(Int,ID_Almacen)
 	Into #Almacen
 	From Almacen_Cata With(NoLock)
 	where ID_Almacen!=@ID_Almacen
+	  and ISNULL(Estado, 'A') <> 'X'
 
 	Alter Table #Almacen
 	Add Secuencia Int Identity(1,1)
@@ -4434,6 +4445,16 @@ GO
 ----20160624 se le agrego para que guarde en el historico de equipos.
 ----20170405 se le agrego para que guarde en el historico de accesorios.
 
+-- Facturas_Anular: version de PRODUCCION (tipos reales: 3 y 4 = Reparacion, 5 = Desbloqueo) + contexto de movimientos de stock
+-------------------------------------------------------------------------------------------------------------------------------
+
+---modificar el SP Anular_Facturas para que guarde en el historico------------------------------------
+
+----20160623 se le agrego en la nota del equipo el numero de factura y el usuario que la anulo,
+----         de esta manera sabremos porque esta disponible.
+----20160624 se le agrego para que guarde en el historico de equipos.
+----20170405 se le agrego para que guarde en el historico de accesorios.
+
 CREATE OR ALTER PROCEDURE [dbo].[Facturas_Anular]--439,4,1,1,'fventura'
 @Numero_Factura int,
 @Id_Articulo varchar(20),
@@ -4444,7 +4465,7 @@ CREATE OR ALTER PROCEDURE [dbo].[Facturas_Anular]--439,4,1,1,'fventura'
 as
 
 declare @literal char(1) = (select literal from facturas where id_sucursal = @ID_Sucursal and numero_factura = @Numero_Factura)
-if @Tipo = 1
+if @Tipo = 1-- equipos
 begin
 --------------insertar en el historico de equipos------------------------
 INSERT INTO [dbo].[Equipos_Historico]
@@ -4519,9 +4540,10 @@ where Numero_Factura = @Numero_Factura
 and ID_Equipo = @Id_Articulo
 and literalF = @literal + convert(varchar(10),@Numero_Factura)
 
+
 end
 
-if @Tipo = 2
+if @Tipo = 2-- Accesorios
 begin
 -- insert en historico de aacesorio---------------
 
@@ -4608,7 +4630,7 @@ and ID_Equipo = @Id_Articulo
 and literalF = @literal + convert(varchar(10),@numero_factura)
 end
 
-if @Tipo = 4
+if @Tipo = 5-- Desbloqueos
 begin
 
 declare @id_desblo int =( select ID_Desbloqueos
@@ -4638,7 +4660,7 @@ where Numero_Factura = @Numero_Factura
 and literalF = @literal + convert(varchar(10),@numero_factura)
 end
 
-if @Tipo = 3
+if @Tipo IN (3, 4)-- Reparaciones (3 = facturas viejas, 4 = la que usa el sistema hoy)
 begin
 
 declare @id_repa int =( select ID_Reparacion
@@ -4654,6 +4676,7 @@ Fecha_registro = (dateadd(hour,(-4),getdate()))
 where ID_Reparacion = @id_repa
 
 update dbo.Facturas
+
 set  Estado = 'X',
 Usuario =@Usuario,
 Fecha_registro = (dateadd(hour,(-4),getdate()))

@@ -3644,8 +3644,8 @@ BEGIN
         IF @Estado IS NULL
             THROW 50803, 'El accesorio no existe.', 1;
 
-        IF @Estado <> 'A'
-            THROW 50804, 'El accesorio esta inactivo. Activelo desde la edicion de accesorios antes de sumarle cantidad.', 1;
+        -- Un accesorio inactivo se reactiva al sumarle cantidad
+        DECLARE @EstabaInactivo BIT = CASE WHEN @Estado <> 'A' THEN 1 ELSE 0 END;
 
         IF @Actualizar_Precios = 1
         BEGIN
@@ -3670,10 +3670,14 @@ BEGIN
 
         EXEC sp_set_session_context N'mov_motivo', N'ENTRADA';
         EXEC sp_set_session_context N'mov_usuario', @Usuario;
-        EXEC sp_set_session_context N'mov_nota', N'Suma de cantidad desde el registro de accesorios';
+        DECLARE @NotaMov NVARCHAR(250) =
+            CASE WHEN @EstabaInactivo = 1 THEN N'Reactivado y suma de cantidad desde el registro de accesorios'
+                 ELSE N'Suma de cantidad desde el registro de accesorios' END;
+        EXEC sp_set_session_context N'mov_nota', @NotaMov;
 
         UPDATE dbo.Accesorios
            SET Cantidad         = ISNULL(Cantidad, 0) + @Cantidad,
+               Estado           = 'A',
                Costo_Equipo     = CASE WHEN @Actualizar_Precios = 1 THEN @Costo_Equipo     ELSE Costo_Equipo     END,
                Precio_Por_Mayor = CASE WHEN @Actualizar_Precios = 1 THEN @Precio_Por_Mayor ELSE Precio_Por_Mayor END,
                Precio_Detalle   = CASE WHEN @Actualizar_Precios = 1 THEN @Precio_Detalle   ELSE Precio_Detalle   END,

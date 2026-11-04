@@ -286,6 +286,14 @@
 - Riesgo conocido: si el reloj de la PC está muy adelantado, el guard podría ver vencido un token recién emitido; se acepta (caso raro) comparando solo `exp` sin márgenes.
 - Aceptación: (a) con un token vencido en `localStorage`, abrir el sistema → va directo al login, sin pantalla de conexión ni bucle; (b) con sesión válida y el API apagado → pantalla de conexión; al encender el API, "Reintentar" vuelve a la pantalla donde estaba; (c) con token vencido y el API apagado → login, no la pantalla de conexión; (d) el logout y el 401 siguen igual; (e) iniciar sesión a las 8:30 p. m. → el token vence a las 12:00 a. m. (revisar `exp` en jwt.io o en `expires` de la respuesta); (f) login con clave incorrecta → mensaje de error, el botón deja de cargar y se envía **una sola** petición (Network); (g) front y API compilan sin errores.
 
+### Tarea 21 – Registrar un accesorio que ya existe pero está inactivo: reactivarlo al sumar
+**Decisión del usuario (04/11/2026).** Si el accesorio está inactivo y la consulta no lo muestra, el usuario intenta crearlo de nuevo. Sin pantallas ni botones nuevos: se usa la ventana de coincidencias que ya existe.
+- **Front** (`src/app/MVSystem/pages/Accesorios/accesorios-registro/`): en la ventana de coincidencias, **permitir elegir** también los accesorios con `estado !== 'A'` (hoy el radio está `[disabled]`). Mostrarlos con una marca visible "Inactivo – se reactivará al sumar". El resto del flujo (cantidad, actualizar precios) no cambia.
+- **SQL** `dbo.Accesorio_Sumar_Existencia` (en `SCRIPT_MODULO_LAPTOPS_COMPLETO.sql`): quitar el `THROW 50804` para inactivos. Si el accesorio está inactivo, en el mismo `UPDATE` poner `Estado = 'A'` además de sumar la cantidad. El histórico (foto antes del cambio) y el movimiento (`ENTRADA`) quedan como hoy; cambiar la nota del movimiento a `'Reactivado y suma de cantidad desde el registro de accesorios'` cuando estaba inactivo.
+- **API:** sin cambios de contrato. La réplica a la espejo ya se hace con `_sync.Ejecutar("Accesorio_Sumar_Existencia", ...)`, así que la reactivación también llega a la espejo.
+- No mostrar inactivos en la consulta de accesorios (no se agrega filtro). Los accesorios renombrados "(… VIEJO …)" por la limpieza de duplicados no aparecen porque su descripción ya no coincide.
+- Aceptación: (a) desactivar un accesorio desde Editar; (b) intentar registrarlo de nuevo → aparece en coincidencias marcado "Inactivo – se reactivará al sumar" y se puede elegir; (c) al sumar 3 → queda activo con la cantidad sumada, con registro en histórico y en movimientos; (d) en la espejo queda igual (activo y misma cantidad); (e) los activos siguen funcionando igual; (f) compila sin errores. Actualizar el script completo solo en la rama `claude` (base de pruebas).
+
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).
 2. Scripts SQL a ejecutar y en qué orden (siempre en **principal y espejo**).

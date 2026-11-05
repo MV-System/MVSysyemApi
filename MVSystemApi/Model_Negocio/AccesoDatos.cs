@@ -2351,6 +2351,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los equipos y accesorios de la factura {Factura} (sucursal {Sucursal}) para la base par", Factura.NumeroFactura, Factura.IDsucursal);
+                        accesorios.Clear();
                     }
 
                     cmd.ExecuteNonQuery();

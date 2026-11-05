@@ -38,7 +38,7 @@ namespace MVSystemApi.MonitorSync
             sb.AppendLine("Cantidades disponibles:");
             foreach (var linea in revision.Resumen) sb.AppendLine("  " + linea);
             sb.AppendLine();
-            sb.AppendLine("Para investigar: consola DbCompare (opcion 1 para ver diferencias, 2 para el historial de los equipos).");
+            sb.AppendLine("Para investigar: consola DbCompare (opcion 1 para ver diferencias, 2 para el historial de los equipos, 11 para los accesorios).");
 
             return (asunto, sb.ToString(), Corto("Nuevas diferencias de sincronizacion", nuevos));
         }

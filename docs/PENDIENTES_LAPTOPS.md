@@ -35,7 +35,7 @@
 ## Mejoras generales (fuera del módulo de laptops)
 - [x] **Consulta de equipos vendidos – búsqueda por teléfono:** hoy se envía una consulta por cada dígito. Decidido: buscar solo cuando el campo tenga los 10 dígitos o cuando el usuario presione Enter (sin búsqueda por nombre). → **Tarea 19** ✅ (commit 7abcd7c, 04/11/2026).
 - [ ] **Ayuda interactiva dentro del sistema:** un menú "Ayuda" donde el usuario que no sepa usar un módulo vea cómo funciona (para después).
-- [ ] **Sincronización de accesorios con la espejo:** revisar que todo lo que rebaje o sume cantidad de accesorios en la principal se replique igual en la espejo (mismo comportamiento que equipos).
+- [x] **Sincronización de accesorios con la espejo:** revisar que todo lo que rebaje o sume cantidad de accesorios en la principal se replique igual en la espejo (mismo comportamiento que equipos). → **Tarea 22** del plan (accesorios: ventas, anulaciones y prefacturas; se publica el 04/11/2026). Las reparaciones quedan aparte.
   - Revisar también la posibilidad de **sincronizar las reparaciones** que se registran en la principal, para poder **facturarlas en la espejo**.
 - [ ] **Nota de crédito electrónica que anula la factura:**
   - Contexto: se factura con comprobante electrónico en las bases ESPEJO. En la base Seguridad (tabla Empresa) el campo Certificada y el campo del proveedor dicen si la empresa está certificada y con qué proveedor.

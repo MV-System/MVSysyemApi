@@ -2271,6 +2271,31 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 if (factura.DetalleFacturaList != null)
                 {
                     SincronizarDisponibilidad(factura.DetalleFacturaList.Select(item => item.IdEquipo), disponible: false);
+
+                    // Sync: la cantidad de los accesorios vendidos baja tambien en la base par. Ya hay Commit: nada de esto puede lanzar.
+                    try
+                    {
+                        var accesorios = factura.DetalleFacturaList
+                            .Where(d => d.IdTipo == 2 && long.TryParse(d.IdEquipo?.Trim(), out _))
+                            .Select(d => (IdAccesorio: long.Parse(d.IdEquipo.Trim()), Delta: -d.Cantidad))
+                            .ToList();
+                        if (accesorios.Count > 0)
+                        {
+                            // Mismo literal que usa Detalle_Factura_Insert para el documento del movimiento
+                            string literal;
+                            using (var cmdLit = new SqlCommand(
+                                "SELECT TOP 1 Literal FROM Facturas WHERE Codigo = (SELECT MAX(Codigo) FROM Facturas WHERE Numero_Factura = @nf) AND Estado = 'A'", connection))
+                            {
+                                cmdLit.Parameters.AddWithValue("@nf", factura.NumeroFactura);
+                                literal = Convert.ToString(cmdLit.ExecuteScalar());
+                            }
+                            SincronizarCantidadAccesorios(accesorios, "VENTA_D", literal + factura.NumeroFactura, factura.Usuario);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[SYNC-FALLO] No se pudieron preparar los accesorios de la factura {Factura} para la base par", factura.NumeroFactura);
+                    }
                 }
 
                 return factura;
@@ -2296,21 +2321,44 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
                     cmd.Parameters.AddWithValue("@Motivo", (object)Factura.Motivo ?? DBNull.Value);
                     cn.Open();
+
+                    // Sync: leer ANTES del SP (despues las lineas quedan en 'X') los equipos y accesorios activos de ESTA factura y sucursal
+                    var imeis = new List<string>();
+                    var accesorios = new List<(long IdAccesorio, int Delta)>();
+                    string documento = null;
+                    try
+                    {
+                        using var cmdRead = new SqlCommand(
+                            @"SELECT d.ID_Tipo, d.ID_Equipo, d.Cantidad, f.Literal
+                                FROM Detalle_Facturas d
+                                JOIN Facturas f ON f.Numero_Factura = d.Numero_Factura
+                                               AND d.LiteralF = f.Literal + CONVERT(VARCHAR(10), f.Numero_Factura)
+                               WHERE f.Numero_Factura = @nf AND f.ID_Sucursal = @suc
+                                 AND d.Estado = 'A' AND d.ID_Tipo IN (1, 2)", cn);
+                        cmdRead.Parameters.AddWithValue("@nf", Factura.NumeroFactura);
+                        cmdRead.Parameters.AddWithValue("@suc", Convert.ToInt32(Factura.IDsucursal));
+                        using var reader = cmdRead.ExecuteReader();
+                        while (reader.Read())
+                        {
+                            documento = Convert.ToString(reader["Literal"]) + Factura.NumeroFactura;
+                            string idEquipo = Convert.ToString(reader["ID_Equipo"])?.Trim();
+                            if (Convert.ToInt32(reader["ID_Tipo"]) == 1)
+                                imeis.Add(idEquipo);
+                            else if (long.TryParse(idEquipo, out var idAcc))
+                                accesorios.Add((idAcc, Convert.ToInt32(reader["Cantidad"])));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los equipos y accesorios de la factura {Factura} (sucursal {Sucursal}) para la base par", Factura.NumeroFactura, Factura.IDsucursal);
+                    }
+
                     cmd.ExecuteNonQuery();
 
-                    // Sync: leer equipos de la factura y marcarlos disponibles en BD espejo
-                    using (var cmdRead = new SqlCommand(
-                        "SELECT ID_Equipo FROM Detalle_Facturas WHERE Numero_Factura = @nf", cn))
-                    {
-                        cmdRead.Parameters.AddWithValue("@nf", Factura.NumeroFactura);
-                        using var reader = cmdRead.ExecuteReader();
-                        var imeis = new List<string>();
-                        while (reader.Read())
-                            imeis.Add(reader["ID_Equipo"].ToString());
-                        reader.Close();
-
-                        SincronizarDisponibilidad(imeis, disponible: true);
-                    }
+                    // Sync: solo si el SP termino bien
+                    SincronizarDisponibilidad(imeis, disponible: true);
+                    if (accesorios.Count > 0)
+                        SincronizarCantidadAccesorios(accesorios, "ANULACION_FACTURA", documento, Factura.Usuario);
 
                     cn.Close();
                     return Factura;
@@ -3766,6 +3814,68 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             return resultado;
         }
 
+        /// <summary>
+        /// Replica a la base par la DIFERENCIA de cantidad de accesorios (no la cantidad absoluta, porque principal y espejo
+        /// venden en paralelo). Un solo lote idempotente: la nota unica evita que un reintento sume dos veces.
+        /// Nunca lanza: un fallo queda en el log con [SYNC-FALLO] y no afecta la operacion principal.
+        /// </summary>
+        private bool SincronizarCantidadAccesorios(IEnumerable<(long IdAccesorio, int Delta)> cambios, string motivo, string documento, string usuario)
+        {
+            List<(long Id, int Delta)> lista = new();
+            try
+            {
+                lista = cambios
+                    .GroupBy(c => c.IdAccesorio)
+                    .Select(g => (Id: g.Key, Delta: g.Sum(x => x.Delta)))
+                    .Where(x => x.Delta != 0)
+                    .ToList();
+                if (lista.Count == 0) return true;
+
+                var nota = "Replica desde la base par " + Guid.NewGuid().ToString("N");
+                var parametros = new List<SqlParameter>
+                {
+                    new SqlParameter("@nota", SqlDbType.VarChar, 250) { Value = nota },
+                    new SqlParameter("@motivo", SqlDbType.NVarChar, 30) { Value = (object)motivo ?? DBNull.Value },
+                    new SqlParameter("@documento", SqlDbType.NVarChar, 50) { Value = (object)documento ?? DBNull.Value },
+                    new SqlParameter("@usuario", SqlDbType.NVarChar, 60) { Value = (object)usuario ?? DBNull.Value },
+                    new SqlParameter("@esperados", SqlDbType.Int) { Value = lista.Count },
+                };
+                for (int i = 0; i < lista.Count; i++)
+                {
+                    parametros.Add(new SqlParameter("@id" + i, SqlDbType.BigInt) { Value = lista[i].Id });
+                    parametros.Add(new SqlParameter("@d" + i, SqlDbType.Int) { Value = lista[i].Delta });
+                }
+                var valores = string.Join(", ", lista.Select((_, i) => $"(@id{i}, @d{i})"));
+
+                var sql = $@"
+IF EXISTS (SELECT 1 FROM dbo.Accesorio_Movimiento WHERE Fecha >= DATEADD(DAY, -1, DATEADD(HOUR, -4, GETDATE())) AND Nota = @nota) RETURN;
+EXEC sp_set_session_context N'mov_motivo', @motivo;
+EXEC sp_set_session_context N'mov_documento', @documento;
+EXEC sp_set_session_context N'mov_usuario', @usuario;
+EXEC sp_set_session_context N'mov_nota', @nota;
+UPDATE A SET Cantidad = ISNULL(A.Cantidad, 0) + V.Delta
+  FROM dbo.Accesorios A
+  JOIN (VALUES {valores}) V(Id, Delta) ON V.Id = A.ID_Accesorio;
+IF @@ROWCOUNT <> @esperados THROW 50995, 'Accesorio inexistente en la base par', 1;
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+EXEC sp_set_session_context N'mov_nota', NULL;";
+
+                bool ok = _sync.EjecutarQueries(new List<(string Sql, SqlParameter[] Parametros)> { (sql, parametros.ToArray()) });
+                if (!ok)
+                    _logger.LogError("[SYNC-FALLO] No se replicaron los accesorios a la base par. Motivo {Motivo}, documento {Documento}: {Cambios}",
+                        motivo, documento, string.Join(", ", lista.Select(x => $"{x.Id}:{x.Delta}")));
+                return ok;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SYNC-FALLO] Error replicando accesorios a la base par. Motivo {Motivo}, documento {Documento}: {Cambios}",
+                    motivo, documento, string.Join(", ", lista.Select(x => $"{x.Id}:{x.Delta}")));
+                return false;
+            }
+        }
+
         public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)
         {
             cn.Open();
@@ -3812,10 +3922,44 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los IMEIs de la prefactura {Prefactura} para el espejo", numeroPreFactura);
                 }
 
+                // Sync: accesorios de la prefactura (sumados por accesorio) y su literal, ANTES del SP (despues la prefactura ya no esta en 'P')
+                var accesoriosSync = new List<(long IdAccesorio, int Delta)>();
+                string literalPre = null;
+                try
+                {
+                    using (var cnSyncAcc = new SqlConnection(_connectionStrings))
+                    {
+                        cnSyncAcc.Open();
+                        using (var cmdAcc = new SqlCommand(
+                            "SELECT ID_Equipo, SUM(cantidad) AS Cantidad FROM PreDetalle_Facturas WHERE Numero_PreFactura = @nPre AND ID_Tipo = 2 AND Estado = 'P' GROUP BY ID_Equipo", cnSyncAcc))
+                        {
+                            cmdAcc.Parameters.AddWithValue("@nPre", numeroPreFactura);
+                            using var readerAcc = cmdAcc.ExecuteReader();
+                            while (readerAcc.Read())
+                                if (long.TryParse(Convert.ToString(readerAcc["ID_Equipo"])?.Trim(), out var idAcc))
+                                    accesoriosSync.Add((idAcc, -Convert.ToInt32(readerAcc["Cantidad"])));
+                        }
+                        if (accesoriosSync.Count > 0)
+                        {
+                            using var cmdLit = new SqlCommand(
+                                "SELECT TOP 1 Literal FROM PreFacturas WHERE Numero_PreFactura = @nPre AND Estado = 'P'", cnSyncAcc);
+                            cmdLit.Parameters.AddWithValue("@nPre", numeroPreFactura);
+                            literalPre = Convert.ToString(cmdLit.ExecuteScalar());
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los accesorios de la prefactura {Prefactura} para la base par", numeroPreFactura);
+                    accesoriosSync.Clear();
+                }
+
                 cmd.ExecuteNonQuery();
 
                 // Sync: marcar equipos como no disponibles en BD espejo (un solo lote, todo o nada)
                 int nuevoNumero = nuevoNumeroFacturaParam.Value != DBNull.Value ? (int)nuevoNumeroFacturaParam.Value : 0;
+                if (nuevoNumero > 0 && accesoriosSync.Count > 0)
+                    SincronizarCantidadAccesorios(accesoriosSync, "VENTA_PF", literalPre + nuevoNumero, usuarioProcesamiento);
                 if (nuevoNumero > 0 && imeisSync.Count > 0)
                 {
                     try

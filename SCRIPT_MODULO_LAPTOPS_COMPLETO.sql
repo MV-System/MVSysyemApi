@@ -3174,14 +3174,17 @@ BEGIN
         EXEC sp_set_session_context N'mov_documento', @MovDoc;
         EXEC sp_set_session_context N'mov_usuario', @Usuario_Procesamiento;
 
+        -- Si el mismo accesorio esta en varias lineas, se rebaja la suma (un UPDATE ... JOIN aplicaba solo una linea)
         UPDATE a
         SET a.Cantidad = a.Cantidad - pf.cantidad
         FROM Accesorios a
-        INNER JOIN PreDetalle_Facturas pf
-            ON a.ID_Accesorio = pf.ID_Equipo
-        WHERE pf.Numero_PreFactura = @Numero_PreFactura
-          AND pf.ID_Tipo = 2
-          AND pf.Estado = 'P';
+        INNER JOIN (SELECT ID_Equipo, SUM(cantidad) AS cantidad
+                      FROM PreDetalle_Facturas
+                     WHERE Numero_PreFactura = @Numero_PreFactura
+                       AND ID_Tipo = 2
+                       AND Estado = 'P'
+                     GROUP BY ID_Equipo) pf
+            ON a.ID_Accesorio = pf.ID_Equipo;
 
         EXEC sp_set_session_context N'mov_motivo', NULL;
         EXEC sp_set_session_context N'mov_documento', NULL;

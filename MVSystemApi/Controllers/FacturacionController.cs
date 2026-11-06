@@ -159,7 +159,9 @@ namespace MVSystemApi.Controllers
                         Console.WriteLine($"[DGI-ANULA-ERROR] No se pudo anular factura {resultFactura.NumeroFactura}: {exAnula.Message}");
                     }
 
-                    return BadRequest(new { error = "La DGII no pudo procesar la factura. Intente nuevamente.", errorDGI = true });
+                    // Si fue un rechazo de la DGII se muestra su motivo; el resto de errores técnicos no se expone
+                    var detalleDgii = errorDGI.StartsWith("La DGII rechazó", StringComparison.OrdinalIgnoreCase) ? $" {errorDGI}" : " Intente nuevamente.";
+                    return BadRequest(new { error = "La DGII no pudo procesar la factura." + detalleDgii, errorDGI = true });
                 }
 
                 return Ok(new { factura = resultFactura, mensaje = "Factura guardada exitosamente" });
@@ -389,6 +391,11 @@ namespace MVSystemApi.Controllers
 
                     if (responseEDGI?.Success == true)
                         return null; // Éxito
+
+                    // La DGII rechazó el comprobante (documento ya creado en el proveedor): reenviar no lo arregla y gastaría otro e-NCF.
+                    // Se devuelve como error para que la factura se anule.
+                    if (responseEDGI?.RechazadaPorDgii == true)
+                        return responseEDGI.Message;
 
                     _logger.LogWarning($"[CTRL-DGI-6] Intento {intento}/{maxIntentos} FALLÓ: {responseEDGI?.Message}");
 

@@ -174,7 +174,7 @@ namespace MVSystemApi.Controllers
             // Obtener QR URL del log de factura electrónica
             try
             {
-                var log = await _accesoDatos.GetLogFacturaElectronica(consulta.NumeroFactura, "A");
+                var log = await ObtenerLogFacturaParaReimpresionAsync(consulta.NumeroFactura, consulta.Almacen, factura.Ncf);
                 if (log?.QR_Url != null)
                 {
                     data.QrUrl = log.QR_Url;
@@ -188,7 +188,29 @@ namespace MVSystemApi.Controllers
 
             return new ViewAsPdf(data);
         }
-      
+
+        /// <summary>
+        /// Log de la factura para el QR: primero con el literal real de la factura; si no hay (facturas anteriores, guardadas con "A" fijo),
+        /// con "A". Si se conoce el e-NCF de la factura, el log debe coincidir con él (con "A" fijo dos sucursales podían compartir el número).
+        /// </summary>
+        private async Task<LogFacturaElectronica> ObtenerLogFacturaParaReimpresionAsync(int numeroFactura, int sucursal, string ncfFactura)
+        {
+            var literales = new List<string>();
+            var real = await _accesoDatos.ObtenerLiteralFactura(numeroFactura, sucursal);
+            if (!string.IsNullOrWhiteSpace(real)) literales.Add(real);
+            if (!literales.Contains("A")) literales.Add("A");
+
+            foreach (var literal in literales)
+            {
+                var log = await _accesoDatos.GetLogFacturaElectronica(numeroFactura, literal);
+                if (log == null) continue;
+                if (string.IsNullOrWhiteSpace(ncfFactura)
+                    || string.Equals(log.VoucherNumber_DGII?.Trim(), ncfFactura.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return log;
+            }
+            return null;
+        }
+
         [HttpPost("FacturacionReporte/ReportFacturaMini")]// Reimprimir factura 80mm
         public async Task<IActionResult> ReportFacturaMini(FacturaFilter consulta)
         {
@@ -217,7 +239,7 @@ namespace MVSystemApi.Controllers
             // Obtener QR URL del log de factura electrónica
             try
             {
-                var log = await _accesoDatos.GetLogFacturaElectronica(consulta.NumeroFactura, "A");
+                var log = await ObtenerLogFacturaParaReimpresionAsync(consulta.NumeroFactura, consulta.Almacen, factura.Ncf);
                 if (log?.QR_Url != null)
                 {
                     data.QrUrl = log.QR_Url;

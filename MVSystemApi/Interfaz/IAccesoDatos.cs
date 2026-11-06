@@ -121,10 +121,18 @@ namespace MVSystemApi.Interfaz
         public Task<LogFacturaElectronica> GetLogFacturaElectronica(int numeroFactura, string literal);
         public Task<List<LogFacturaElectronica>> GetLogFacturasElectronicasPendientes();
         public Task<(bool success, string errorMessage)> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor, NotaCreditoInfo notaCreditoInfo = null);
-        public Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal);
+        public Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor);
+        /// <summary>Literal real de la factura (Facturas.Literal) por número + sucursal; vacío si no existe.</summary>
+        public Task<string> ObtenerLiteralFactura(int numeroFactura, int sucursal);
+        /// <summary>Anula la factura por una nota de crédito aprobada, solo si sigue activa (evita devolver el inventario dos veces).</summary>
+        public Task<(bool Anulada, string Error)> AnularFacturaPorNotaCreditoAsync(int numeroFactura, int sucursal, string usuario, string ncfNotaCredito, string motivo = null);
         public Task<string> ObtenerNcfNotaCredito(int tipoNcf);
+        /// <summary>Datos de la factura de origen (cabecera, líneas y pagos) para la nota de crédito del proveedor 1. Null si no existe.</summary>
+        public Task<FacturaOrigenNotaCredito> ObtenerFacturaOrigenNotaCredito(int numeroFactura, int sucursal);
+        /// <summary>Candado de aplicación en la base de la empresa. Devuelve null si el recurso ya está tomado.</summary>
+        public Task<CandadoAplicacion> TomarCandadoAsync(string recurso);
         public Task<string> ObtenerEstatusRemotoProveedor2(string encf, string rncEmisor);
-        public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal);
+        public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal, string rncEmisor, string encfNotaCredito);
 
         #endregion
 

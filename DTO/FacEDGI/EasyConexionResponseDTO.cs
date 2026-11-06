@@ -41,5 +41,12 @@ namespace DTO.FacEDGI
         /// Puede ser null si aún no se ha confirmado el envío
         /// </summary>
         public string TrackId { get; set; }
+
+        /// <summary>
+        /// Solo uso interno (no viene de EasyConexión): la DGII rechazó el comprobante después de crearse el documento.
+        /// El controlador no reintenta el envío y anula la factura.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool RechazadaPorDgii { get; set; }
     }
 }

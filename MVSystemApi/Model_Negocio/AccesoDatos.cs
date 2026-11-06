@@ -6,11 +6,13 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
+using MVSystemApi.MonitorSync;
 
 namespace MVSystemApi.Model
 {
     public class AccesoDatos : IAccesoDatos
     {
+        private readonly NotificadorAlertas _notificadorAlertas;
         private readonly SqlConnection cn;
         public static int Numero_Registro;
         private readonly string _connectionStrings;
@@ -28,8 +30,9 @@ namespace MVSystemApi.Model
         // Propiedad pública para acceder a la cadena de conexión
         public string ConnectionString => _connectionStrings;
 
-        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync, IConfiguration configuration)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync, IConfiguration configuration, NotificadorAlertas notificadorAlertas = null)
         {
+            _notificadorAlertas = notificadorAlertas;
             _memoryCache = memoryCache;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sync = sync;
@@ -619,20 +622,22 @@ namespace MVSystemApi.Model
         /// (Proveedor 2), consultando directamente PIVOT_FACTURAS_ENC local (lo que realmente se transmitió a la DGII),
         /// sin depender de la tabla Facturas.
         /// </summary>
-        public async Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal)
+        public async Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor)
         {
             await using var connection = new SqlConnection(_seguridadConnectionString);
             await connection.OpenAsync();
 
+            // La tabla local la comparten todas las empresas: se filtra también por el RNC del emisor
             await using var cmd = new SqlCommand(@"
 SELECT TOP (1)
     NUM_CLIENTE, NUM_RNC, SUB_TOTAL, DESCUENTO, IMPUESTO, TOTAL, ENCF, FECHA_FACTURA
 FROM PIVOT_FACTURAS_ENC
-WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'FT'
+WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'FT' AND RNC_EMISOR = @rncEmisor
 ORDER BY FECHA_REGISTRO DESC", connection);
 
             cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura.ToString());
             cmd.Parameters.AddWithValue("@sucursal", sucursal);
+            cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
 
             await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync())
@@ -653,6 +658,197 @@ ORDER BY FECHA_REGISTRO DESC", connection);
                 NcfNumero = reader.IsDBNull(reader.GetOrdinal("ENCF")) ? "" : reader.GetString(reader.GetOrdinal("ENCF")),
                 FechaRegistro = reader.GetDateTime(reader.GetOrdinal("FECHA_FACTURA"))
             };
+        }
+
+        /// <summary>
+        /// Lee de las tablas de la empresa la factura que va a anular una nota de crédito (proveedor 1): cabecera por
+        /// número + sucursal, líneas activas por número + literal y pagos. Null si la factura no existe.
+        /// </summary>
+        public async Task<FacturaOrigenNotaCredito> ObtenerFacturaOrigenNotaCredito(int numeroFactura, int sucursal)
+        {
+            await using var connection = new SqlConnection(_connectionStrings);
+            await connection.OpenAsync();
+
+            FacturaOrigenNotaCredito origen;
+            await using (var cmd = new SqlCommand(@"
+SELECT TOP (1) Literal, Estado, NCF_NUMERO, NFCTipoNumero, ID_Cliente, SubTotal, Descuento, Itbis, Total, RNC,
+       Fecha_Registro, ID_Tipo_Pagos, Tiempo_Credito
+  FROM Facturas
+ WHERE Numero_Factura = @numero AND ID_Sucursal = @sucursal
+ ORDER BY Codigo DESC", connection))
+            {
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                    return null;
+
+                string Texto(string col) => reader.IsDBNull(reader.GetOrdinal(col)) ? "" : Convert.ToString(reader[col]).Trim();
+
+                origen = new FacturaOrigenNotaCredito
+                {
+                    NumeroFactura = numeroFactura,
+                    Sucursal = sucursal,
+                    Literal = Texto("Literal"),
+                    Estado = Texto("Estado"),
+                    NcfNumero = Texto("NCF_NUMERO"),
+                    NcfTipoNumero = int.TryParse(Texto("NFCTipoNumero"), out var tipo) ? tipo : 0,
+                    IdCliente = reader.IsDBNull(reader.GetOrdinal("ID_Cliente")) ? 0 : Convert.ToInt32(reader["ID_Cliente"]),
+                    SubTotal = Convert.ToDecimal(reader["SubTotal"]),
+                    Descuento = Convert.ToDecimal(reader["Descuento"]),
+                    Itbis = Convert.ToDecimal(reader["Itbis"]),
+                    Total = Convert.ToDecimal(reader["Total"]),
+                    RNC = Texto("RNC"),
+                    FechaRegistro = Convert.ToDateTime(reader["Fecha_Registro"]),
+                    IdTipoPago = reader.IsDBNull(reader.GetOrdinal("ID_Tipo_Pagos")) ? 0 : Convert.ToInt32(reader["ID_Tipo_Pagos"]),
+                    TiempoCredito = reader.IsDBNull(reader.GetOrdinal("Tiempo_Credito")) ? (DateTime?)null : Convert.ToDateTime(reader["Tiempo_Credito"]),
+                };
+            }
+
+            // Líneas activas de ESTA factura (número + literal), con el precio en decimal
+            await using (var cmd = new SqlCommand(@"
+SELECT ID_Equipo, Descripcion, ID_Tipo, cantidad, precio, SubTotal, Descuento, Itbis, Total
+  FROM Detalle_Facturas
+ WHERE Numero_Factura = @numero AND LiteralF = @literalF AND Estado = 'A'", connection))
+            {
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                cmd.Parameters.AddWithValue("@literalF", origen.Literal + numeroFactura.ToString());
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    origen.Detalles.Add(new DetalleFactura
+                    {
+                        NumeroFactura = numeroFactura,
+                        IdEquipo = Convert.ToString(reader["ID_Equipo"]),
+                        Descripcion = Convert.ToString(reader["Descripcion"]),
+                        IdTipo = Convert.ToInt32(reader["ID_Tipo"]),
+                        Cantidad = Convert.ToInt32(reader["cantidad"]),
+                        Precio = Convert.ToDecimal(reader["precio"]),
+                        SubTotal = Convert.ToDecimal(reader["SubTotal"]),
+                        Descuento = Convert.ToDecimal(reader["Descuento"]),
+                        Itbis = Convert.ToDecimal(reader["Itbis"]),
+                        Total = Convert.ToDecimal(reader["Total"]),
+                    });
+                }
+            }
+
+            foreach (var pago in GetDetallesPagoFactura(numeroFactura, "F"))
+            {
+                origen.Pagos.Add(new DetallesPagos_Factura
+                {
+                    Numero_Factura = numeroFactura,
+                    ID_Tipo_Pago = pago.ID_Tipo_Pago,
+                    Monto_Pago = pago.Monto_Pago,
+                    Numero_Referencia = pago.Numero_Referencia,
+                });
+            }
+
+            return origen;
+        }
+
+        /// <summary>Literal real de la factura (Facturas.Literal) por número + sucursal; vacío si no existe.</summary>
+        public async Task<string> ObtenerLiteralFactura(int numeroFactura, int sucursal)
+        {
+            await using var connection = new SqlConnection(_connectionStrings);
+            await connection.OpenAsync();
+            await using var cmd = new SqlCommand(
+                "SELECT TOP (1) Literal FROM Facturas WHERE Numero_Factura = @numero AND ID_Sucursal = @sucursal ORDER BY Codigo DESC", connection);
+            cmd.Parameters.AddWithValue("@numero", numeroFactura);
+            cmd.Parameters.AddWithValue("@sucursal", sucursal);
+            var literal = await cmd.ExecuteScalarAsync();
+            return literal == null || literal == DBNull.Value ? "" : Convert.ToString(literal).Trim();
+        }
+
+        /// <summary>
+        /// Anula la factura por una nota de crédito aprobada. Solo si sigue activa: Proc_Anular_Factura no mira el estado de las
+        /// líneas y anular dos veces devolvería el inventario dos veces. Si ya estaba anulada devuelve (true, null) sin tocarla.
+        /// </summary>
+        public async Task<(bool Anulada, string Error)> AnularFacturaPorNotaCreditoAsync(int numeroFactura, int sucursal, string usuario, string ncfNotaCredito, string motivo = null)
+        {
+            string estado;
+            await using (var connection = new SqlConnection(_connectionStrings))
+            {
+                await connection.OpenAsync();
+                await using var cmd = new SqlCommand(
+                    "SELECT TOP (1) Estado FROM Facturas WHERE Numero_Factura = @numero AND ID_Sucursal = @sucursal ORDER BY Codigo DESC", connection);
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+                var valor = await cmd.ExecuteScalarAsync();
+                estado = valor == null || valor == DBNull.Value ? null : Convert.ToString(valor).Trim();
+            }
+
+            if (estado == null)
+                return (false, "Factura no encontrada.");
+            if (!string.Equals(estado, "A", StringComparison.OrdinalIgnoreCase))
+                return (true, null);   // ya estaba anulada
+
+            try
+            {
+                PostAnulaFactura(new FilterAnulaFactura
+                {
+                    NumeroFactura = numeroFactura,
+                    IDsucursal = sucursal.ToString(),
+                    Usuario = usuario,
+                    Motivo = motivo ?? $"Anulada por Nota de Crédito {ncfNotaCredito}",
+                });
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[NC-ANULA-FALLO] La nota de crédito {Ncf} quedó aprobada pero no se pudo anular la factura {Factura} (sucursal {Sucursal})", ncfNotaCredito, numeroFactura, sucursal);
+                return (false, ex.Message);
+            }
+        }
+
+        /// <summary>Alerta por correo/WhatsApp (misma configuración del monitor). Nunca lanza: no puede afectar la operación.</summary>
+        private async Task AlertarComprobanteAsync(string asunto, string cuerpo)
+        {
+            _logger.LogError("{Asunto}: {Cuerpo}", asunto, cuerpo);
+            if (_notificadorAlertas == null) return;
+            try
+            {
+                var corto = cuerpo.Length > 300 ? cuerpo.Substring(0, 300) : cuerpo;
+                await _notificadorAlertas.EnviarAsync($"[MVSystem] {asunto}", cuerpo, $"MVSystem - {asunto}: {corto}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo enviar la alerta '{Asunto}'", asunto);
+            }
+        }
+
+        /// <summary>
+        /// Toma un candado de aplicación (sp_getapplock, dueño Session, sin espera) en una conexión dedicada que queda
+        /// abierta hasta liberar el candado. Null si otro proceso ya lo tiene.
+        /// </summary>
+        public async Task<CandadoAplicacion> TomarCandadoAsync(string recurso)
+        {
+            var conexion = new SqlConnection(_connectionStrings);
+            try
+            {
+                await conexion.OpenAsync();
+                await using var cmd = new SqlCommand("sp_getapplock", conexion) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@Resource", recurso);
+                cmd.Parameters.AddWithValue("@LockMode", "Exclusive");
+                cmd.Parameters.AddWithValue("@LockOwner", "Session");
+                cmd.Parameters.AddWithValue("@LockTimeout", 0);
+                var retorno = new SqlParameter("@retorno", SqlDbType.Int) { Direction = ParameterDirection.ReturnValue };
+                cmd.Parameters.Add(retorno);
+                await cmd.ExecuteNonQueryAsync();
+
+                if (Convert.ToInt32(retorno.Value) < 0)
+                {
+                    await conexion.DisposeAsync();
+                    return null;
+                }
+                return new CandadoAplicacion(conexion, recurso);
+            }
+            catch
+            {
+                await conexion.DisposeAsync();
+                throw;
+            }
         }
 
         /// <summary>
@@ -701,21 +897,24 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
         /// Obtiene los datos de una Nota de Crédito ya emitida (PIVOT_FACTURAS_ENC/DET local,
         /// TIPO_DOCUMENTO='NC') para armar el reporte PDF. No consulta la tabla Facturas.
         /// </summary>
-        public async Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal)
+        public async Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal, string rncEmisor, string encfNotaCredito)
         {
             await using var connection = new SqlConnection(_seguridadConnectionString);
             await connection.OpenAsync();
 
             NotaCreditoReporteViewModel data = null;
 
+            // La NC se identifica por su e-NCF (del log de la NC) + RNC del emisor: sin tomar la de otra empresa ni un intento rechazado
             await using (var cmdEnc = new SqlCommand(@"
 SELECT TOP (1)
     ENCF, ENCF_REFERENCIA, NOMBRE_CLIENTE, NUM_RNC, FECHA_FACTURA,
     SUB_TOTAL, IMPUESTO, TOTAL
 FROM PIVOT_FACTURAS_ENC
-WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'NC'
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'NC'
 ORDER BY FECHA_REGISTRO DESC", connection))
             {
+                cmdEnc.Parameters.AddWithValue("@encf", encfNotaCredito ?? "");
+                cmdEnc.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
                 cmdEnc.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen.ToString());
                 cmdEnc.Parameters.AddWithValue("@sucursal", sucursal);
 
@@ -755,8 +954,10 @@ WHERE F.Numero_Factura = @numeroFactura AND F.ID_Sucursal = @sucursal", cnTipoPa
             await using (var cmdDet = new SqlCommand(@"
 SELECT COD_PRODUCTO, DESCRIPCION, UND_MEDIDA, TIPO_PRODUCTO, CANTIDAD, PRECIO, IMPUESTO, TOTAL
 FROM PIVOT_FACTURAS_DET
-WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             {
+                cmdDet.Parameters.AddWithValue("@encf", encfNotaCredito ?? "");
+                cmdDet.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
                 cmdDet.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen.ToString());
 
                 await using var reader = await cmdDet.ExecuteReaderAsync();
@@ -4409,13 +4610,17 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
 
                 var (estatusFinal, errorMsg, codigoSeguridad, fechaFirma) = await VerificaryActualizarEstatusProveedor2Async(factura.NcfNumero, rncEmisor);
 
-                var literalLog = notaCreditoInfo != null ? "NC" : "A";
+                // NC: "N" + literal real de la factura (NA, NB...) que llega en notaCreditoInfo; sin él, "NC" como antes. Factura normal: "A" como antes.
+                var literalLog = notaCreditoInfo != null
+                    ? (string.IsNullOrWhiteSpace(notaCreditoInfo.LiteralLog) ? "NC" : notaCreditoInfo.LiteralLog)
+                    : "A";
 
                 if (estatusFinal)
                 {
                     string qrUrl = null;
                     var estadoLog = "PEND";
-                    string errorLog = "Pendiente confirmación final de Proveedor 2";
+                    // (true + detalle) = pendiente por un error propio del proveedor: queda en el log y NO anula la factura
+                    string errorLog = string.IsNullOrWhiteSpace(errorMsg) ? "Pendiente confirmación final de Proveedor 2" : errorMsg;
                     if (!string.IsNullOrWhiteSpace(codigoSeguridad))
                     {
                         qrUrl = ConstruirQrUrl(factura, rncEmisor, factura.NcfNumero, factura.Total, codigoSeguridad, fechaFirma);
@@ -4607,6 +4812,7 @@ WHERE NFCTipoNumero = @ncfTipoNumero", cnTipoNfc);
                 string ultimoEstatus = null;
                 string ultimoStatusError = null;
                 string ultimoCodigoSeguridad = null;
+                string errorPrevio = null;
                 DateTime? ultimaFechaFirma = null;
                 bool encontradoFinal = false;
 
@@ -4637,7 +4843,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
 
                         // Se agotó la espera inicial sin respuesta final: mantener pendiente para reconciliación posterior
                         var timeoutNoEncontrado = $"Sin confirmación final luego de {maxIntentos} intentos. Pendiente respuesta de DGII en servidor remoto.";
-                        await ActualizarEstatusLocal(encf, "ENVIADO", timeoutNoEncontrado, ultimaFechaFirma);
+                        await ActualizarEstatusLocal(encf, "ENVIADO", timeoutNoEncontrado, ultimaFechaFirma, rncEmisor);
                         return (true, null, null, ultimaFechaFirma);
                     }
 
@@ -4658,10 +4864,20 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                     ultimoCodigoSeguridad = codigoSeguridad;
                     ultimaFechaFirma = fechaFirma;
 
+                    // "Aceptado condicional" (la DGII aceptó con observaciones): se trata como aprobado y se avisa para revisarlo con el proveedor
+                    if (estatus.Contains("CONDICIONAL"))
+                    {
+                        await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
+                        await AlertarComprobanteAsync("[ACEPTADO-CONDICIONAL] Comprobante aceptado condicionalmente (Proveedor 2)",
+                            $"El e-NCF {encf} (RNC emisor {rncEmisor}) fue aceptado condicionalmente por la DGII. Detalle: {statusError}. Se trató como aprobado; revíselo con el proveedor.");
+                        encontradoFinal = true;
+                        return (true, null, codigoSeguridad, fechaFirma);
+                    }
+
                     // ESTADO FINAL: ACEPTADO
                     if (estatus == "ACEPTADO")
                     {
-                        bool okUpdate = await ActualizarEstatusLocal(encf, "ACEPTADO", null, fechaFirma);
+                        bool okUpdate = await ActualizarEstatusLocal(encf, "ACEPTADO", null, fechaFirma, rncEmisor);
                         if (!okUpdate && intento < maxIntentos)
                         {
                             // Falló actualización local, reintentar sin perder estado final remoto
@@ -4676,7 +4892,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                     if (estatus == "RECHAZADO_DGII" || estatus == "RECHAZADO")
                     {
                         var msg = $"Factura rechazada por DGII (ESTATUS={estatus}). Detalle: {statusError}";
-                        bool okUpdate = await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma);
+                        bool okUpdate = await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
                         if (!okUpdate && intento < maxIntentos)
                         {
                             // Falló actualización local, reintentar sin perder estado final remoto
@@ -4687,8 +4903,27 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                         return (false, msg, null, fechaFirma);
                     }
 
+                    // Error propio del proveedor mientras el comprobante no es final (p. ej. falla del firmador): si es el mismo error en dos
+                    // consultas seguidas ya no es transitorio. Se deja de esperar y se devuelve como PENDIENTE (true + detalle), NUNCA como
+                    // error: un error anularía la factura mientras el proveedor todavía puede procesarla. Solo el rechazo de la DGII es error.
+                    if (!string.IsNullOrWhiteSpace(statusError))
+                    {
+                        if (string.Equals(statusError, errorPrevio, StringComparison.Ordinal))
+                        {
+                            await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
+                            await AlertarComprobanteAsync("[PROVEEDOR2-ERROR] Error del proveedor 2 con un comprobante",
+                                $"El e-NCF {encf} (RNC emisor {rncEmisor}) está en estado '{estatus}' con el error del proveedor: {statusError}. Queda pendiente; revíselo con el proveedor.");
+                            return (true, statusError, ultimoCodigoSeguridad, fechaFirma);
+                        }
+                        errorPrevio = statusError;
+                    }
+                    else
+                    {
+                        errorPrevio = null;
+                    }
+
                     // Estado transitorio: seguir consultando hasta tener estado final o agotar tiempo de espera
-                    await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma);
+                    await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
 
                     if (intento < maxIntentos)
                     {
@@ -4702,7 +4937,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                 if (!encontradoFinal)
                 {
                     var timeoutMsg = $"Sin confirmación final luego de {maxIntentos} intentos. Último estado remoto: {ultimoEstatus}.";
-                    await ActualizarEstatusLocal(encf, "ENVIADO", string.IsNullOrWhiteSpace(ultimoStatusError) ? timeoutMsg : ultimoStatusError, ultimaFechaFirma);
+                    await ActualizarEstatusLocal(encf, "ENVIADO", string.IsNullOrWhiteSpace(ultimoStatusError) ? timeoutMsg : ultimoStatusError, ultimaFechaFirma, rncEmisor);
                     return (true, null, ultimoCodigoSeguridad, ultimaFechaFirma);
                 }
 
@@ -4714,7 +4949,8 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
             }
         }
 
-        private async Task<bool> ActualizarEstatusLocal(string encf, string estatus, string statusError, DateTime? fechaFirma)
+        /// <summary>Actualiza la copia local de PIVOT_FACTURAS_ENC. Filtra por e-NCF Y RNC del emisor: el e-NCF se repite entre empresas.</summary>
+        private async Task<bool> ActualizarEstatusLocal(string encf, string estatus, string statusError, DateTime? fechaFirma, string rncEmisor)
         {
             try
             {
@@ -4724,8 +4960,9 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                 await using var cmd = new SqlCommand(@"
 UPDATE PIVOT_FACTURAS_ENC
     SET ESTATUS = @estatus, ESTATUS_ERROR = @statusError, ENCF_FECHA_FIRMA = COALESCE(@fechaFirma, ENCF_FECHA_FIRMA)
-WHERE ENCF = @encf", connection);
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
 
+                cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
                 cmd.Parameters.AddWithValue("@estatus", estatus ?? "");
                 cmd.Parameters.AddWithValue("@statusError", (object)statusError ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@fechaFirma", (object)fechaFirma ?? DBNull.Value);
@@ -4817,7 +5054,24 @@ WHERE ENCF = @encf", connection);
                     Fecha_Envio = DateTime.Now
                 };
 
-                await InsertLogFacturaElectronica(log);
+                // Las notas de crédito (literal que empieza con "N") se reintentan sobre el mismo registro: si la anterior fue
+                // rechazada, se actualiza en vez de chocar con el índice único (número, literal). Las facturas normales no cambian.
+                var existente = literal != null && literal.StartsWith("N", StringComparison.OrdinalIgnoreCase)
+                    ? await GetLogFacturaElectronica(numeroFactura, log.Literal)
+                    : null;
+                if (existente != null)
+                {
+                    existente.VoucherNumber_DGII = log.VoucherNumber_DGII;
+                    existente.Estado = log.Estado;
+                    existente.Error_Descripcion = log.Error_Descripcion;
+                    existente.QR_Url = log.QR_Url;
+                    existente.Fecha_Confirmacion = log.Estado == "ACEPTADA" ? DateTime.Now : (DateTime?)null;
+                    await UpdateLogFacturaElectronica(existente);
+                }
+                else
+                {
+                    await InsertLogFacturaElectronica(log);
+                }
             }
             catch (Exception ex)
             {

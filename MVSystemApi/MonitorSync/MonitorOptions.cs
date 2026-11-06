@@ -32,6 +32,7 @@ namespace MVSystemApi.MonitorSync
             new ParEmpresa { Nombre = "GAPMOVILES",      IdPrincipal = 30, IdEspejo = 1 },
             new ParEmpresa { Nombre = "BESTPHONE_STORE", IdPrincipal = 4,  IdEspejo = 33 },
             new ParEmpresa { Nombre = "TECNOSTYLE",      IdPrincipal = 18, IdEspejo = 32 },
+            new ParEmpresa { Nombre = "DATAMOVIL",       IdPrincipal = 3,  IdEspejo = 35 },
         };
 
         public CorreoOptions Correo { get; set; } = new CorreoOptions();

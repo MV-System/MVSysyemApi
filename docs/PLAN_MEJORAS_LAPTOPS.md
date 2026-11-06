@@ -319,6 +319,50 @@
 - **Funciona en las dos direcciones sin código extra:** `SyncService` apunta a la base par según el token (`IdEmpresaE`).
 - Aceptación (en una base con espejo, después de publicar): (a) facturar 2 unidades de un accesorio en la principal → la espejo baja 2, movimiento `VENTA_D` con nota "Replica desde la base par …" y el documento con literal; (b) anular → sube 2 en las dos (`ANULACION_FACTURA`); (c) prefactura con el **mismo accesorio en dos líneas** (1 + 2) → baja 3 en las dos (`VENTA_PF`); (d) facturar en la espejo → baja en la principal; (e) DbCompare 11 sin diferencias; (f) una factura sin accesorios no envía nada; (g) compila sin errores.
 
+### Tarea 23 – Registrar una laptop sin configuración (RAM y disco opcionales)
+**Pedido de un cliente (05/11/2026):** le llegan laptops sin memoria y/o sin disco; hoy el registro le exige la configuración y no puede registrarlas. Solo front: `src/app/MVSystem/pages/Equipo/Equipo-registro/` **y** el editor `laptop-config-editor` que usa la pantalla **Modificar estatus** (`Equipo-modificacion-estatus`), que hoy repite la misma regla obligatoria (ajustado con la revisión del agente); el SP `Equipo_Configuracion_Guardar` ya acepta cualquier combinación con al menos un módulo, y una laptop sin módulos simplemente no se guarda en la configuración.
+1. **Memorias opcionales:** la sección de RAM está "vacía" si no hay tipo de RAM y todas las capacidades están vacías. Vacía → no se envía RAM. Si se llenó **algo** (tipo o una capacidad), se valida completa como hoy (tipo + cada memoria 1–512 GB), para no guardar datos a medias.
+2. **Discos opcionales:** misma regla (vacía = sin capacidad y sin modelo en todas las filas; si se llenó algo, cada disco 1–16000 GB con modelo).
+3. Quitar el `Validators.required` de `ramTipo` en `onModeloChange` y ajustar `errorConfigLaptop` y los `...Invalida()` a esas reglas.
+4. **Las dos vacías:** registrar la laptop **sin llamar** a `guardarConfiguracionLaptop` y mostrar un aviso (toastr info): "Laptop registrada sin configuración. Puede agregarla después en Modificar estatus." Una sola vacía: se guarda solo la otra.
+   - **Notas de configuración con las dos secciones vacías:** no se pueden guardar solas (sin módulos no se guarda configuración). En ese caso **no dejar guardar** y mostrar: "Para guardar notas de configuración indique al menos una memoria o un disco, o borre las notas." Nada se descarta en silencio.
+6. **`laptop-config-editor` (Modificar estatus):** aplicar las mismas reglas opcionales de 1, 2 y la de las notas, para que una laptop registrada sin nada (o solo con disco/RAM) se pueda configurar allí con lo que tenga. Idealmente sacar la validación a una función compartida para no tener dos copias de la misma regla.
+5. Debajo de la sección, un texto pequeño: "Opcional: déjelo vacío si la laptop llega sin memoria o sin disco."
+- Sin cambios en API ni SQL. No cambiar la regla de no mezclar DDR ni las demás validaciones.
+- Nota para el usuario (no se programa): "agregar la configuración después" en Modificar estatus solo funciona si la laptop **no tiene ninguna**; si ya tiene, por ejemplo, el disco y luego se le instala RAM, se hace por **cambio de pieza** (descuenta del inventario y suma el costo).
+- Aceptación: (a) laptop con las dos secciones vacías → se registra con el aviso; en **Modificar estatus** se le puede agregar la configuración (solo disco, solo RAM o ambas); (b) solo disco → se guarda solo el disco; (c) solo RAM → solo la RAM; (d) RAM con tipo pero sin capacidad → no deja guardar (dato a medias); (e) las dos secciones vacías pero con notas → no deja guardar y explica por qué; (f) equipos que no son laptop: sin cambios; (g) compila sin errores.
+
+### Tarea 24 – Avisos: filtro por estado
+**Pedido del usuario (05/11/2026).** En la pantalla de Avisos (`src/app/MVSystem/pages/seguridad/componentes/avisos/`) poder ver solo los vigentes, programados, vencidos o desactivados. Solo front; sin API ni SQL.
+- Un **selector** encima de la lista (sin pantallas ni botones nuevos): **Vigentes y programados** (por defecto) | Vigentes | Programados | Vencidos | Desactivados | Todos. Mostrar al lado la cantidad de avisos de cada opción, p. ej. "Vencidos (3)".
+- Filtrar en el front con el método `estado(aviso)` que ya existe (Vigente / Programado / Vencido / Desactivado), para que el filtro y la etiqueta de cada aviso usen la misma regla.
+- Al activar/desactivar un aviso, la lista se refiltra (si el filtro es "Vigentes", el que se desactiva desaparece de la vista).
+- Recordar el último filtro elegido en `localStorage` (en `try/catch`); si no hay, el valor por defecto.
+- Aceptación: (a) por defecto se ven vigentes y programados; (b) cada opción muestra solo los de ese estado y su cantidad correcta; (c) desactivar uno con el filtro "Vigentes" lo quita de la vista y aparece en "Desactivados"; (d) compila sin errores.
+
+### Tarea 25 – Monitor de sincronización: agregar el par DATAMOVIL  ✅ HECHA (06/11/2026, el usuario ya lo agregó; no ejecutar)
+**Pedido del usuario (06/11/2026).** DATAMOVIL ya tiene espejo (DATAMOVIL_E). El monitor solo revisa los pares de la lista `Pares`, así que hay que agregarlo. Solo API; sin front ni SQL.
+- **IDs (los completa el usuario antes de ejecutar, de `SEGURIDAD.Empresas`):** DATAMOVIL = `<ID_PRINCIPAL>`, DATAMOVIL_E = `<ID_ESPEJO>`. Si siguen como `<...>`, **no ejecutar** y preguntar.
+- En `MVSystemApi/MonitorSync/MonitorOptions.cs`, agregar a la lista `Pares` (después de TECNOSTYLE):
+  `new ParEmpresa { Nombre = "DATAMOVIL", IdPrincipal = <ID_PRINCIPAL>, IdEspejo = <ID_ESPEJO> },`
+- No tocar `appsettings.json` ni los otros pares.
+- Aceptación: (a) compila sin errores; (b) después de publicar, el resumen diario del monitor muestra **4 pares** (GAPMOVILES, BESTPHONE_STORE, TECNOSTYLE, DATAMOVIL); (c) `GET /Monitor/Probar` incluye DATAMOVIL.
+
+### Tarea 26 – Consulta de equipos disponibles: buscar por marca en el mismo dropdown de modelos
+**Pedido del usuario (06/11/2026).** Poder filtrar por marca **sin agregar controles**. Se usa el `ng-select` de **Modelo** que ya existe en `src/app/MVSystem/pages/Equipo/Equipo-consulta/Equipo-consulta-disponible/` (está dos veces en el HTML, escritorio y móvil: cambiar ambos).
+**Cómo debe funcionar:** el usuario escribe `DELL` → la lista muestra primero **"DELL – todos los modelos"** y debajo los modelos de esa marca. Si elige la marca, filtra todos los equipos de esa marca; si elige un modelo, filtra solo ese modelo (como hoy). Escribir parte de un modelo (p. ej. `3410`) sigue funcionando igual.
+1. **Front:**
+   - Cargar marcas con `catalogosService.getMarcasLista()` junto a `getModeloLista()` (en el mismo `forkJoin` de `loadCatalogos`). `ModeloEquipo` ya trae `iD_Marca`.
+   - Armar una sola lista para el dropdown: una opción por **marca** (`tipo: 'marca'`, etiqueta "MARCA – todos los modelos") y una por **modelo** (`tipo: 'modelo'`, con el nombre de su marca), ordenada por marca y dentro de cada marca la opción de marca primero. Valor único por opción (p. ej. `'ma-5'` / `'mo-120'`) para que marca y modelo no choquen.
+   - `[searchFn]` propio: una opción coincide si el texto está en la descripción del modelo **o** en el nombre de su marca (sin distinguir mayúsculas ni acentos). La opción de marca coincide por el nombre de la marca.
+   - Mostrar la opción de marca en negrita con `ng-option-tmp` para distinguirla. Placeholder: "Modelo o marca".
+   - En `getValueFilterForm`: si es marca → `filter.marca = id` y `filter.modelo = 0`; si es modelo → al revés. Limpiar el filtro limpia ambos.
+2. **Interfaz/servicio:** agregar `marca` a `EquipoDisponibleParam` y `.set('marca', ...)` en `getEquipoDisponible` (vacío si no hay).
+3. **API:** agregar `Marca` (int?, opcional) a `EquipoDisponibleFilterDTO` y en `AccesoDatos.GetEquiposDisponible` el parámetro `@ID_Marca` (`DBNull` si no viene). Sin otros cambios de contrato.
+4. **SQL `Proc_Equipo_Disponible_Consulta`:** parámetro nuevo `@ID_Marca INT = NULL` (opcional: si no se envía, el SP hace exactamente lo de hoy). Filtro `AND (@ID_Marca IS NULL OR M.ID_Marca = @ID_Marca)` uniendo `Modelos M` si no está unido. Aplicarlo también al conteo/total (`TotalRecord`, `TotalInventario`) para que los totales coincidan con lo filtrado. Agregar el SP al script completo de la rama `claude` con `CREATE OR ALTER`; se ejecuta en **principal y espejo**.
+- Sin pantallas ni botones nuevos. No cambiar la consulta de vendidos.
+- Aceptación: (a) escribir `DELL` muestra "DELL – todos los modelos" y los modelos DELL; (b) elegir la marca lista solo equipos DELL y los totales cuadran; (c) elegir un modelo funciona como hoy; (d) escribir parte de un modelo sigue encontrándolo; (e) limpiar filtros quita marca y modelo; (f) sin marca ni modelo, la consulta da lo mismo que hoy; (g) compila sin errores.
+
 ## 3. Entrega de cada tarea
 1. Archivos creados/modificados (rutas).
 2. Scripts SQL a ejecutar y en qué orden (siempre en **principal y espejo**).

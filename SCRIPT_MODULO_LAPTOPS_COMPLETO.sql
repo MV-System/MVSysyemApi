@@ -2323,7 +2323,7 @@ GO
 CREATE OR ALTER PROCEDURE [dbo].[Modelos_Consulta_Combo]
     @criterio INT = NULL
 AS
-SELECT ID_Modelo, Descripcion, ID_Grupo
+SELECT ID_Modelo, Descripcion, ID_Grupo, ID_Marca
   FROM Modelos
  WHERE ID_Marca = @criterio
     OR @criterio IS NULL
@@ -2338,6 +2338,7 @@ CREATE OR ALTER PROCEDURE [dbo].[Proc_Equipo_Disponible_Consulta]
     @Imei VARCHAR(60) = '',
     @ID_Modelo INT = 0,
     @Grupo INT = NULL,
+    @ID_Marca INT = NULL,
     @Fecha_Inicio DATETIME = '',
     @Fecha_Final DATETIME = ''
 AS
@@ -2376,6 +2377,7 @@ BEGIN
         AND ((@Almacen = 0) OR (E.ID_Almacen = @Almacen))
         AND ((@ID_Modelo = 0) OR (E.ID_Modelo = @ID_Modelo))
         AND (@Grupo IS NULL OR M.ID_Grupo = @Grupo)
+        AND (@ID_Marca IS NULL OR M.ID_Marca = @ID_Marca)
         AND ((@Fecha_Inicio = '' AND @Fecha_Final = '') OR (YEAR(E.Fecha_registro) * 10000 + MONTH(E.Fecha_registro) * 100 + DAY(E.Fecha_registro)) BETWEEN @FIni AND @FFin)
         AND E.Disponible = 'S';
 
@@ -2419,6 +2421,7 @@ BEGIN
         AND ((@Imei = '') OR (E.Imei = @Imei))
         AND ((@ID_Modelo = 0) OR (E.ID_Modelo = @ID_Modelo))
         AND (@Grupo IS NULL OR M.ID_Grupo = @Grupo)
+        AND (@ID_Marca IS NULL OR M.ID_Marca = @ID_Marca)
         AND ((@Fecha_Inicio = '' AND @Fecha_Final = '') OR (YEAR(E.Fecha_registro) * 10000 + MONTH(E.Fecha_registro) * 100 + DAY(E.Fecha_registro)) BETWEEN @FIni AND @FFin)
         AND E.Disponible = 'S'
     ORDER BY M.Descripcion

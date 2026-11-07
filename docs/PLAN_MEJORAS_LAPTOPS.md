@@ -348,7 +348,7 @@
 - No tocar `appsettings.json` ni los otros pares.
 - Aceptación: (a) compila sin errores; (b) después de publicar, el resumen diario del monitor muestra **4 pares** (GAPMOVILES, BESTPHONE_STORE, TECNOSTYLE, DATAMOVIL); (c) `GET /Monitor/Probar` incluye DATAMOVIL.
 
-### Tarea 26 – Consulta de equipos disponibles: buscar por marca en el mismo dropdown de modelos
+### Tarea 26 – Consulta de equipos disponibles: buscar por marca en el mismo dropdown de modelos  ✅ IMPLEMENTADA (06/11/2026; falta ejecutar `UPDATE_Proc_Equipo_Disponible_Consulta_Marca.sql` en principal y espejo y probar)
 **Pedido del usuario (06/11/2026).** Poder filtrar por marca **sin agregar controles**. Se usa el `ng-select` de **Modelo** que ya existe en `src/app/MVSystem/pages/Equipo/Equipo-consulta/Equipo-consulta-disponible/` (está dos veces en el HTML, escritorio y móvil: cambiar ambos).
 **Cómo debe funcionar:** el usuario escribe `DELL` → la lista muestra primero **"DELL – todos los modelos"** y debajo los modelos de esa marca. Si elige la marca, filtra todos los equipos de esa marca; si elige un modelo, filtra solo ese modelo (como hoy). Escribir parte de un modelo (p. ej. `3410`) sigue funcionando igual.
 1. **Front:**

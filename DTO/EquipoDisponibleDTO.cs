@@ -48,6 +48,7 @@ namespace DTO
         public string Imei { get; set; }
         public int? Modelo { get; set; }
         public int? Grupo { get; set; }
+        public int? Marca { get; set; }
         public string Empresa { get; set; }
         public string IdEmpresa { get; set; }
         public string IdSucursal { get; set; }

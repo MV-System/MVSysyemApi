@@ -224,7 +224,9 @@ namespace MVSystemApi.Model
                           {
                               ID_Modelo = Convert.ToInt32(dt["ID_Modelo"]),
                               Descripcion = Convert.ToString(dt["Descripcion"]),
-                              ID_Grupo = dt.Table.Columns.Contains("ID_Grupo") && dt["ID_Grupo"] != DBNull.Value ? Convert.ToInt32(dt["ID_Grupo"]) : 0
+                              ID_Grupo = dt.Table.Columns.Contains("ID_Grupo") && dt["ID_Grupo"] != DBNull.Value ? Convert.ToInt32(dt["ID_Grupo"]) : 0,
+                              // Si el SP aun no devuelve ID_Marca (base sin actualizar), queda 0 como antes
+                              ID_Marca = dt.Table.Columns.Contains("ID_Marca") && dt["ID_Marca"] != DBNull.Value ? Convert.ToInt32(dt["ID_Marca"]) : (ID_Marca ?? 0)
                           }).ToList();
             return result;
         }

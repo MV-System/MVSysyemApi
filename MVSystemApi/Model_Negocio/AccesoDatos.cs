@@ -1916,6 +1916,9 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
                 cmd.Parameters.AddWithValue("@Imei", equipoDisponibleFilterDTO.Imei);
                 cmd.Parameters.AddWithValue("@ID_Modelo", equipoDisponibleFilterDTO.Modelo);
                 cmd.Parameters.AddWithValue("@Grupo", (object)equipoDisponibleFilterDTO.Grupo ?? DBNull.Value);
+                // Solo se envia cuando se filtra por marca: una base sin el SP actualizado sigue funcionando sin cambios
+                if (equipoDisponibleFilterDTO.Marca.HasValue && equipoDisponibleFilterDTO.Marca.Value > 0)
+                    cmd.Parameters.AddWithValue("@ID_Marca", equipoDisponibleFilterDTO.Marca.Value);
                 cmd.Parameters.AddWithValue("@PageIndex", equipoDisponibleFilterDTO.PageIndex);
                 cmd.Parameters.AddWithValue("@PageSize", equipoDisponibleFilterDTO.PageSize);
                 cmd.Parameters.AddWithValue("@Fecha_Inicio", equipoDisponibleFilterDTO.FechaInicio);

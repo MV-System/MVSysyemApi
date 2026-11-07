@@ -171,6 +171,8 @@ namespace MVSystemApi.Controllers
                             Mensaje = "La DGII había rechazado esta factura. No hace falta nota de crédito: la factura quedó anulada."
                         });
                     }
+                    if (string.Equals(estatusRemoto, "ERROR", StringComparison.OrdinalIgnoreCase))
+                        return BadRequest(new { error = "El proveedor reporta un error con el comprobante de esta factura y aún no está aceptado por la DGII. Revíselo con el proveedor." });
                     return BadRequest(new { error = "Solo se puede emitir una Nota de Crédito de facturas aceptadas por la DGII." });
                 }
 

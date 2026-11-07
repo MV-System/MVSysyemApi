@@ -404,13 +404,8 @@ namespace MVSystemApi.Services
                 // Empresa que lo suma al cliente (N): el precio va sin ITBIS -> Amount = SubTotal + Descuento (el ITBIS se agrega aparte).
                 var subtotalBruto = asumeItbis ? detalle.SubTotal + detalle.Descuento + detalle.Itbis : detalle.SubTotal + detalle.Descuento;
 
-                // Descuento: el monto de la línea se envía YA descontado, sin descuento aparte, y el precio unitario = monto / cantidad.
-                // Enviarlo separado (amount bruto + discount) hacía que la DGII aceptara con observaciones [2394] y [1934]; así queda
-                // limpio ([0]) con ITBIS asumido (S) y sumado (N), en facturas y notas de crédito. Sin descuento no cambia nada.
-                var descuentoAplicado = detalle.Descuento != 0;
-                var montoLinea = descuentoAplicado ? subtotalBruto - detalle.Descuento : subtotalBruto;
-                var precioUnitario = descuentoAplicado && detalle.Cantidad > 0 ? Math.Round(montoLinea / detalle.Cantidad, 6) : detalle.Precio;
-                var descuentoLinea = descuentoAplicado ? (decimal?)null : (detalle.Descuento != 0 ? detalle.Descuento : (decimal?)null);
+                // Descuento: regla compartida con el proveedor 2 (DescuentoComprobante): el monto va YA descontado y el descuento no se envía.
+                var (montoLinea, precioUnitario) = DescuentoComprobante.AplicarEnLinea(subtotalBruto, detalle.Precio, detalle.Cantidad, detalle.Descuento);
 
                 _logger.LogInformation($"[LÍNEA {lineNumber}] '{detalle.Descripcion}'");
                 _logger.LogInformation($"   Precio unitario: RD${detalle.Precio:F2} × Qty: {detalle.Cantidad}");
@@ -423,9 +418,9 @@ namespace MVSystemApi.Services
                     Description = detalle.Descripcion,
                     Quantity = detalle.Cantidad,
                     UnitPrice = precioUnitario,
-                    Amount = montoLinea,  // ya descontado (ver arriba)
+                    Amount = montoLinea,
                     TaxCategory = 1,
-                    Discount = descuentoLinea,
+                    Discount = null,   // el descuento ya va aplicado en el monto (DescuentoComprobante)
                     Surcharge = null,
                     GoodOrServiceIndicator = 1,
                     UnitMeasure = null,

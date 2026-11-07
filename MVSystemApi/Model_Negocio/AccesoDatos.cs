@@ -4621,7 +4621,8 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
                     var estadoLog = "PEND";
                     // (true + detalle) = pendiente por un error propio del proveedor: queda en el log y NO anula la factura
                     string errorLog = string.IsNullOrWhiteSpace(errorMsg) ? "Pendiente confirmación final de Proveedor 2" : errorMsg;
-                    if (!string.IsNullOrWhiteSpace(codigoSeguridad))
+                    // ACEPTADA solo con código de seguridad Y sin error del proveedor
+                    if (!string.IsNullOrWhiteSpace(codigoSeguridad) && string.IsNullOrWhiteSpace(errorMsg))
                     {
                         qrUrl = ConstruirQrUrl(factura, rncEmisor, factura.NcfNumero, factura.Total, codigoSeguridad, fechaFirma);
                         estadoLog = "ACEPTADA";
@@ -4680,7 +4681,8 @@ VALUES
                     cmdDet.Parameters.AddWithValue("@IND_EXENTO", esRegimenEspecial ? "S" : det.Itbis > 0 ? "N" : "S");
                     cmdDet.Parameters.AddWithValue("@TASA_IMPUESTO", esRegimenEspecial ? 0 : det.Itbis > 0 ? 18 : 0);
                     cmdDet.Parameters.AddWithValue("@PORC_DESCUENTO", 0);
-                    cmdDet.Parameters.AddWithValue("@MONTO_DESCUENTO", det.Descuento);
+                    // El descuento ya está aplicado en SubTotal/PRECIO (neto): regla compartida con el proveedor 1 (DescuentoComprobante).
+                    cmdDet.Parameters.AddWithValue("@MONTO_DESCUENTO", DescuentoComprobante.DescuentoEnviado);
                     cmdDet.Parameters.AddWithValue("@SUB_TOTAL", det.SubTotal);
                     cmdDet.Parameters.AddWithValue("@IMPUESTO", esRegimenEspecial ? 0 : det.Itbis);
                     cmdDet.Parameters.AddWithValue("@TOTAL", det.Total);
@@ -4756,7 +4758,9 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@FECHA_DOC_REFERENCIA", notaCreditoInfo != null ? (object)notaCreditoInfo.FechaDocReferencia : DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@COD_MODIFICACION", notaCreditoInfo != null ? (object)notaCreditoInfo.CodModificacion : DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@SUB_TOTAL", factura.SubTotal);
-                cmdEnc.Parameters.AddWithValue("@DESCUENTO", factura.Descuento);
+                // SUB_TOTAL ya viene neto (después del descuento) y el proveedor calcula MontoGravado = SUB_TOTAL - DESCUENTO: el descuento
+                // no se vuelve a enviar (DescuentoComprobante).
+                cmdEnc.Parameters.AddWithValue("@DESCUENTO", DescuentoComprobante.DescuentoEnviado);
                 cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.NcfTipoNumero == 44 ? 0 : factura.Itbis);
                 cmdEnc.Parameters.AddWithValue("@TOTAL", factura.Total);
                 cmdEnc.Parameters.AddWithValue("@USUARIO_CREA", string.IsNullOrWhiteSpace(usuario) ? "Sistema" : usuario);
@@ -4913,7 +4917,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                             await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
                             await AlertarComprobanteAsync("[PROVEEDOR2-ERROR] Error del proveedor 2 con un comprobante",
                                 $"El e-NCF {encf} (RNC emisor {rncEmisor}) está en estado '{estatus}' con el error del proveedor: {statusError}. Queda pendiente; revíselo con el proveedor.");
-                            return (true, statusError, ultimoCodigoSeguridad, fechaFirma);
+                            return (true, statusError, null, fechaFirma);   // sin código de seguridad: aunque el proveedor lo haya generado, el comprobante NO está aceptado
                         }
                         errorPrevio = statusError;
                     }

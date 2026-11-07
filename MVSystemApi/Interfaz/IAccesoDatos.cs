@@ -45,6 +45,7 @@ namespace MVSystemApi.Interfaz
         public void EquipoEstadoActualiza(EquipoEstadoUpdate equipo);
 
         internal DataTable GetEquipoPreciosEstatusByImei(string imei);
+        internal DataTable GetEquipoMarcaModelo(string imei);
 
         public SqlDataReader GetEquipoUltimoIdTransferencia();
         public DataTable GetTransferenciaEquipos(int? Sucursal_Salida, int? Sucursal_Destino, string FechaInicio, string FechaFinal);
@@ -120,10 +121,18 @@ namespace MVSystemApi.Interfaz
         public Task<LogFacturaElectronica> GetLogFacturaElectronica(int numeroFactura, string literal);
         public Task<List<LogFacturaElectronica>> GetLogFacturasElectronicasPendientes();
         public Task<(bool success, string errorMessage)> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor, NotaCreditoInfo notaCreditoInfo = null);
-        public Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal);
+        public Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor);
+        /// <summary>Literal real de la factura (Facturas.Literal) por número + sucursal; vacío si no existe.</summary>
+        public Task<string> ObtenerLiteralFactura(int numeroFactura, int sucursal);
+        /// <summary>Anula la factura por una nota de crédito aprobada, solo si sigue activa (evita devolver el inventario dos veces).</summary>
+        public Task<(bool Anulada, string Error)> AnularFacturaPorNotaCreditoAsync(int numeroFactura, int sucursal, string usuario, string ncfNotaCredito, string motivo = null);
         public Task<string> ObtenerNcfNotaCredito(int tipoNcf);
+        /// <summary>Datos de la factura de origen (cabecera, líneas y pagos) para la nota de crédito del proveedor 1. Null si no existe.</summary>
+        public Task<FacturaOrigenNotaCredito> ObtenerFacturaOrigenNotaCredito(int numeroFactura, int sucursal);
+        /// <summary>Candado de aplicación en la base de la empresa. Devuelve null si el recurso ya está tomado.</summary>
+        public Task<CandadoAplicacion> TomarCandadoAsync(string recurso);
         public Task<string> ObtenerEstatusRemotoProveedor2(string encf, string rncEmisor);
-        public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal);
+        public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal, string rncEmisor, string encfNotaCredito);
 
         #endregion
 
@@ -146,6 +155,8 @@ namespace MVSystemApi.Interfaz
         public DataTable GetAccesorioById(int id);
         public DataTable GetAccesoriosVendidos(Paginate paginate, string accesorio, int almacen);
         public DataTable UpdateAccesorio(AccesorioDTO accesorio);
+        DataTable Accesorio_Coincidencias(int idModelo, string descripcion, int idAlmacen);
+        DataTable Accesorio_Sumar_Existencia(AccesorioSumarDTO datos);
 
 
         #endregion
@@ -194,6 +205,26 @@ namespace MVSystemApi.Interfaz
         /// Obtiene un tipo de pago por su ID, incluyendo el código DGI
         /// </summary>
         Tipos_Pagos Tipo_Pagos_GetById(int idTipoPago);
+        #endregion
+
+        #region -------------- Laptops --------------------------
+        DataTable Equipo_Configuracion_Guardar(EquipoConfiguracion configuracion);
+        DataTable Equipo_Configuracion_Consultar(string imei);
+        DataTable Equipo_Configuracion_Modulos_Consultar(string imei);
+        DataTable Equipo_Configuracion_Correcciones_Consultar(string imei);
+        DataTable Componente_Modelos_Consultar();
+        DataTable Equipo_Configuracion_Modulo_Corregir(EquipoModuloCorreccion correccion);
+        DataTable Equipo_Cambio_Pieza_Registrar(EquipoCambioPieza cambio);
+        DataTable Equipo_Cambio_Pieza_Historial(string imei);
+        DataTable Equipo_Cambio_Pieza_Anular(EquipoCambioAnulacion anulacion);
+        DataTable Accesorio_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario, int pageIndex, int pageSize);
+        DataTable Accesorio_Movimientos_Resumen(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario);
+        DataTable Accesorio_Movimientos_Saldos(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro);
+        DataTable Equipo_Cambio_Pieza_Recibir(EquipoCustodiaAccion accion);
+        DataTable Equipo_Cambio_Pieza_EntregarCliente(EquipoCustodiaAccion accion);
+        DataTable Equipo_Cambio_Pieza_Pendientes(string tecnico, int? idAlmacen, int horasMax);
+        DataTable Equipo_Cambio_Pieza_Equipo_Consultar(string imei);
+        DataTable Equipo_Cambio_Pieza_Accesorios(int idAlmacen, string tipoPieza, string filtro, bool soloConStock);
         #endregion
     }
 }

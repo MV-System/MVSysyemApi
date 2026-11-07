@@ -90,6 +90,44 @@ namespace MVSystemApi.MonitorSync
             // ---------- 3. Costos y precios (solo en la revision completa) ----------
             if (alcance == AlcanceRevision.Completa)
                 await RevisarValoresAsync(par, connP, connE, resultado, ct);
+
+            // ---------- 4. Accesorios: existencia y estado (siempre); costos y precios (revision completa) ----------
+            await RevisarAccesoriosAsync(par, connP, connE, alcance, resultado, ct);
+        }
+
+        private async Task RevisarAccesoriosAsync(ParEmpresa par, string connP, string connE, AlcanceRevision alcance, ResultadoRevision resultado, CancellationToken ct)
+        {
+            var accP = await CargarAccesoriosAsync(connP, ct);
+            var accE = await CargarAccesoriosAsync(connE, ct);
+            resultado.Resumen.Add($"{par.Nombre}: accesorios principal {accP.Count} (existencia {accP.Values.Sum(a => (long)a.Cantidad)}) / espejo {accE.Count} (existencia {accE.Values.Sum(a => (long)a.Cantidad)})");
+
+            foreach (var (id, p) in accP.OrderBy(a => a.Key))
+            {
+                if (!accE.TryGetValue(id, out var e))
+                {
+                    Agregar(resultado, par, "ACCESORIO_SOLO_PRINCIPAL", id.ToString(), $"ID {id} '{p.Descripcion}' no existe en el espejo", AlcanceRevision.Liviana);
+                    continue;
+                }
+
+                var etiqueta = $"ID {id} '{p.Descripcion}'";
+                if (p.Cantidad != e.Cantidad)
+                    Agregar(resultado, par, "ACCESORIO_CANTIDAD_DISTINTA", id.ToString(), $"{etiqueta}: existencia principal {p.Cantidad} / espejo {e.Cantidad}", AlcanceRevision.Liviana);
+                if (p.Estado != e.Estado)
+                    Agregar(resultado, par, "ACCESORIO_ESTADO_DISTINTO", id.ToString(), $"{etiqueta}: estado principal '{p.Estado}' / espejo '{e.Estado}'", AlcanceRevision.Liviana);
+
+                if (alcance == AlcanceRevision.Completa)
+                {
+                    if (p.Costo != e.Costo)
+                        Agregar(resultado, par, "ACCESORIO_COSTO_DISTINTO", id.ToString(), $"{etiqueta}: costo principal {p.Costo:N2} / espejo {e.Costo:N2}", AlcanceRevision.Completa);
+                    if (p.PrecioDetalle != e.PrecioDetalle)
+                        Agregar(resultado, par, "ACCESORIO_PRECIO_DETALLE_DISTINTO", id.ToString(), $"{etiqueta}: precio detalle principal {p.PrecioDetalle:N2} / espejo {e.PrecioDetalle:N2}", AlcanceRevision.Completa);
+                    if (p.PrecioMayor != e.PrecioMayor)
+                        Agregar(resultado, par, "ACCESORIO_PRECIO_MAYOR_DISTINTO", id.ToString(), $"{etiqueta}: precio por mayor principal {p.PrecioMayor:N2} / espejo {e.PrecioMayor:N2}", AlcanceRevision.Completa);
+                }
+            }
+
+            foreach (var (id, e) in accE.OrderBy(a => a.Key).Where(a => !accP.ContainsKey(a.Key)))
+                Agregar(resultado, par, "ACCESORIO_SOLO_ESPEJO", id.ToString(), $"ID {id} '{e.Descripcion}' no existe en la principal", AlcanceRevision.Liviana);
         }
 
         private async Task RevisarModelosAsync(ParEmpresa par, string connP, string connE, ResultadoRevision resultado, CancellationToken ct)
@@ -229,6 +267,40 @@ namespace MVSystemApi.MonitorSync
             using var rd = await cmd.ExecuteReaderAsync(ct);
             while (await rd.ReadAsync(ct))
                 dic[rd.GetInt32(0)] = rd.IsDBNull(1) ? string.Empty : rd.GetString(1);
+            return dic;
+        }
+
+        private sealed class ValoresAccesorio
+        {
+            public string Descripcion;
+            public int Cantidad;
+            public string Estado;
+            public decimal Costo;
+            public decimal PrecioDetalle;
+            public decimal PrecioMayor;
+        }
+
+        private static async Task<Dictionary<long, ValoresAccesorio>> CargarAccesoriosAsync(string conn, CancellationToken ct)
+        {
+            var dic = new Dictionary<long, ValoresAccesorio>();
+            using var cn = new SqlConnection(conn);
+            await cn.OpenAsync(ct);
+            using var cmd = new SqlCommand(
+                "SELECT ID_Accesorio, Descripcion_Accesorio, Cantidad, Estado, Costo_Equipo, Precio_Detalle, Precio_Por_Mayor FROM Accesorios", cn)
+            { CommandTimeout = 180 };
+            using var rd = await cmd.ExecuteReaderAsync(ct);
+            while (await rd.ReadAsync(ct))
+            {
+                dic[Convert.ToInt64(rd.GetValue(0))] = new ValoresAccesorio
+                {
+                    Descripcion = rd.IsDBNull(1) ? string.Empty : rd.GetString(1).Trim(),
+                    Cantidad = rd.IsDBNull(2) ? 0 : Convert.ToInt32(rd.GetValue(2)),
+                    Estado = rd.IsDBNull(3) ? "?" : Normalizar(rd.GetString(3)),
+                    Costo = rd.IsDBNull(4) ? 0 : Convert.ToDecimal(rd.GetValue(4)),
+                    PrecioDetalle = rd.IsDBNull(5) ? 0 : Convert.ToDecimal(rd.GetValue(5)),
+                    PrecioMayor = rd.IsDBNull(6) ? 0 : Convert.ToDecimal(rd.GetValue(6)),
+                };
+            }
             return dic;
         }
 

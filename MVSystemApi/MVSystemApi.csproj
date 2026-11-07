@@ -54,6 +54,11 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- La configuracion de desarrollo (sandbox, bases de prueba) nunca viaja al publicar: produccion usa solo appsettings.json -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
   <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

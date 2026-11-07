@@ -6,11 +6,13 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
+using MVSystemApi.MonitorSync;
 
 namespace MVSystemApi.Model
 {
     public class AccesoDatos : IAccesoDatos
     {
+        private readonly NotificadorAlertas _notificadorAlertas;
         private readonly SqlConnection cn;
         public static int Numero_Registro;
         private readonly string _connectionStrings;
@@ -21,13 +23,16 @@ namespace MVSystemApi.Model
         private readonly string _proveedor2ConnectionString;
         private readonly string _dgiQrBaseUrl;
         private readonly string _dgiQrBaseUrlFiscal;
+        private readonly int _laptopsHorasMaxCustodia;
+        private readonly bool _laptopsBloquearVencidos;
         public static Int64 codigo;
 
         // Propiedad pública para acceder a la cadena de conexión
         public string ConnectionString => _connectionStrings;
 
-        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync, IConfiguration configuration)
+        public AccesoDatos(IHttpContextAccessor httpContextAccessor, SeguridadService seguridad, IMemoryCache memoryCache, ILogger<AccesoDatos> logger, ISyncService sync, IConfiguration configuration, NotificadorAlertas notificadorAlertas = null)
         {
+            _notificadorAlertas = notificadorAlertas;
             _memoryCache = memoryCache;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _sync = sync;
@@ -35,6 +40,8 @@ namespace MVSystemApi.Model
             _proveedor2ConnectionString = configuration.GetConnectionString("Proveedor2MicroStar") ?? string.Empty;
             _dgiQrBaseUrl = configuration["Dgi:QrBaseUrl"] ?? string.Empty;
             _dgiQrBaseUrlFiscal = configuration["Dgi:QrBaseUrlFiscal"] ?? string.Empty;
+            _laptopsHorasMaxCustodia = configuration.GetValue("Laptops:HorasMaxCustodia", 24);
+            _laptopsBloquearVencidos = configuration.GetValue("Laptops:BloquearTecnicoConPendientesVencidos", false);
             var keyConnString = $"ConnString:{httpContextAccessor.HttpContext.User.Identity.Name}";
 
             if (_memoryCache.TryGetValue<string>(keyConnString, out var value))
@@ -615,20 +622,22 @@ namespace MVSystemApi.Model
         /// (Proveedor 2), consultando directamente PIVOT_FACTURAS_ENC local (lo que realmente se transmitió a la DGII),
         /// sin depender de la tabla Facturas.
         /// </summary>
-        public async Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal)
+        public async Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor)
         {
             await using var connection = new SqlConnection(_seguridadConnectionString);
             await connection.OpenAsync();
 
+            // La tabla local la comparten todas las empresas: se filtra también por el RNC del emisor
             await using var cmd = new SqlCommand(@"
 SELECT TOP (1)
     NUM_CLIENTE, NUM_RNC, SUB_TOTAL, DESCUENTO, IMPUESTO, TOTAL, ENCF, FECHA_FACTURA
 FROM PIVOT_FACTURAS_ENC
-WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'FT'
+WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'FT' AND RNC_EMISOR = @rncEmisor
 ORDER BY FECHA_REGISTRO DESC", connection);
 
             cmd.Parameters.AddWithValue("@numeroFactura", numeroFactura.ToString());
             cmd.Parameters.AddWithValue("@sucursal", sucursal);
+            cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
 
             await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync())
@@ -649,6 +658,197 @@ ORDER BY FECHA_REGISTRO DESC", connection);
                 NcfNumero = reader.IsDBNull(reader.GetOrdinal("ENCF")) ? "" : reader.GetString(reader.GetOrdinal("ENCF")),
                 FechaRegistro = reader.GetDateTime(reader.GetOrdinal("FECHA_FACTURA"))
             };
+        }
+
+        /// <summary>
+        /// Lee de las tablas de la empresa la factura que va a anular una nota de crédito (proveedor 1): cabecera por
+        /// número + sucursal, líneas activas por número + literal y pagos. Null si la factura no existe.
+        /// </summary>
+        public async Task<FacturaOrigenNotaCredito> ObtenerFacturaOrigenNotaCredito(int numeroFactura, int sucursal)
+        {
+            await using var connection = new SqlConnection(_connectionStrings);
+            await connection.OpenAsync();
+
+            FacturaOrigenNotaCredito origen;
+            await using (var cmd = new SqlCommand(@"
+SELECT TOP (1) Literal, Estado, NCF_NUMERO, NFCTipoNumero, ID_Cliente, SubTotal, Descuento, Itbis, Total, RNC,
+       Fecha_Registro, ID_Tipo_Pagos, Tiempo_Credito
+  FROM Facturas
+ WHERE Numero_Factura = @numero AND ID_Sucursal = @sucursal
+ ORDER BY Codigo DESC", connection))
+            {
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                    return null;
+
+                string Texto(string col) => reader.IsDBNull(reader.GetOrdinal(col)) ? "" : Convert.ToString(reader[col]).Trim();
+
+                origen = new FacturaOrigenNotaCredito
+                {
+                    NumeroFactura = numeroFactura,
+                    Sucursal = sucursal,
+                    Literal = Texto("Literal"),
+                    Estado = Texto("Estado"),
+                    NcfNumero = Texto("NCF_NUMERO"),
+                    NcfTipoNumero = int.TryParse(Texto("NFCTipoNumero"), out var tipo) ? tipo : 0,
+                    IdCliente = reader.IsDBNull(reader.GetOrdinal("ID_Cliente")) ? 0 : Convert.ToInt32(reader["ID_Cliente"]),
+                    SubTotal = Convert.ToDecimal(reader["SubTotal"]),
+                    Descuento = Convert.ToDecimal(reader["Descuento"]),
+                    Itbis = Convert.ToDecimal(reader["Itbis"]),
+                    Total = Convert.ToDecimal(reader["Total"]),
+                    RNC = Texto("RNC"),
+                    FechaRegistro = Convert.ToDateTime(reader["Fecha_Registro"]),
+                    IdTipoPago = reader.IsDBNull(reader.GetOrdinal("ID_Tipo_Pagos")) ? 0 : Convert.ToInt32(reader["ID_Tipo_Pagos"]),
+                    TiempoCredito = reader.IsDBNull(reader.GetOrdinal("Tiempo_Credito")) ? (DateTime?)null : Convert.ToDateTime(reader["Tiempo_Credito"]),
+                };
+            }
+
+            // Líneas activas de ESTA factura (número + literal), con el precio en decimal
+            await using (var cmd = new SqlCommand(@"
+SELECT ID_Equipo, Descripcion, ID_Tipo, cantidad, precio, SubTotal, Descuento, Itbis, Total
+  FROM Detalle_Facturas
+ WHERE Numero_Factura = @numero AND LiteralF = @literalF AND Estado = 'A'", connection))
+            {
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                cmd.Parameters.AddWithValue("@literalF", origen.Literal + numeroFactura.ToString());
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    origen.Detalles.Add(new DetalleFactura
+                    {
+                        NumeroFactura = numeroFactura,
+                        IdEquipo = Convert.ToString(reader["ID_Equipo"]),
+                        Descripcion = Convert.ToString(reader["Descripcion"]),
+                        IdTipo = Convert.ToInt32(reader["ID_Tipo"]),
+                        Cantidad = Convert.ToInt32(reader["cantidad"]),
+                        Precio = Convert.ToDecimal(reader["precio"]),
+                        SubTotal = Convert.ToDecimal(reader["SubTotal"]),
+                        Descuento = Convert.ToDecimal(reader["Descuento"]),
+                        Itbis = Convert.ToDecimal(reader["Itbis"]),
+                        Total = Convert.ToDecimal(reader["Total"]),
+                    });
+                }
+            }
+
+            foreach (var pago in GetDetallesPagoFactura(numeroFactura, "F"))
+            {
+                origen.Pagos.Add(new DetallesPagos_Factura
+                {
+                    Numero_Factura = numeroFactura,
+                    ID_Tipo_Pago = pago.ID_Tipo_Pago,
+                    Monto_Pago = pago.Monto_Pago,
+                    Numero_Referencia = pago.Numero_Referencia,
+                });
+            }
+
+            return origen;
+        }
+
+        /// <summary>Literal real de la factura (Facturas.Literal) por número + sucursal; vacío si no existe.</summary>
+        public async Task<string> ObtenerLiteralFactura(int numeroFactura, int sucursal)
+        {
+            await using var connection = new SqlConnection(_connectionStrings);
+            await connection.OpenAsync();
+            await using var cmd = new SqlCommand(
+                "SELECT TOP (1) Literal FROM Facturas WHERE Numero_Factura = @numero AND ID_Sucursal = @sucursal ORDER BY Codigo DESC", connection);
+            cmd.Parameters.AddWithValue("@numero", numeroFactura);
+            cmd.Parameters.AddWithValue("@sucursal", sucursal);
+            var literal = await cmd.ExecuteScalarAsync();
+            return literal == null || literal == DBNull.Value ? "" : Convert.ToString(literal).Trim();
+        }
+
+        /// <summary>
+        /// Anula la factura por una nota de crédito aprobada. Solo si sigue activa: Proc_Anular_Factura no mira el estado de las
+        /// líneas y anular dos veces devolvería el inventario dos veces. Si ya estaba anulada devuelve (true, null) sin tocarla.
+        /// </summary>
+        public async Task<(bool Anulada, string Error)> AnularFacturaPorNotaCreditoAsync(int numeroFactura, int sucursal, string usuario, string ncfNotaCredito, string motivo = null)
+        {
+            string estado;
+            await using (var connection = new SqlConnection(_connectionStrings))
+            {
+                await connection.OpenAsync();
+                await using var cmd = new SqlCommand(
+                    "SELECT TOP (1) Estado FROM Facturas WHERE Numero_Factura = @numero AND ID_Sucursal = @sucursal ORDER BY Codigo DESC", connection);
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                cmd.Parameters.AddWithValue("@sucursal", sucursal);
+                var valor = await cmd.ExecuteScalarAsync();
+                estado = valor == null || valor == DBNull.Value ? null : Convert.ToString(valor).Trim();
+            }
+
+            if (estado == null)
+                return (false, "Factura no encontrada.");
+            if (!string.Equals(estado, "A", StringComparison.OrdinalIgnoreCase))
+                return (true, null);   // ya estaba anulada
+
+            try
+            {
+                PostAnulaFactura(new FilterAnulaFactura
+                {
+                    NumeroFactura = numeroFactura,
+                    IDsucursal = sucursal.ToString(),
+                    Usuario = usuario,
+                    Motivo = motivo ?? $"Anulada por Nota de Crédito {ncfNotaCredito}",
+                });
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[NC-ANULA-FALLO] La nota de crédito {Ncf} quedó aprobada pero no se pudo anular la factura {Factura} (sucursal {Sucursal})", ncfNotaCredito, numeroFactura, sucursal);
+                return (false, ex.Message);
+            }
+        }
+
+        /// <summary>Alerta por correo/WhatsApp (misma configuración del monitor). Nunca lanza: no puede afectar la operación.</summary>
+        private async Task AlertarComprobanteAsync(string asunto, string cuerpo)
+        {
+            _logger.LogError("{Asunto}: {Cuerpo}", asunto, cuerpo);
+            if (_notificadorAlertas == null) return;
+            try
+            {
+                var corto = cuerpo.Length > 300 ? cuerpo.Substring(0, 300) : cuerpo;
+                await _notificadorAlertas.EnviarAsync($"[MVSystem] {asunto}", cuerpo, $"MVSystem - {asunto}: {corto}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo enviar la alerta '{Asunto}'", asunto);
+            }
+        }
+
+        /// <summary>
+        /// Toma un candado de aplicación (sp_getapplock, dueño Session, sin espera) en una conexión dedicada que queda
+        /// abierta hasta liberar el candado. Null si otro proceso ya lo tiene.
+        /// </summary>
+        public async Task<CandadoAplicacion> TomarCandadoAsync(string recurso)
+        {
+            var conexion = new SqlConnection(_connectionStrings);
+            try
+            {
+                await conexion.OpenAsync();
+                await using var cmd = new SqlCommand("sp_getapplock", conexion) { CommandType = CommandType.StoredProcedure };
+                cmd.Parameters.AddWithValue("@Resource", recurso);
+                cmd.Parameters.AddWithValue("@LockMode", "Exclusive");
+                cmd.Parameters.AddWithValue("@LockOwner", "Session");
+                cmd.Parameters.AddWithValue("@LockTimeout", 0);
+                var retorno = new SqlParameter("@retorno", SqlDbType.Int) { Direction = ParameterDirection.ReturnValue };
+                cmd.Parameters.Add(retorno);
+                await cmd.ExecuteNonQueryAsync();
+
+                if (Convert.ToInt32(retorno.Value) < 0)
+                {
+                    await conexion.DisposeAsync();
+                    return null;
+                }
+                return new CandadoAplicacion(conexion, recurso);
+            }
+            catch
+            {
+                await conexion.DisposeAsync();
+                throw;
+            }
         }
 
         /// <summary>
@@ -697,21 +897,24 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
         /// Obtiene los datos de una Nota de Crédito ya emitida (PIVOT_FACTURAS_ENC/DET local,
         /// TIPO_DOCUMENTO='NC') para armar el reporte PDF. No consulta la tabla Facturas.
         /// </summary>
-        public async Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal)
+        public async Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal, string rncEmisor, string encfNotaCredito)
         {
             await using var connection = new SqlConnection(_seguridadConnectionString);
             await connection.OpenAsync();
 
             NotaCreditoReporteViewModel data = null;
 
+            // La NC se identifica por su e-NCF (del log de la NC) + RNC del emisor: sin tomar la de otra empresa ni un intento rechazado
             await using (var cmdEnc = new SqlCommand(@"
 SELECT TOP (1)
     ENCF, ENCF_REFERENCIA, NOMBRE_CLIENTE, NUM_RNC, FECHA_FACTURA,
     SUB_TOTAL, IMPUESTO, TOTAL
 FROM PIVOT_FACTURAS_ENC
-WHERE NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'NC'
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'NC'
 ORDER BY FECHA_REGISTRO DESC", connection))
             {
+                cmdEnc.Parameters.AddWithValue("@encf", encfNotaCredito ?? "");
+                cmdEnc.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
                 cmdEnc.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen.ToString());
                 cmdEnc.Parameters.AddWithValue("@sucursal", sucursal);
 
@@ -751,8 +954,10 @@ WHERE F.Numero_Factura = @numeroFactura AND F.ID_Sucursal = @sucursal", cnTipoPa
             await using (var cmdDet = new SqlCommand(@"
 SELECT COD_PRODUCTO, DESCRIPCION, UND_MEDIDA, TIPO_PRODUCTO, CANTIDAD, PRECIO, IMPUESTO, TOTAL
 FROM PIVOT_FACTURAS_DET
-WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             {
+                cmdDet.Parameters.AddWithValue("@encf", encfNotaCredito ?? "");
+                cmdDet.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
                 cmdDet.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen.ToString());
 
                 await using var reader = await cmdDet.ExecuteReaderAsync();
@@ -887,6 +1092,67 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             catch (Exception)
             {
                 throw;
+            }
+        }
+        /// <summary>Accesorios que ya existen con el mismo modelo y la misma descripcion (para no registrarlo de nuevo).</summary>
+        public DataTable Accesorio_Coincidencias(int idModelo, string descripcion, int idAlmacen)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Accesorio_Coincidencias", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Modelo", idModelo);
+                cmd.Parameters.AddWithValue("@Descripcion", descripcion ?? "");
+                cmd.Parameters.AddWithValue("@ID_Almacen", idAlmacen);
+
+                da.Fill(dt);
+                cn.Close();
+
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+            }
+        }
+        /// <summary>Suma cantidad a un accesorio existente (movimiento ENTRADA). Se replica en la espejo.</summary>
+        public DataTable Accesorio_Sumar_Existencia(AccesorioSumarDTO datos)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = new SqlCommand("Accesorio_Sumar_Existencia", cn);
+                DataTable dt = new DataTable();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Accesorio", datos.IdAccesorio);
+                cmd.Parameters.AddWithValue("@Cantidad", datos.Cantidad);
+                cmd.Parameters.AddWithValue("@Usuario", datos.Usuario ?? "");
+                cmd.Parameters.AddWithValue("@Costo_Equipo", (object)datos.CostoEquipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Por_Mayor", (object)datos.PrecioPorMayor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Detalle", (object)datos.PrecioDetalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Actualizar_Precios", datos.ActualizarPrecios);
+
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Accesorio_Sumar_Existencia", cmd.Parameters);
+
+                return dt;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
             }
         }
         public DataTable GetAccesorios(Paginate paginate,string accesorio, int almacen)
@@ -2206,6 +2472,31 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 if (factura.DetalleFacturaList != null)
                 {
                     SincronizarDisponibilidad(factura.DetalleFacturaList.Select(item => item.IdEquipo), disponible: false);
+
+                    // Sync: la cantidad de los accesorios vendidos baja tambien en la base par. Ya hay Commit: nada de esto puede lanzar.
+                    try
+                    {
+                        var accesorios = factura.DetalleFacturaList
+                            .Where(d => d.IdTipo == 2 && long.TryParse(d.IdEquipo?.Trim(), out _))
+                            .Select(d => (IdAccesorio: long.Parse(d.IdEquipo.Trim()), Delta: -d.Cantidad))
+                            .ToList();
+                        if (accesorios.Count > 0)
+                        {
+                            // Mismo literal que usa Detalle_Factura_Insert para el documento del movimiento
+                            string literal;
+                            using (var cmdLit = new SqlCommand(
+                                "SELECT TOP 1 Literal FROM Facturas WHERE Codigo = (SELECT MAX(Codigo) FROM Facturas WHERE Numero_Factura = @nf) AND Estado = 'A'", connection))
+                            {
+                                cmdLit.Parameters.AddWithValue("@nf", factura.NumeroFactura);
+                                literal = Convert.ToString(cmdLit.ExecuteScalar());
+                            }
+                            SincronizarCantidadAccesorios(accesorios, "VENTA_D", literal + factura.NumeroFactura, factura.Usuario);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[SYNC-FALLO] No se pudieron preparar los accesorios de la factura {Factura} para la base par", factura.NumeroFactura);
+                    }
                 }
 
                 return factura;
@@ -2231,21 +2522,45 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     cmd.Parameters.AddWithValue("@Usuario", Factura.Usuario);
                     cmd.Parameters.AddWithValue("@Motivo", (object)Factura.Motivo ?? DBNull.Value);
                     cn.Open();
+
+                    // Sync: leer ANTES del SP (despues las lineas quedan en 'X') los equipos y accesorios activos de ESTA factura y sucursal
+                    var imeis = new List<string>();
+                    var accesorios = new List<(long IdAccesorio, int Delta)>();
+                    string documento = null;
+                    try
+                    {
+                        using var cmdRead = new SqlCommand(
+                            @"SELECT d.ID_Tipo, d.ID_Equipo, d.Cantidad, f.Literal
+                                FROM Detalle_Facturas d
+                                JOIN Facturas f ON f.Numero_Factura = d.Numero_Factura
+                                               AND d.LiteralF = f.Literal + CONVERT(VARCHAR(10), f.Numero_Factura)
+                               WHERE f.Numero_Factura = @nf AND f.ID_Sucursal = @suc
+                                 AND d.Estado = 'A' AND d.ID_Tipo IN (1, 2)", cn);
+                        cmdRead.Parameters.AddWithValue("@nf", Factura.NumeroFactura);
+                        cmdRead.Parameters.AddWithValue("@suc", Convert.ToInt32(Factura.IDsucursal));
+                        using var reader = cmdRead.ExecuteReader();
+                        while (reader.Read())
+                        {
+                            documento = Convert.ToString(reader["Literal"]) + Factura.NumeroFactura;
+                            string idEquipo = Convert.ToString(reader["ID_Equipo"])?.Trim();
+                            if (Convert.ToInt32(reader["ID_Tipo"]) == 1)
+                                imeis.Add(idEquipo);
+                            else if (long.TryParse(idEquipo, out var idAcc))
+                                accesorios.Add((idAcc, Convert.ToInt32(reader["Cantidad"])));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los equipos y accesorios de la factura {Factura} (sucursal {Sucursal}) para la base par", Factura.NumeroFactura, Factura.IDsucursal);
+                        accesorios.Clear();
+                    }
+
                     cmd.ExecuteNonQuery();
 
-                    // Sync: leer equipos de la factura y marcarlos disponibles en BD espejo
-                    using (var cmdRead = new SqlCommand(
-                        "SELECT ID_Equipo FROM Detalle_Facturas WHERE Numero_Factura = @nf", cn))
-                    {
-                        cmdRead.Parameters.AddWithValue("@nf", Factura.NumeroFactura);
-                        using var reader = cmdRead.ExecuteReader();
-                        var imeis = new List<string>();
-                        while (reader.Read())
-                            imeis.Add(reader["ID_Equipo"].ToString());
-                        reader.Close();
-
-                        SincronizarDisponibilidad(imeis, disponible: true);
-                    }
+                    // Sync: solo si el SP termino bien
+                    SincronizarDisponibilidad(imeis, disponible: true);
+                    if (accesorios.Count > 0)
+                        SincronizarCantidadAccesorios(accesorios, "ANULACION_FACTURA", documento, Factura.Usuario);
 
                     cn.Close();
                     return Factura;
@@ -2385,6 +2700,33 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
             catch (Exception)
             {
+                throw;
+            }
+        }
+        /// <summary>Marca y modelo de un equipo, para mostrarlos en la pantalla de estatus.</summary>
+        public DataTable GetEquipoMarcaModelo(string imei)
+        {
+            cn.Open();
+
+            try
+            {
+                DataTable dt = new DataTable();
+                SqlCommand cmd = cn.CreateCommand();
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                cmd.CommandText = "SELECT TOP 1 Marca = Ma.Descripcion, Modelo = Mo.Descripcion " +
+                                  "FROM dbo.Equipos E " +
+                                  "INNER JOIN dbo.Modelos Mo ON Mo.ID_Modelo = E.ID_Modelo " +
+                                  "INNER JOIN dbo.Marcas Ma ON Ma.ID_Marca = Mo.ID_Marca " +
+                                  "WHERE E.Imei = @Imei";
+                cmd.CommandType = CommandType.Text;
+                cmd.Parameters.Add("@Imei", SqlDbType.VarChar, 30).Value = imei;
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) { cn.Close(); }
                 throw;
             }
         }
@@ -3549,7 +3891,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
-        public DataTable GetPreDetalleFacturaConsulta(int numeroPreFactura)
+        public DataTable GetPreDetalleFacturaConsulta(int numeroPreFactura, string literal = null)
         {
             cn.Open();
             try
@@ -3558,6 +3900,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 cmd.CommandText = "PreDetalle_Factura_Consultar";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
+                if (!string.IsNullOrEmpty(literal)) cmd.Parameters.AddWithValue("@Literal", literal);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -3673,6 +4016,68 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             return resultado;
         }
 
+        /// <summary>
+        /// Replica a la base par la DIFERENCIA de cantidad de accesorios (no la cantidad absoluta, porque principal y espejo
+        /// venden en paralelo). Un solo lote idempotente: la nota unica evita que un reintento sume dos veces.
+        /// Nunca lanza: un fallo queda en el log con [SYNC-FALLO] y no afecta la operacion principal.
+        /// </summary>
+        private bool SincronizarCantidadAccesorios(IEnumerable<(long IdAccesorio, int Delta)> cambios, string motivo, string documento, string usuario)
+        {
+            List<(long Id, int Delta)> lista = new();
+            try
+            {
+                lista = cambios
+                    .GroupBy(c => c.IdAccesorio)
+                    .Select(g => (Id: g.Key, Delta: g.Sum(x => x.Delta)))
+                    .Where(x => x.Delta != 0)
+                    .ToList();
+                if (lista.Count == 0) return true;
+
+                var nota = "Replica desde la base par " + Guid.NewGuid().ToString("N");
+                var parametros = new List<SqlParameter>
+                {
+                    new SqlParameter("@nota", SqlDbType.VarChar, 250) { Value = nota },
+                    new SqlParameter("@motivo", SqlDbType.NVarChar, 30) { Value = (object)motivo ?? DBNull.Value },
+                    new SqlParameter("@documento", SqlDbType.NVarChar, 50) { Value = (object)documento ?? DBNull.Value },
+                    new SqlParameter("@usuario", SqlDbType.NVarChar, 60) { Value = (object)usuario ?? DBNull.Value },
+                    new SqlParameter("@esperados", SqlDbType.Int) { Value = lista.Count },
+                };
+                for (int i = 0; i < lista.Count; i++)
+                {
+                    parametros.Add(new SqlParameter("@id" + i, SqlDbType.BigInt) { Value = lista[i].Id });
+                    parametros.Add(new SqlParameter("@d" + i, SqlDbType.Int) { Value = lista[i].Delta });
+                }
+                var valores = string.Join(", ", lista.Select((_, i) => $"(@id{i}, @d{i})"));
+
+                var sql = $@"
+IF EXISTS (SELECT 1 FROM dbo.Accesorio_Movimiento WHERE Fecha >= DATEADD(DAY, -1, DATEADD(HOUR, -4, GETDATE())) AND Nota = @nota) RETURN;
+EXEC sp_set_session_context N'mov_motivo', @motivo;
+EXEC sp_set_session_context N'mov_documento', @documento;
+EXEC sp_set_session_context N'mov_usuario', @usuario;
+EXEC sp_set_session_context N'mov_nota', @nota;
+UPDATE A SET Cantidad = ISNULL(A.Cantidad, 0) + V.Delta
+  FROM dbo.Accesorios A
+  JOIN (VALUES {valores}) V(Id, Delta) ON V.Id = A.ID_Accesorio;
+IF @@ROWCOUNT <> @esperados THROW 50995, 'Accesorio inexistente en la base par', 1;
+EXEC sp_set_session_context N'mov_motivo', NULL;
+EXEC sp_set_session_context N'mov_documento', NULL;
+EXEC sp_set_session_context N'mov_usuario', NULL;
+EXEC sp_set_session_context N'mov_nota', NULL;";
+
+                bool ok = _sync.EjecutarQueries(new List<(string Sql, SqlParameter[] Parametros)> { (sql, parametros.ToArray()) });
+                if (!ok)
+                    _logger.LogError("[SYNC-FALLO] No se replicaron los accesorios a la base par. Motivo {Motivo}, documento {Documento}: {Cambios}",
+                        motivo, documento, string.Join(", ", lista.Select(x => $"{x.Id}:{x.Delta}")));
+                return ok;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SYNC-FALLO] Error replicando accesorios a la base par. Motivo {Motivo}, documento {Documento}: {Cambios}",
+                    motivo, documento, string.Join(", ", lista.Select(x => $"{x.Id}:{x.Delta}")));
+                return false;
+            }
+        }
+
         public object ProcesarPreFactura(int numeroPreFactura, string usuarioProcesamiento)
         {
             cn.Open();
@@ -3719,10 +4124,44 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                     _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los IMEIs de la prefactura {Prefactura} para el espejo", numeroPreFactura);
                 }
 
+                // Sync: accesorios de la prefactura (sumados por accesorio) y su literal, ANTES del SP (despues la prefactura ya no esta en 'P')
+                var accesoriosSync = new List<(long IdAccesorio, int Delta)>();
+                string literalPre = null;
+                try
+                {
+                    using (var cnSyncAcc = new SqlConnection(_connectionStrings))
+                    {
+                        cnSyncAcc.Open();
+                        using (var cmdAcc = new SqlCommand(
+                            "SELECT ID_Equipo, SUM(cantidad) AS Cantidad FROM PreDetalle_Facturas WHERE Numero_PreFactura = @nPre AND ID_Tipo = 2 AND Estado = 'P' GROUP BY ID_Equipo", cnSyncAcc))
+                        {
+                            cmdAcc.Parameters.AddWithValue("@nPre", numeroPreFactura);
+                            using var readerAcc = cmdAcc.ExecuteReader();
+                            while (readerAcc.Read())
+                                if (long.TryParse(Convert.ToString(readerAcc["ID_Equipo"])?.Trim(), out var idAcc))
+                                    accesoriosSync.Add((idAcc, -Convert.ToInt32(readerAcc["Cantidad"])));
+                        }
+                        if (accesoriosSync.Count > 0)
+                        {
+                            using var cmdLit = new SqlCommand(
+                                "SELECT TOP 1 Literal FROM PreFacturas WHERE Numero_PreFactura = @nPre AND Estado = 'P'", cnSyncAcc);
+                            cmdLit.Parameters.AddWithValue("@nPre", numeroPreFactura);
+                            literalPre = Convert.ToString(cmdLit.ExecuteScalar());
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[SYNC-FALLO] No se pudieron leer los accesorios de la prefactura {Prefactura} para la base par", numeroPreFactura);
+                    accesoriosSync.Clear();
+                }
+
                 cmd.ExecuteNonQuery();
 
                 // Sync: marcar equipos como no disponibles en BD espejo (un solo lote, todo o nada)
                 int nuevoNumero = nuevoNumeroFacturaParam.Value != DBNull.Value ? (int)nuevoNumeroFacturaParam.Value : 0;
+                if (nuevoNumero > 0 && accesoriosSync.Count > 0)
+                    SincronizarCantidadAccesorios(accesoriosSync, "VENTA_PF", literalPre + nuevoNumero, usuarioProcesamiento);
                 if (nuevoNumero > 0 && imeisSync.Count > 0)
                 {
                     try
@@ -3747,7 +4186,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             }
         }
 
-        public DataTable AnularPreFactura(int numeroPreFactura)
+        public DataTable AnularPreFactura(int numeroPreFactura, string literal = null)
         {
             cn.Open();
             try
@@ -3757,6 +4196,7 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
                 cmd.Parameters.AddWithValue("@Usuario_Anulacion", "suser_sname()" /* Puedes cambiar por usuario real */);
+                if (!string.IsNullOrEmpty(literal)) cmd.Parameters.AddWithValue("@Literal", literal);
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
@@ -4170,14 +4610,19 @@ WHERE NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
 
                 var (estatusFinal, errorMsg, codigoSeguridad, fechaFirma) = await VerificaryActualizarEstatusProveedor2Async(factura.NcfNumero, rncEmisor);
 
-                var literalLog = notaCreditoInfo != null ? "NC" : "A";
+                // NC: "N" + literal real de la factura (NA, NB...) que llega en notaCreditoInfo; sin él, "NC" como antes. Factura normal: "A" como antes.
+                var literalLog = notaCreditoInfo != null
+                    ? (string.IsNullOrWhiteSpace(notaCreditoInfo.LiteralLog) ? "NC" : notaCreditoInfo.LiteralLog)
+                    : "A";
 
                 if (estatusFinal)
                 {
                     string qrUrl = null;
                     var estadoLog = "PEND";
-                    string errorLog = "Pendiente confirmación final de Proveedor 2";
-                    if (!string.IsNullOrWhiteSpace(codigoSeguridad))
+                    // (true + detalle) = pendiente por un error propio del proveedor: queda en el log y NO anula la factura
+                    string errorLog = string.IsNullOrWhiteSpace(errorMsg) ? "Pendiente confirmación final de Proveedor 2" : errorMsg;
+                    // ACEPTADA solo con código de seguridad Y sin error del proveedor
+                    if (!string.IsNullOrWhiteSpace(codigoSeguridad) && string.IsNullOrWhiteSpace(errorMsg))
                     {
                         qrUrl = ConstruirQrUrl(factura, rncEmisor, factura.NcfNumero, factura.Total, codigoSeguridad, fechaFirma);
                         estadoLog = "ACEPTADA";
@@ -4236,7 +4681,8 @@ VALUES
                     cmdDet.Parameters.AddWithValue("@IND_EXENTO", esRegimenEspecial ? "S" : det.Itbis > 0 ? "N" : "S");
                     cmdDet.Parameters.AddWithValue("@TASA_IMPUESTO", esRegimenEspecial ? 0 : det.Itbis > 0 ? 18 : 0);
                     cmdDet.Parameters.AddWithValue("@PORC_DESCUENTO", 0);
-                    cmdDet.Parameters.AddWithValue("@MONTO_DESCUENTO", det.Descuento);
+                    // El descuento ya está aplicado en SubTotal/PRECIO (neto): regla compartida con el proveedor 1 (DescuentoComprobante).
+                    cmdDet.Parameters.AddWithValue("@MONTO_DESCUENTO", DescuentoComprobante.DescuentoEnviado);
                     cmdDet.Parameters.AddWithValue("@SUB_TOTAL", det.SubTotal);
                     cmdDet.Parameters.AddWithValue("@IMPUESTO", esRegimenEspecial ? 0 : det.Itbis);
                     cmdDet.Parameters.AddWithValue("@TOTAL", det.Total);
@@ -4312,7 +4758,9 @@ VALUES
                 cmdEnc.Parameters.AddWithValue("@FECHA_DOC_REFERENCIA", notaCreditoInfo != null ? (object)notaCreditoInfo.FechaDocReferencia : DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@COD_MODIFICACION", notaCreditoInfo != null ? (object)notaCreditoInfo.CodModificacion : DBNull.Value);
                 cmdEnc.Parameters.AddWithValue("@SUB_TOTAL", factura.SubTotal);
-                cmdEnc.Parameters.AddWithValue("@DESCUENTO", factura.Descuento);
+                // SUB_TOTAL ya viene neto (después del descuento) y el proveedor calcula MontoGravado = SUB_TOTAL - DESCUENTO: el descuento
+                // no se vuelve a enviar (DescuentoComprobante).
+                cmdEnc.Parameters.AddWithValue("@DESCUENTO", DescuentoComprobante.DescuentoEnviado);
                 cmdEnc.Parameters.AddWithValue("@IMPUESTO", factura.NcfTipoNumero == 44 ? 0 : factura.Itbis);
                 cmdEnc.Parameters.AddWithValue("@TOTAL", factura.Total);
                 cmdEnc.Parameters.AddWithValue("@USUARIO_CREA", string.IsNullOrWhiteSpace(usuario) ? "Sistema" : usuario);
@@ -4368,6 +4816,7 @@ WHERE NFCTipoNumero = @ncfTipoNumero", cnTipoNfc);
                 string ultimoEstatus = null;
                 string ultimoStatusError = null;
                 string ultimoCodigoSeguridad = null;
+                string errorPrevio = null;
                 DateTime? ultimaFechaFirma = null;
                 bool encontradoFinal = false;
 
@@ -4398,7 +4847,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
 
                         // Se agotó la espera inicial sin respuesta final: mantener pendiente para reconciliación posterior
                         var timeoutNoEncontrado = $"Sin confirmación final luego de {maxIntentos} intentos. Pendiente respuesta de DGII en servidor remoto.";
-                        await ActualizarEstatusLocal(encf, "ENVIADO", timeoutNoEncontrado, ultimaFechaFirma);
+                        await ActualizarEstatusLocal(encf, "ENVIADO", timeoutNoEncontrado, ultimaFechaFirma, rncEmisor);
                         return (true, null, null, ultimaFechaFirma);
                     }
 
@@ -4419,10 +4868,20 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                     ultimoCodigoSeguridad = codigoSeguridad;
                     ultimaFechaFirma = fechaFirma;
 
+                    // "Aceptado condicional" (la DGII aceptó con observaciones): se trata como aprobado y se avisa para revisarlo con el proveedor
+                    if (estatus.Contains("CONDICIONAL"))
+                    {
+                        await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
+                        await AlertarComprobanteAsync("[ACEPTADO-CONDICIONAL] Comprobante aceptado condicionalmente (Proveedor 2)",
+                            $"El e-NCF {encf} (RNC emisor {rncEmisor}) fue aceptado condicionalmente por la DGII. Detalle: {statusError}. Se trató como aprobado; revíselo con el proveedor.");
+                        encontradoFinal = true;
+                        return (true, null, codigoSeguridad, fechaFirma);
+                    }
+
                     // ESTADO FINAL: ACEPTADO
                     if (estatus == "ACEPTADO")
                     {
-                        bool okUpdate = await ActualizarEstatusLocal(encf, "ACEPTADO", null, fechaFirma);
+                        bool okUpdate = await ActualizarEstatusLocal(encf, "ACEPTADO", null, fechaFirma, rncEmisor);
                         if (!okUpdate && intento < maxIntentos)
                         {
                             // Falló actualización local, reintentar sin perder estado final remoto
@@ -4437,7 +4896,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                     if (estatus == "RECHAZADO_DGII" || estatus == "RECHAZADO")
                     {
                         var msg = $"Factura rechazada por DGII (ESTATUS={estatus}). Detalle: {statusError}";
-                        bool okUpdate = await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma);
+                        bool okUpdate = await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
                         if (!okUpdate && intento < maxIntentos)
                         {
                             // Falló actualización local, reintentar sin perder estado final remoto
@@ -4448,8 +4907,27 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                         return (false, msg, null, fechaFirma);
                     }
 
+                    // Error propio del proveedor mientras el comprobante no es final (p. ej. falla del firmador): si es el mismo error en dos
+                    // consultas seguidas ya no es transitorio. Se deja de esperar y se devuelve como PENDIENTE (true + detalle), NUNCA como
+                    // error: un error anularía la factura mientras el proveedor todavía puede procesarla. Solo el rechazo de la DGII es error.
+                    if (!string.IsNullOrWhiteSpace(statusError))
+                    {
+                        if (string.Equals(statusError, errorPrevio, StringComparison.Ordinal))
+                        {
+                            await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
+                            await AlertarComprobanteAsync("[PROVEEDOR2-ERROR] Error del proveedor 2 con un comprobante",
+                                $"El e-NCF {encf} (RNC emisor {rncEmisor}) está en estado '{estatus}' con el error del proveedor: {statusError}. Queda pendiente; revíselo con el proveedor.");
+                            return (true, statusError, null, fechaFirma);   // sin código de seguridad: aunque el proveedor lo haya generado, el comprobante NO está aceptado
+                        }
+                        errorPrevio = statusError;
+                    }
+                    else
+                    {
+                        errorPrevio = null;
+                    }
+
                     // Estado transitorio: seguir consultando hasta tener estado final o agotar tiempo de espera
-                    await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma);
+                    await ActualizarEstatusLocal(encf, estatus, statusError, fechaFirma, rncEmisor);
 
                     if (intento < maxIntentos)
                     {
@@ -4463,7 +4941,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                 if (!encontradoFinal)
                 {
                     var timeoutMsg = $"Sin confirmación final luego de {maxIntentos} intentos. Último estado remoto: {ultimoEstatus}.";
-                    await ActualizarEstatusLocal(encf, "ENVIADO", string.IsNullOrWhiteSpace(ultimoStatusError) ? timeoutMsg : ultimoStatusError, ultimaFechaFirma);
+                    await ActualizarEstatusLocal(encf, "ENVIADO", string.IsNullOrWhiteSpace(ultimoStatusError) ? timeoutMsg : ultimoStatusError, ultimaFechaFirma, rncEmisor);
                     return (true, null, ultimoCodigoSeguridad, ultimaFechaFirma);
                 }
 
@@ -4475,7 +4953,8 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
             }
         }
 
-        private async Task<bool> ActualizarEstatusLocal(string encf, string estatus, string statusError, DateTime? fechaFirma)
+        /// <summary>Actualiza la copia local de PIVOT_FACTURAS_ENC. Filtra por e-NCF Y RNC del emisor: el e-NCF se repite entre empresas.</summary>
+        private async Task<bool> ActualizarEstatusLocal(string encf, string estatus, string statusError, DateTime? fechaFirma, string rncEmisor)
         {
             try
             {
@@ -4485,8 +4964,9 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
                 await using var cmd = new SqlCommand(@"
 UPDATE PIVOT_FACTURAS_ENC
     SET ESTATUS = @estatus, ESTATUS_ERROR = @statusError, ENCF_FECHA_FIRMA = COALESCE(@fechaFirma, ENCF_FECHA_FIRMA)
-WHERE ENCF = @encf", connection);
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
 
+                cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor ?? "");
                 cmd.Parameters.AddWithValue("@estatus", estatus ?? "");
                 cmd.Parameters.AddWithValue("@statusError", (object)statusError ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@fechaFirma", (object)fechaFirma ?? DBNull.Value);
@@ -4578,7 +5058,24 @@ WHERE ENCF = @encf", connection);
                     Fecha_Envio = DateTime.Now
                 };
 
-                await InsertLogFacturaElectronica(log);
+                // Las notas de crédito (literal que empieza con "N") se reintentan sobre el mismo registro: si la anterior fue
+                // rechazada, se actualiza en vez de chocar con el índice único (número, literal). Las facturas normales no cambian.
+                var existente = literal != null && literal.StartsWith("N", StringComparison.OrdinalIgnoreCase)
+                    ? await GetLogFacturaElectronica(numeroFactura, log.Literal)
+                    : null;
+                if (existente != null)
+                {
+                    existente.VoucherNumber_DGII = log.VoucherNumber_DGII;
+                    existente.Estado = log.Estado;
+                    existente.Error_Descripcion = log.Error_Descripcion;
+                    existente.QR_Url = log.QR_Url;
+                    existente.Fecha_Confirmacion = log.Estado == "ACEPTADA" ? DateTime.Now : (DateTime?)null;
+                    await UpdateLogFacturaElectronica(existente);
+                }
+                else
+                {
+                    await InsertLogFacturaElectronica(log);
+                }
             }
             catch (Exception ex)
             {
@@ -4685,6 +5182,522 @@ WHERE ENCF = @encf", connection);
                 throw;
             }
         }
+
+        #region -------------- Laptops --------------------------
+        public DataTable Equipo_Configuracion_Guardar(EquipoConfiguracion configuracion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Guardar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", configuracion.Imei);
+                cmd.Parameters.AddWithValue("@Ram_GB", (object)configuracion.Ram_GB ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Ram_Tipo", (object)configuracion.Ram_Tipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Almacenamiento_GB", (object)configuracion.Almacenamiento_GB ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Almacenamiento_Tipo", (object)configuracion.Almacenamiento_Tipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Notas", (object)configuracion.Notas ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", configuracion.Usuario);
+                // Módulos (memorias / discos) en JSON; sin lista, el SP arma 1 módulo por RAM y 1 por almacenamiento
+                var pModulos = cmd.Parameters.Add("@Modulos", SqlDbType.NVarChar, -1);
+                pModulos.Value = ModulosAJson(configuracion.Modulos) ?? (object)DBNull.Value;
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+
+                // La espejo debe guardar los módulos con los MISMOS ID_Modulo (los usan el cambio de pieza y la corrección)
+                pModulos.Value = ModulosAJson(Equipo_Configuracion_Modulos_Consultar(configuracion.Imei)) ?? (object)DBNull.Value;
+                _sync.Ejecutar("Equipo_Configuracion_Guardar", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>JSON de módulos que espera Equipo_Configuracion_Guardar (nombres exactos, OPENJSON distingue mayúsculas).</summary>
+        private static string ModulosAJson(IEnumerable<EquipoModuloConfiguracion> modulos)
+        {
+            if (modulos == null) return null;
+            var lista = modulos.Select(m => new
+            {
+                idModulo = m.IdModulo,
+                tipoPieza = m.TipoPieza,
+                capacidadGB = m.CapacidadGB,
+                idModeloComponente = m.IdModeloComponente
+            }).ToList();
+            return lista.Count == 0 ? null : Newtonsoft.Json.JsonConvert.SerializeObject(lista);
+        }
+
+        /// <summary>Módulos activos de la laptop con su ID (para replicarlos igual en la espejo).</summary>
+        private static string ModulosAJson(DataTable modulos)
+        {
+            if (modulos == null || modulos.Rows.Count == 0) return null;
+            return ModulosAJson(modulos.Rows.Cast<DataRow>().Select(r => new EquipoModuloConfiguracion
+            {
+                IdModulo = Convert.ToInt32(r["ID_Modulo"]),
+                TipoPieza = Convert.ToString(r["Tipo_Pieza"]),
+                CapacidadGB = Convert.ToInt32(r["Capacidad_GB"]),
+                IdModeloComponente = Convert.ToInt32(r["ID_Modelo_Componente"])
+            }));
+        }
+
+        /// <summary>Módulos (memorias / discos) instalados en la laptop.</summary>
+        public DataTable Equipo_Configuracion_Modulos_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Modulos_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Historial de correcciones manuales de los módulos de la laptop.</summary>
+        public DataTable Equipo_Configuracion_Correcciones_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Correcciones_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Modelos de componentes (RAM / discos) con su tipo, para elegir el modelo de cada módulo.</summary>
+        public DataTable Componente_Modelos_Consultar()
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Componente_Modelos_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Corrige modelo y/o capacidad de un módulo instalado (sin mover inventario ni costo) y lo replica a la espejo.</summary>
+        public DataTable Equipo_Configuracion_Modulo_Corregir(EquipoModuloCorreccion correccion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Modulo_Corregir";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Modulo", correccion.ID_Modulo);
+                cmd.Parameters.AddWithValue("@ID_Modelo_Componente", correccion.ID_Modelo_Componente);
+                cmd.Parameters.AddWithValue("@Capacidad_GB", correccion.Capacidad_GB);
+                cmd.Parameters.AddWithValue("@Motivo", (object)correccion.Motivo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", correccion.Usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Configuracion_Modulo_Corregir", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Configuracion_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Configuracion_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Registra el cambio de pieza de una laptop. El SP es transaccional (todo o nada);
+        /// solo si termina bien se replica a la BD espejo.
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_Registrar(EquipoCambioPieza cambio)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Registrar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", cambio.Imei);
+                cmd.Parameters.AddWithValue("@Tipo_Pieza", cambio.Tipo_Pieza);
+                cmd.Parameters.AddWithValue("@ID_Accesorio_Instalado", cambio.ID_Accesorio_Instalado);
+                cmd.Parameters.AddWithValue("@Nueva_Capacidad_GB", (object)cambio.Nueva_Capacidad_GB ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Tipo", (object)cambio.Nuevo_Tipo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Modulo_Retirado", (object)cambio.ID_Modulo_Retirado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Accesorio_Retirado", (object)cambio.ID_Accesorio_Retirado ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Destino_Retirada", (object)cambio.Destino_Retirada ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Tecnico", cambio.Tecnico);
+                cmd.Parameters.AddWithValue("@ID_Almacen", cambio.ID_Almacen);
+                cmd.Parameters.AddWithValue("@ID_PreFactura", (object)cambio.ID_PreFactura ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ID_Reparacion", (object)cambio.ID_Reparacion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Detalle", (object)cambio.Nuevo_Precio_Detalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Por_Mayor", (object)cambio.Nuevo_Precio_Por_Mayor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Usuario", cambio.Usuario);
+                cmd.Parameters.AddWithValue("@Horas_Max_Custodia", _laptopsHorasMaxCustodia);
+                cmd.Parameters.AddWithValue("@Bloquear_Vencidos", _laptopsBloquearVencidos);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+
+                // La espejo debe guardar el cambio con los MISMOS ID: el cambio (Recibir y EntregarCliente lo buscan por ID_Cambio),
+                // el modulo nuevo, el accesorio de la pieza retirada y los accesorios que el SP haya creado.
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("ID_Cambio") && dt.Rows[0]["ID_Cambio"] != DBNull.Value)
+                {
+                    var fila = dt.Rows[0];
+                    cmd.Parameters.AddWithValue("@ID_Cambio", Convert.ToInt32(fila["ID_Cambio"]));
+                    if (dt.Columns.Contains("ID_Modulo_Instalado") && fila["ID_Modulo_Instalado"] != DBNull.Value)
+                        cmd.Parameters.AddWithValue("@ID_Modulo_Instalado", Convert.ToInt32(fila["ID_Modulo_Instalado"]));
+                    if (dt.Columns.Contains("ID_Accesorio_Retirado") && fila["ID_Accesorio_Retirado"] != DBNull.Value)
+                    {
+                        cmd.Parameters.Remove(cmd.Parameters["@ID_Accesorio_Retirado"]);
+                        cmd.Parameters.AddWithValue("@ID_Accesorio_Retirado", Convert.ToInt64(fila["ID_Accesorio_Retirado"]));
+                    }
+                    if (dt.Columns.Contains("Accesorios_Creados") && fila["Accesorios_Creados"] != DBNull.Value)
+                        cmd.Parameters.AddWithValue("@Accesorios_Ids", Convert.ToString(fila["Accesorios_Creados"]));
+                }
+
+                _sync.Ejecutar("Equipo_Cambio_Pieza_Registrar", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Confirma la recepción de la pieza retirada que estaba en custodia (suma 1 al inventario).
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_Recibir(EquipoCustodiaAccion accion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Recibir";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", accion.ID_Cambio);
+                cmd.Parameters.AddWithValue("@Usuario", accion.Usuario);
+                cmd.Parameters.AddWithValue("@Nota", (object)accion.Nota ?? DBNull.Value);
+                // Costo y precios del accesorio (solo si no los tiene registrados); se actualizan en todos los almacenes
+                cmd.Parameters.AddWithValue("@Costo_Equipo", (object)accion.Accesorio_Costo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Por_Mayor", (object)accion.Accesorio_Precio_Por_Mayor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Precio_Detalle", (object)accion.Accesorio_Precio_Detalle ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+
+                // Si la recepcion creo el accesorio en el almacen del cambio, la espejo debe crearlo con el mismo ID
+                if (dt.Rows.Count > 0 && dt.Columns.Contains("Accesorio_Creado") && dt.Rows[0]["Accesorio_Creado"] != DBNull.Value)
+                    cmd.Parameters.AddWithValue("@ID_Accesorio_Nuevo", Convert.ToInt64(dt.Rows[0]["Accesorio_Creado"]));
+
+                _sync.Ejecutar("Equipo_Cambio_Pieza_Recibir", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// La pieza retirada en custodia se la lleva el cliente: se vuelve a sumar su costo a la laptop (R10).
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_EntregarCliente(EquipoCustodiaAccion accion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_EntregarCliente";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", accion.ID_Cambio);
+                cmd.Parameters.AddWithValue("@Usuario", accion.Usuario);
+                cmd.Parameters.AddWithValue("@Nota", (object)accion.Nota ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Detalle", (object)accion.Nuevo_Precio_Detalle ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Nuevo_Precio_Por_Mayor", (object)accion.Nuevo_Precio_Por_Mayor ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Cambio_Pieza_EntregarCliente", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Pendientes(string tecnico, int? idAlmacen, int horasMax)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Pendientes";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Tecnico", string.IsNullOrWhiteSpace(tecnico) ? DBNull.Value : (object)tecnico);
+                cmd.Parameters.AddWithValue("@ID_Almacen", (object)idAlmacen ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Horas_Max", horasMax);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Equipo_Consultar(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Equipo_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Accesorios(int idAlmacen, string tipoPieza, string filtro, bool soloConStock)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Accesorios";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Almacen", idAlmacen);
+                cmd.Parameters.AddWithValue("@Tipo_Pieza", string.IsNullOrWhiteSpace(tipoPieza) ? DBNull.Value : (object)tipoPieza);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                cmd.Parameters.AddWithValue("@SoloConStock", soloConStock);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Anula un cambio de pieza (último de la laptop, con la pieza aún sin recibir): revierte stock, costo, módulos y
+        /// configuración. Se replica a la espejo por ID_Cambio.
+        /// </summary>
+        public DataTable Equipo_Cambio_Pieza_Anular(EquipoCambioAnulacion anulacion)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Anular";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ID_Cambio", anulacion.ID_Cambio);
+                cmd.Parameters.AddWithValue("@Usuario", anulacion.Usuario);
+                cmd.Parameters.AddWithValue("@Motivo", (object)anulacion.Motivo ?? DBNull.Value);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                _sync.Ejecutar("Equipo_Cambio_Pieza_Anular", cmd.Parameters);
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Movimientos de stock de accesorios (Accesorio_Movimiento + historia anterior), paginados.</summary>
+        public DataTable Accesorio_Movimientos_Consultar(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario, int pageIndex, int pageSize)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Movimientos_Consultar";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@Sucursal", sucursal);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                cmd.Parameters.AddWithValue("@Motivo", string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : (object)motivo);
+                cmd.Parameters.AddWithValue("@Usuario", string.IsNullOrWhiteSpace(usuario) ? DBNull.Value : (object)usuario);
+                cmd.Parameters.AddWithValue("@PageIndex", pageIndex);
+                cmd.Parameters.AddWithValue("@PageSize", pageSize);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Totales de entradas y salidas por motivo, con los mismos filtros de la consulta de movimientos.</summary>
+        public DataTable Accesorio_Movimientos_Resumen(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro, string motivo, string usuario)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Movimientos_Resumen";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@Sucursal", sucursal);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                cmd.Parameters.AddWithValue("@Motivo", string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : (object)motivo);
+                cmd.Parameters.AddWithValue("@Usuario", string.IsNullOrWhiteSpace(usuario) ? DBNull.Value : (object)usuario);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        /// <summary>Existencia al inicio y al final del periodo, para cuadrar con las entradas y salidas.</summary>
+        public DataTable Accesorio_Movimientos_Saldos(DateTime fechaInicio, DateTime fechaFinal, int sucursal, string filtro)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Accesorio_Movimientos_Saldos";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Fecha_Inicio", fechaInicio);
+                cmd.Parameters.AddWithValue("@Fecha_Final", fechaFinal);
+                cmd.Parameters.AddWithValue("@Sucursal", sucursal);
+                cmd.Parameters.AddWithValue("@Filtro", filtro ?? "");
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+
+        public DataTable Equipo_Cambio_Pieza_Historial(string imei)
+        {
+            try
+            {
+                cn.Open();
+                SqlCommand cmd = cn.CreateCommand();
+                cmd.CommandText = "Equipo_Cambio_Pieza_Historial";
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Imei", imei);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                cn.Close();
+                return dt;
+            }
+            catch (Exception)
+            {
+                if (cn.State == ConnectionState.Open) cn.Close();
+                throw;
+            }
+        }
+        #endregion
     }
 }
 

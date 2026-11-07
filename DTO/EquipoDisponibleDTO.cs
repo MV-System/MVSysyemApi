@@ -34,6 +34,7 @@ namespace DTO
         public decimal TotalInventario { get; set; }
         public int IdGrupo { get; set; }
         public string Grupo { get; set; }
+        public string Configuracion { get; set; }
 
     }
     public class EquipoDisponibleFilterDTO : RangeDatePaging

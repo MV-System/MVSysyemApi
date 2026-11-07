@@ -169,6 +169,8 @@ namespace MVSystemApi.Model
         public DateTime FechaDocReferencia { get; set; }
         public string EncfReferencia { get; set; }
         public int CodModificacion { get; set; } = 1;
+        /// <summary>Literal del log de la NC: "N" + literal real de la factura (NA, NB...). Si viene vacío se usa "NC" (comportamiento anterior).</summary>
+        public string LiteralLog { get; set; }
     }
     public class NotaCreditoProveedor2Request
     {

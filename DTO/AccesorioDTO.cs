@@ -29,6 +29,17 @@ namespace DTO
         public string Usuario { get; set; }
 
     }
+    /// <summary>Suma cantidad a un accesorio existente (en lugar de registrarlo de nuevo).</summary>
+    public class AccesorioSumarDTO
+    {
+        public Int64 IdAccesorio { get; set; }
+        public int Cantidad { get; set; }
+        public string Usuario { get; set; }
+        public bool ActualizarPrecios { get; set; }
+        public decimal? CostoEquipo { get; set; }
+        public decimal? PrecioPorMayor { get; set; }
+        public decimal? PrecioDetalle { get; set; }
+    }
     public class AccesorioVendidoDTO : PagingDTO
     {
         public Int64 ID { get; set; }

@@ -1,9 +1,11 @@
 ﻿using DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio.Seguridad;
 using Rotativa.AspNetCore;
+using System.Security.Claims;
 
 namespace MVSystemApi.Controllers
 {
@@ -15,7 +17,7 @@ namespace MVSystemApi.Controllers
         private readonly SeguridadService _SS;
         private readonly AccesoDatos _accesoDatos;
 
-        public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS, AccesoDatos accesoDatos)
+        public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS, AccesoDatos accesoDatos, IConfiguration configuration)
         {
             _equipos_Negocio = equipos_Negocio;
             _SS = SS;

@@ -20,9 +20,9 @@ namespace MVSystemApi.Model_Negocio
             return AccesoDatos.BindList<PreFactura>(dt);
         }
 
-        public List<PreDetalleFactura> ObtenerDetallePreFactura(int numeroPreFactura)
+        public List<PreDetalleFactura> ObtenerDetallePreFactura(int numeroPreFactura, string literal = null)
         {
-            var dt = _accesoDatos.GetPreDetalleFacturaConsulta(numeroPreFactura);
+            var dt = _accesoDatos.GetPreDetalleFacturaConsulta(numeroPreFactura, literal);
             return AccesoDatos.BindList<PreDetalleFactura>(dt);
         }
 
@@ -61,9 +61,9 @@ namespace MVSystemApi.Model_Negocio
             return resultado;
         }
 
-        public object AnularPreFactura(int numeroPreFactura)
+        public object AnularPreFactura(int numeroPreFactura, string literal = null)
         {
-            return _accesoDatos.AnularPreFactura(numeroPreFactura);
+            return _accesoDatos.AnularPreFactura(numeroPreFactura, literal);
         }
 
         public PreFactura ActualizarTipoPagoPreFactura(int numeroPreFactura, int idTipoPagos)

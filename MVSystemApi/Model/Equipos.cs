@@ -86,6 +86,7 @@ namespace MVSystemApi.Model
         public string Disponible_Detalle { get; set; }
         public string Mensaje { get;  set; }
         public string Existe { get; internal set; }
+        public string Configuracion { get; set; }
     }
     public class ReparacionUpdate_return
     {
@@ -109,6 +110,9 @@ namespace MVSystemApi.Model
         public int EstadoBloqueoId { get; set; }
         public string EstadoBloqueoDescripcion { get; set; }
         public string Usuario { get; set; }
+        // Solo para mostrar en la pantalla de estatus (no se guarda)
+        public string Marca { get; set; }
+        public string Modelo { get; set; }
 
     }
 
@@ -213,6 +217,7 @@ namespace MVSystemApi.Model
         public decimal TotalComisionDetalle { get; set; }
         public decimal TotalComisionXMayor { get; set; }
         public decimal TotalItbis { get; set; }
+        public string Configuracion { get; set; }
         public string logo { get; set; }
     }
     public class EquipoVendidoFilter

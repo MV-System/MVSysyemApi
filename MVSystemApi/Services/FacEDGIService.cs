@@ -27,6 +27,7 @@ namespace MVSystemApi.Services
         private readonly IAccesoDatos _accesoDatos;
         private readonly ILogger<FacEDGIService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly MVSystemApi.MonitorSync.SeguimientoComprobantes _seguimiento;
 
         /// <summary>
         /// Configuración desde appsettings y contexto del usuario
@@ -69,8 +70,10 @@ namespace MVSystemApi.Services
             IConfiguration configuration,
             IAccesoDatos accesoDatos,
             ILogger<FacEDGIService> logger,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            MVSystemApi.MonitorSync.SeguimientoComprobantes seguimiento = null)
         {
+            _seguimiento = seguimiento;
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _accesoDatos = accesoDatos ?? throw new ArgumentNullException(nameof(accesoDatos));
@@ -89,6 +92,19 @@ namespace MVSystemApi.Services
             string rncEmisor,
             string nombreEmisor)
         {
+            // Literal del log = el literal real de la factura (antes "A" fijo: con varias sucursales el índice único
+            // (número, literal) hacía chocar los logs de dos facturas con el mismo número). Si no se puede leer, "A" como antes.
+            var literalLog = "A";
+            try
+            {
+                var literalReal = await _accesoDatos.ObtenerLiteralFactura(factura.NumeroFactura, factura.IdAlmacen ?? 0);
+                if (!string.IsNullOrWhiteSpace(literalReal)) literalLog = literalReal;
+            }
+            catch (Exception exLiteral)
+            {
+                _logger.LogWarning(exLiteral, "[LOG-LITERAL] No se pudo leer el literal de la factura {Factura}; se usa 'A'", factura.NumeroFactura);
+            }
+
             try
             {
                 var request = MapearFacturaARequest(factura, detalles, pagos, rncEmisor, nombreEmisor);
@@ -147,30 +163,60 @@ namespace MVSystemApi.Services
                     }
                 }
 
+                // Estado real: EasyConexión responde al crear el documento (PEND) y la DGII contesta después. Se espera unos segundos
+                // (FacEDGI:EsperaEstadoSegundos, por defecto 45): APRO = aprobada; cualquier otro valor distinto de PEND (p. ej. RECH) =
+                // rechazada, y la factura se devuelve como error SIN reintentar (el controlador la anula); PEND al agotar la espera =
+                // sigue pendiente y la factura queda como hasta ahora.
+                var estadoLog = responseDto?.Success == true ? "ENVIADA" : "ERROR";
+                var errorLog = responseDto?.Success == true ? null : responseDto?.Message;
+                if (responseDto?.Success == true && responseDto.DocumentId > 0)
+                {
+                    var (estatus, motivo, qrEstado) = await EsperarEstadoFacturaAsync(httpClient, responseDto.DocumentId);
+                    if (estatus == "APRO")
+                    {
+                        estadoLog = "ACEPTADA";
+                        if (!string.IsNullOrWhiteSpace(qrEstado)) qrUrl = qrEstado;
+                    }
+                    else if (!string.IsNullOrEmpty(estatus) && estatus != "PEND")
+                    {
+                        estadoLog = "RECHAZADO_DGII";
+                        errorLog = $"{estatus}: {motivo}".Trim();
+                        responseDto.Success = false;
+                        responseDto.Status = estatus;
+                        responseDto.RechazadaPorDgii = true;
+                        responseDto.Message = $"La DGII rechazó la factura ({estatus}). {motivo}".Trim();
+                    }
+                }
+
                 var logFactura = new LogFacturaElectronica
                 {
                     Numero_Factura = factura.NumeroFactura,
-                    Literal = "A", // Literal de sucursal por defecto
+                    Literal = literalLog,
                     DocumentoId_EasyConexion = responseDto?.DocumentId,
                     VoucherNumber_DGII = responseDto?.VoucherNumber,
-                    Estado = responseDto?.Success == true ? "ENVIADA" : "ERROR",
+                    Estado = estadoLog,
                     Respuesta_JSON = responseContent,
                     Fecha_Envio = DateTime.Now,
-                    Error_Descripcion = responseDto?.Success == true ? null : responseDto?.Message,
+                    Error_Descripcion = errorLog,
                     Usuario = usuario,
                     QR_Url = qrUrl
                 };
 
                 var logInsertado = await InsertLogFacturaElectronica(logFactura);
+                await SeguirOAlertarAsync(estadoLog, errorLog, responseDto?.DocumentId, responseDto?.VoucherNumber ?? factura.NcfNumero,
+                    factura.NcfTipoNumero, factura.NumeroFactura, literalLog, false, nombreEmisor, rncEmisor, usuario);
                 return responseDto;
             }
             catch (Exception ex)
             {
+                await SeguirOAlertarAsync("ERROR", ex.Message, null, factura.NcfNumero, factura.NcfTipoNumero, factura.NumeroFactura,
+                    literalLog, false, nombreEmisor, rncEmisor, usuario);
+
                 // Guardar error en log
                 var logError = new LogFacturaElectronica
                 {
                     Numero_Factura = factura.NumeroFactura,
-                    Literal = "A",
+                    Literal = literalLog,
                     Estado = "ERROR",
                     Respuesta_JSON = ex.Message,
                     Fecha_Envio = DateTime.Now,
@@ -186,6 +232,48 @@ namespace MVSystemApi.Services
                     Message = $"Excepción: {ex.Message}"
                 };
             }
+        }
+
+        /// <summary>
+        /// Monitor de comprobantes: ENVIADA (pendiente) pasa a seguimiento; RECHAZADO_DGII / ERROR / RECHAZADA avisan de inmediato.
+        /// Nunca lanza: el monitor no puede afectar la factura ni la nota de crédito.
+        /// </summary>
+        private async Task SeguirOAlertarAsync(string estado, string detalle, int? documentId, string encf, int tipoNcf, int numeroFactura,
+            string literal, bool esNotaCredito, string empresa, string rnc, string usuario)
+        {
+            try
+            {
+                if (_seguimiento == null || !_seguimiento.Habilitado || string.IsNullOrWhiteSpace(encf)) return;
+                var item = new MVSystemApi.MonitorSync.ItemSeguimiento
+                {
+                    Proveedor = 1,
+                    Empresa = empresa,
+                    Rnc = rnc,
+                    NumeroFactura = numeroFactura,
+                    Literal = literal,
+                    Encf = encf,
+                    TipoNcf = tipoNcf,
+                    EsNotaCredito = esNotaCredito,
+                    DocumentId = documentId > 0 ? documentId : null,
+                    Usuario = usuario,
+                };
+
+                if (estado == "ENVIADA" && item.DocumentId != null)
+                    _seguimiento.Registrar(item);
+                else if (estado == "RECHAZADO_DGII" || estado == "RECHAZADA" || estado == "ERROR")
+                    await _seguimiento.AlertarProblemaAsync(item, estado, detalle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Comprobantes] No se pudo registrar el seguimiento de {Encf}", encf);
+            }
+        }
+
+        private Task AvisarNotaCreditoAsync(string estado, string detalle, LogFacturaElectronica logNc, string ncf, FacturaOrigenNotaCredito origen, string usuario)
+        {
+            var user = _httpContextAccessor?.HttpContext?.User;
+            return SeguirOAlertarAsync(estado, detalle, logNc.DocumentoId_EasyConexion, ncf, 34, origen.NumeroFactura, origen.Literal, true,
+                user?.FindFirst("Empresa")?.Value, user?.FindFirst("Rnc")?.Value, usuario);
         }
 
         /// <summary>
@@ -206,7 +294,12 @@ namespace MVSystemApi.Services
             
             // Si es consumidor final (32), usar "Consumidor Final", sino obtener nombre del cliente (31 = crédito fiscal)
             string buyerName = "Consumidor Final";
-            if (factura.NcfTipoNumero == 31) // Es Crédito Fiscal, no consumidor final
+            // Con comprador identificado: crédito fiscal (31), régimen especial (44) y gubernamental (45). El proveedor exige el RNC del comprador
+            // en el XML de esos tipos ("Comprador has incomplete content ... RNCComprador").
+            var exigeComprador = factura.NcfTipoNumero == 31 || factura.NcfTipoNumero == 44 || factura.NcfTipoNumero == 45;
+            // Régimen especial (44): sin ITBIS; las líneas van como exentas (taxCategory 4)
+            var esExento = factura.NcfTipoNumero == 44;
+            if (exigeComprador)
             {
                 if (factura.Cliente != null && !string.IsNullOrEmpty(factura.Cliente.Nombres))
                 {
@@ -241,6 +334,10 @@ namespace MVSystemApi.Services
                 }
             }
             
+            // Si la empresa asume el ITBIS (S) el precio ya lo incluye; si lo suma al cliente (N) el precio va sin ITBIS.
+            // Exento (44): montos sin ITBIS, priceIncludesTax = false e indicador 0, sin importar el parámetro de la empresa.
+            var asumeItbis = !esExento && EmpresaAsumeItbis();
+
             var request = new EasyConexionRequestDTO
             {
                 // Tipo de comprobante - Obtenido del modelo
@@ -255,10 +352,10 @@ namespace MVSystemApi.Services
                 IssuerAddress = null,  // N/A para este sistema
                 
                 // Datos del comprador
-                // Solo enviar RNC si ES Crédito Fiscal (NcfTipoNumero == 31)
+                // Solo se envía el RNC del comprador en 31, 44 y 45 (ver exigeComprador)
                 // Tipo 32 = CONSUMIDOR FINAL (e-CF) - no requiere RNC del cliente
                 // Tipo 31 = CRÉDITO FISCAL (e-CF) - requiere RNC del cliente
-                BuyerRnc = factura.NcfTipoNumero == 31 && !string.IsNullOrEmpty(factura.RNC) ? FormatearRnc(factura.RNC) : null,
+                BuyerRnc = exigeComprador && !string.IsNullOrEmpty(factura.RNC) ? FormatearRnc(factura.RNC) : null,
                 BuyerName = buyerName,
                 BuyerAddress = null,
                 BuyerPhone = null,
@@ -275,7 +372,8 @@ namespace MVSystemApi.Services
                 ExchangeRate = null,  // DOP es moneda local
                 IncomeType = _incomeType,
                 PaymentCondition = "1",  // Siempre "1" según DGI
-                TaxedAmountIndicator = _taxedAmountIndicator,
+                // S: monto con ITBIS incluido (indicador de la configuración, 1). N: montos sin ITBIS (0). Debe coincidir con priceIncludesTax de las líneas.
+                TaxedAmountIndicator = asumeItbis ? _taxedAmountIndicator : 0,
 
                 // Fechas
                 IssueDate = factura.FechaRegistro,
@@ -296,7 +394,7 @@ namespace MVSystemApi.Services
             };
 
             // Mapear líneas de detalle
-            request.Lines = MapearDetalles(detalles);
+            request.Lines = MapearDetalles(detalles, asumeItbis, esExento);
 
             // Mapear métodos de pago
             request.Payments = MapearPagos(pagos, factura.Total);
@@ -321,11 +419,30 @@ namespace MVSystemApi.Services
         }
 
         /// <summary>
+        /// ¿La empresa asume el ITBIS? Parámetro AsumeITBIS de la empresa ('S' = el precio ya lo incluye; 'N' = se suma al cliente).
+        /// Si no se puede leer se usa 'S', que es como se enviaba siempre hasta ahora.
+        /// </summary>
+        private bool EmpresaAsumeItbis()
+        {
+            try
+            {
+                var dt = _accesoDatos.AsumeITBIS();
+                if (dt != null && dt.Rows.Count > 0)
+                    return string.Equals((Convert.ToString(dt.Rows[0]["AsumeITBIS"]) ?? "").Trim(), "S", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ITBIS] No se pudo leer 'asume ITBIS' de la empresa; se usa 'S' (precio con ITBIS incluido)");
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Mapea DetalleFactura[] a EasyConexionLineDTO[]
         /// Envía Amount = SubTotal + Descuento + ITBIS (total con impuesto incluido).
         /// TaxedAmountIndicator=1 indica a DGI que el Amount ya incluye ITBIS, por lo que lo extrae correctamente.
         /// </summary>
-        private List<EasyConexionLineDTO> MapearDetalles(List<DetalleFactura> detalles)
+        private List<EasyConexionLineDTO> MapearDetalles(List<DetalleFactura> detalles, bool asumeItbis, bool esExento = false)
         {
             var lines = new List<EasyConexionLineDTO>();
 
@@ -339,7 +456,12 @@ namespace MVSystemApi.Services
             {
                 // Amount = SubTotal neto + Descuento + ITBIS (total con impuesto incluido)
                 // TaxedAmountIndicator=1 indica a DGI que el Amount YA incluye ITBIS
-                var subtotalBruto = detalle.SubTotal + detalle.Descuento + detalle.Itbis;
+                // Empresa que asume el ITBIS (S): el precio lo incluye -> Amount = SubTotal + Descuento + ITBIS.
+                // Empresa que lo suma al cliente (N): el precio va sin ITBIS -> Amount = SubTotal + Descuento (el ITBIS se agrega aparte).
+                var subtotalBruto = asumeItbis ? detalle.SubTotal + detalle.Descuento + detalle.Itbis : detalle.SubTotal + detalle.Descuento;
+
+                // Descuento: regla compartida con el proveedor 2 (DescuentoComprobante): el monto va YA descontado y el descuento no se envía.
+                var (montoLinea, precioUnitario) = DescuentoComprobante.AplicarEnLinea(subtotalBruto, detalle.Precio, detalle.Cantidad, detalle.Descuento);
 
                 _logger.LogInformation($"[LÍNEA {lineNumber}] '{detalle.Descripcion}'");
                 _logger.LogInformation($"   Precio unitario: RD${detalle.Precio:F2} × Qty: {detalle.Cantidad}");
@@ -351,17 +473,17 @@ namespace MVSystemApi.Services
                     LineNumber = lineNumber++,
                     Description = detalle.Descripcion,
                     Quantity = detalle.Cantidad,
-                    UnitPrice = detalle.Precio,
-                    Amount = subtotalBruto,  // Bruto con ITBIS antes del descuento: DGI extrae ITBIS de (amount - discount)
-                    TaxCategory = 1,
-                    Discount = detalle.Descuento != 0 ? detalle.Descuento : (decimal?)null,
+                    UnitPrice = precioUnitario,
+                    Amount = montoLinea,
+                    TaxCategory = esExento ? 4 : 1,   // 1 = ITBIS 18 %, 4 = exento (régimen especial, E44)
+                    Discount = null,   // el descuento ya va aplicado en el monto (DescuentoComprobante)
                     Surcharge = null,
                     GoodOrServiceIndicator = 1,
                     UnitMeasure = null,
                     ItbisRetAmount = null,
                     IsrRetAmount = null,
                     RetentionAgentInd = null,
-                    PriceIncludesTax = true
+                    PriceIncludesTax = asumeItbis
                 });
             }
 
@@ -410,6 +532,372 @@ namespace MVSystemApi.Services
 
             return payments;
         }
+
+        // ===================== Nota de crédito (proveedor 1 - EasyConexión) =====================
+
+        private const int NcMaxIntentos = 30;     // 30 consultas x 2 s = 60 s
+        private const int NcEsperaMs = 2000;
+
+        /// <summary>
+        /// Emite la nota de crédito total (E34) de una factura con e-NCF y espera la respuesta de la DGII hasta 60 s.
+        /// Idempotente: si la factura ya tiene nota de crédito, no emite otra (consulta su estado y continúa desde ahí).
+        /// El log de la NC usa el literal "N" + literal real de la factura. La anulación de la factura es la Parte 3.
+        /// </summary>
+        public async Task<NotaCreditoResultado> EmitirNotaCreditoAsync(int numeroFactura, int sucursal, string usuario, string rncEmisor, string nombreEmisor)
+        {
+            // Candado en la base: dos solicitudes simultáneas para la misma factura no se procesan a la vez
+            await using var candado = await _accesoDatos.TomarCandadoAsync($"NC_{sucursal}_{numeroFactura}");
+            if (candado == null)
+                throw new NotaCreditoException("Esta factura ya se está procesando.");
+
+            var origen = await _accesoDatos.ObtenerFacturaOrigenNotaCredito(numeroFactura, sucursal);
+            if (origen == null)
+                throw new NotaCreditoException("Factura no encontrada.");
+            if (string.IsNullOrWhiteSpace(origen.Literal))
+                throw new NotaCreditoException("La factura no tiene literal de sucursal; no se puede emitir la nota de crédito.");
+
+            var literalNc = "N" + origen.Literal.Trim();
+            var http = _httpClientFactory.CreateClient("FacEDGI");
+            var logNc = await _accesoDatos.GetLogFacturaElectronica(numeroFactura, literalNc);
+
+            // 1. Idempotencia: si ya hay NC no se emite otra, aunque la factura ya no esté activa
+            if (logNc != null)
+            {
+                var estadoLog = (logNc.Estado ?? "").Trim().ToUpperInvariant();
+                if (estadoLog == "ACEPTADA")
+                    return await ResultadoAprobadaAsync(logNc.VoucherNumber_DGII, origen, sucursal, usuario, "La nota de crédito ya fue aprobada por la DGII.");
+                if (estadoLog != "RECHAZADA" && estadoLog != "ERROR")
+                    return await EsperarNotaCreditoAsync(http, logNc, origen, sucursal, usuario);   // PEND: sigue esperando la respuesta
+                // RECHAZADA o ERROR: la anterior no prosperó; se emite una nueva sobre el mismo registro de log
+            }
+
+            // 2. Validaciones para emitir una NC nueva
+            if (!string.Equals(origen.Estado, "A", StringComparison.OrdinalIgnoreCase))
+                throw new NotaCreditoException("La factura no está activa; no se puede emitir una nota de crédito.");
+            if (string.IsNullOrWhiteSpace(origen.NcfNumero) || !origen.NcfNumero.StartsWith("E", StringComparison.OrdinalIgnoreCase))
+                throw new NotaCreditoException("La factura no tiene comprobante electrónico.");
+            if (origen.Detalles.Count == 0)
+                throw new NotaCreditoException("La factura no tiene líneas activas para incluir en la nota de crédito.");
+
+            var logOrigen = await BuscarLogOrigenAsync(origen);
+            if (logOrigen == null)
+                throw new NotaCreditoException("No se encontró el comprobante electrónico de esta factura.");
+
+            var (estatusOrigen, motivoOrigen, _) = await ConsultarEstatusAsync(http, logOrigen.DocumentoId_EasyConexion.Value);
+            if (estatusOrigen == null)
+                throw new NotaCreditoException("No se pudo consultar el estado del comprobante de la factura en el proveedor. Intente nuevamente.");
+            if (estatusOrigen != "APRO")
+            {
+                // Rechazada por la DGII (estado final distinto de PEND): la factura nunca fue válida, no hace falta una nota de crédito.
+                // Se anula directamente para que no quede activa una factura que la DGII no aceptó.
+                if (estatusOrigen != "" && estatusOrigen != "PEND")
+                {
+                    logOrigen.Estado = "RECHAZADO_DGII";
+                    logOrigen.Error_Descripcion = $"{estatusOrigen}: {motivoOrigen}".Trim();
+                    await _accesoDatos.UpdateLogFacturaElectronica(logOrigen);
+
+                    var (anuladaDirecta, errorAnulacion) = await _accesoDatos.AnularFacturaPorNotaCreditoAsync(
+                        numeroFactura, sucursal, usuario, null, "Anulada automáticamente: la DGII rechazó la factura electrónica");
+                    if (!anuladaDirecta)
+                        throw new NotaCreditoException($"La DGII rechazó esta factura ({estatusOrigen}), pero no se pudo anularla: {errorAnulacion}");
+
+                    origen.Estado = "X";
+                    return ResultadoNc(origen.NcfNumero, "ANULADA", origen,
+                        $"La DGII había rechazado esta factura ({estatusOrigen}). {motivoOrigen} No hace falta nota de crédito: la factura quedó anulada.".Trim());
+                }
+                throw new NotaCreditoException($"Solo se puede emitir una nota de crédito de facturas aprobadas por la DGII (estado actual: {(estatusOrigen == "" ? "sin respuesta" : estatusOrigen)}).");
+            }
+
+            // 3. e-NCF de la nota de crédito (se reserva justo antes de enviar)
+            // Si el intento anterior falló al validar el pedido (HTTP 4xx: el documento no se creó), ese e-NCF no se usó: se reutiliza
+            // en vez de gastar otro número de la secuencia.
+            string ncf = null;
+            if (logNc != null
+                && string.Equals((logNc.Estado ?? "").Trim(), "ERROR", StringComparison.OrdinalIgnoreCase)
+                && logNc.DocumentoId_EasyConexion == null
+                && !string.IsNullOrWhiteSpace(logNc.VoucherNumber_DGII)
+                && (logNc.Error_Descripcion ?? "").StartsWith("HTTP 4", StringComparison.OrdinalIgnoreCase)
+                // Si el proveedor dijo que ese e-NCF YA estaba registrado, no sirve reutilizarlo: se toma uno nuevo
+                && (logNc.Error_Descripcion ?? "").IndexOf("already been registered", StringComparison.OrdinalIgnoreCase) < 0)
+                ncf = logNc.VoucherNumber_DGII.Trim();
+            ncf ??= await _accesoDatos.ObtenerNcfNotaCredito(34);
+            if (string.IsNullOrWhiteSpace(ncf))
+                throw new NotaCreditoException("No se pudo asignar el e-NCF de la nota de crédito.");
+
+            // 4. Pedido: las líneas y pagos de la factura de origen, con los datos propios de la NC
+            var ahoraRD = DateTime.UtcNow.AddHours(-4);   // hora de República Dominicana (UTC-4)
+            var facturaRef = new Facturas
+            {
+                NumeroFactura = numeroFactura,
+                NcfTipoNumero = origen.NcfTipoNumero,   // define los datos del comprador (31 con RNC y nombre)
+                NcfNumero = ncf,
+                IdCliente = origen.IdCliente,
+                RNC = origen.RNC,
+                Total = origen.Total,
+                IdTipoPago = origen.IdTipoPago,
+                fechaLimitePago = origen.TiempoCredito ?? default,
+                FechaRegistro = ahoraRD,
+            };
+            var request = MapearFacturaARequest(facturaRef, origen.Detalles, origen.Pagos, rncEmisor, nombreEmisor);
+            request.VoucherType = "34";
+            request.VoucherNumber = ncf;
+            request.IssueDate = ahoraRD;
+            request.ModifiedNcf = origen.NcfNumero;
+            request.ModifDateNcf = origen.FechaRegistro.ToString("yyyy-MM-dd");
+            request.ModifReasonId = 1;                      // anulación total
+            // taxedAmountIndicator NO se cambia: queda el de la configuración (igual que la factura de origen, 1 = el monto ya incluye ITBIS).
+            // Las líneas se envían con priceIncludesTax = true, y el proveedor rechaza (HTTP 400) un indicador 0 contra esas líneas:
+            // "priceIncludesTax (true) contradicts taxedAmountIndicator (0)".
+            request.CreditNoteIndicator = (ahoraRD.Date - origen.FechaRegistro.Date).TotalDays > 30 ? 1 : 0;   // 0 = hasta 30 días, 1 = más
+            request.RncNcfModified = null;
+
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.Never
+            };
+            HttpResponseMessage response;
+            string responseContent;
+            for (var intentoNcf = 1; ; intentoNcf++)
+            {
+                request.VoucherNumber = ncf;
+                var content = new StringContent(JsonSerializer.Serialize(request, jsonOptions), Encoding.UTF8, "application/json");
+                response = await http.PostAsync(_invoicesEndpoint, content);
+                responseContent = await response.Content.ReadAsStringAsync();
+
+                // El proveedor ya tiene ese e-NCF (la secuencia local quedó atrás de la suya): se toma el siguiente y se reintenta, hasta 3 veces
+                var yaRegistrado = !response.IsSuccessStatusCode
+                    && responseContent.IndexOf("already been registered", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (!yaRegistrado || intentoNcf >= 3) break;
+
+                _logger.LogWarning("[NC-NCF-REPETIDO] El e-NCF {Ncf} ya estaba registrado en el proveedor; se toma el siguiente de la secuencia", ncf);
+                ncf = await _accesoDatos.ObtenerNcfNotaCredito(34);
+                if (string.IsNullOrWhiteSpace(ncf))
+                    throw new NotaCreditoException("No se pudo asignar el e-NCF de la nota de crédito.");
+            }
+
+            EasyConexionResponseDTO dto = null;
+            string qrUrl = null;
+            if (response.IsSuccessStatusCode)
+            {
+                try { dto = JsonSerializer.Deserialize<EasyConexionResponseDTO>(responseContent, jsonOptions); } catch { /* se trata como fallo abajo */ }
+                qrUrl = LeerTextoJson(responseContent, "qrUrl", "qrData");
+            }
+            var creada = dto?.Success == true && dto.DocumentId > 0;
+            var errorEnvio = creada ? null
+                : (dto?.Message ?? $"HTTP {(int)response.StatusCode}" + (string.IsNullOrWhiteSpace(responseContent) ? "" : $": {responseContent}"));
+
+            // 5. Log de la NC (nuevo, o el mismo registro si la anterior fue rechazada o dio error)
+            var nuevoLog = new LogFacturaElectronica
+            {
+                Numero_Factura = numeroFactura,
+                Literal = literalNc,
+                DocumentoId_EasyConexion = creada ? dto.DocumentId : (int?)null,
+                VoucherNumber_DGII = string.IsNullOrWhiteSpace(dto?.VoucherNumber) ? ncf : dto.VoucherNumber,
+                Estado = creada ? "PEND" : "ERROR",
+                Respuesta_JSON = responseContent,
+                Fecha_Envio = DateTime.Now,
+                Error_Descripcion = errorEnvio,
+                Usuario = usuario,
+                QR_Url = qrUrl,
+            };
+            if (logNc != null)
+                await _accesoDatos.UpdateLogFacturaElectronica(nuevoLog);
+            else
+                await _accesoDatos.InsertLogFacturaElectronica(nuevoLog);
+
+            if (!creada)
+            {
+                _logger.LogError("[NC-ENVIO-FALLO] Factura {Factura} (sucursal {Sucursal}), e-NCF {Ncf}: {Error}", numeroFactura, sucursal, ncf, errorEnvio);
+                throw new NotaCreditoException($"El proveedor no aceptó la nota de crédito: {errorEnvio}");
+            }
+
+            // 6. Espera de la DGII
+            return await EsperarNotaCreditoAsync(http, nuevoLog, origen, sucursal, usuario);
+        }
+
+        /// <summary>
+        /// Con la NC aprobada anula la factura, solo si sigue activa (Proc_Anular_Factura no mira el estado de las líneas: anular dos
+        /// veces devolvería el inventario dos veces). Si la anulación falla queda [NC-ANULA-FALLO] y, al volver a pulsar, la
+        /// idempotencia reintenta solo la anulación.
+        /// </summary>
+        private async Task<NotaCreditoResultado> ResultadoAprobadaAsync(string ncf, FacturaOrigenNotaCredito origen, int sucursal, string usuario, string mensajeBase)
+        {
+            var (anulada, error) = await _accesoDatos.AnularFacturaPorNotaCreditoAsync(origen.NumeroFactura, sucursal, usuario, ncf);
+            if (anulada) origen.Estado = "X";
+            var mensaje = anulada
+                ? $"{mensajeBase} La factura quedó anulada."
+                : $"{mensajeBase} Pero no se pudo anular la factura: {error}. Vuelva a pulsar el botón para reintentar la anulación.";
+            return ResultadoNc(ncf, "APROBADA", origen, mensaje);
+        }
+
+        /// <summary>
+        /// Espera corta del estado real de una factura recién enviada (FacEDGI:EsperaEstadoSegundos, por defecto 45 s, consulta
+        /// cada 2 s). Devuelve el último estado conocido (null si no se pudo consultar) al agotar el tiempo o al ser final.
+        /// </summary>
+        private async Task<(string Estatus, string Motivo, string Qr)> EsperarEstadoFacturaAsync(HttpClient http, int documentId)
+        {
+            var segundos = int.TryParse(_configuration["FacEDGI:EsperaEstadoSegundos"], out var s) ? s : 45;
+            var intentos = Math.Max(1, segundos / 2);
+
+            (string Estatus, string Motivo, string Qr) ultimo = (null, null, null);
+            for (int intento = 1; intento <= intentos; intento++)
+            {
+                await Task.Delay(NcEsperaMs);
+                ultimo = await ConsultarEstatusAsync(http, documentId);
+                if (!string.IsNullOrEmpty(ultimo.Estatus) && ultimo.Estatus != "PEND")
+                    break;   // final: APRO o rechazada
+            }
+            return ultimo;
+        }
+
+        /// <summary>Consulta cada 2 s hasta 60 s. APRO = aprobada; PEND = seguir; cualquier otro valor = no aprobada.</summary>
+        private async Task<NotaCreditoResultado> EsperarNotaCreditoAsync(HttpClient http, LogFacturaElectronica logNc, FacturaOrigenNotaCredito origen, int sucursal, string usuario)
+        {
+            if (logNc.DocumentoId_EasyConexion == null)
+                throw new NotaCreditoException("La nota de crédito registrada no tiene identificador del proveedor; contacte a soporte.");
+
+            var ncf = logNc.VoucherNumber_DGII;
+            for (int intento = 1; intento <= NcMaxIntentos; intento++)
+            {
+                var (estatus, mensaje, qr) = await ConsultarEstatusAsync(http, logNc.DocumentoId_EasyConexion.Value);
+
+                if (estatus == "APRO")
+                {
+                    logNc.Estado = "ACEPTADA";
+                    logNc.Fecha_Confirmacion = DateTime.Now;
+                    logNc.Error_Descripcion = null;
+                    if (!string.IsNullOrWhiteSpace(qr)) logNc.QR_Url = qr;
+                    await _accesoDatos.UpdateLogFacturaElectronica(logNc);
+                    return await ResultadoAprobadaAsync(ncf, origen, sucursal, usuario, "La DGII aprobó la nota de crédito.");
+                }
+
+                if (!string.IsNullOrEmpty(estatus) && estatus != "PEND")
+                {
+                    // Cualquier otro valor: no se anula nada; se informa tal cual y queda en el log
+                    logNc.Estado = "RECHAZADA";
+                    logNc.Error_Descripcion = $"{estatus}: {mensaje}";
+                    await _accesoDatos.UpdateLogFacturaElectronica(logNc);
+                    await AvisarNotaCreditoAsync("RECHAZADA", $"{estatus}: {mensaje}", logNc, ncf, origen, usuario);
+                    return ResultadoNc(ncf, "RECHAZADA", origen, $"La DGII no aprobó la nota de crédito ({estatus}). {mensaje}".Trim());
+                }
+
+                if (intento < NcMaxIntentos)
+                    await Task.Delay(NcEsperaMs);
+            }
+
+            await AvisarNotaCreditoAsync("ENVIADA", null, logNc, ncf, origen, usuario);
+            return ResultadoNc(ncf, "PENDIENTE", origen,
+                "Nota de crédito enviada; pendiente de respuesta de la DGII. Espere un minuto y vuelva a pulsar el botón: no se emite otra nota de crédito, solo se consulta la respuesta.");
+        }
+
+        /// <summary>
+        /// Log de la factura de origen: primero con el literal real; si no hay (facturas anteriores, guardadas con "A" fijo),
+        /// con "A". Solo vale si el e-NCF del log coincide con el de la factura.
+        /// </summary>
+        private async Task<LogFacturaElectronica> BuscarLogOrigenAsync(FacturaOrigenNotaCredito origen)
+        {
+            foreach (var literal in new[] { origen.Literal.Trim(), "A" }.Distinct())
+            {
+                var log = await _accesoDatos.GetLogFacturaElectronica(origen.NumeroFactura, literal);
+                if (log != null
+                    && log.DocumentoId_EasyConexion != null
+                    && string.Equals(log.VoucherNumber_DGII?.Trim(), origen.NcfNumero, StringComparison.OrdinalIgnoreCase))
+                    return log;
+            }
+            return null;
+        }
+
+        /// <summary>Estado de un comprobante en EasyConexión (en mayúsculas), mensaje de la DGII y QR. Estatus null si la consulta falló.</summary>
+        private async Task<(string Estatus, string Mensaje, string Qr)> ConsultarEstatusAsync(HttpClient http, int documentId)
+        {
+            try
+            {
+                var respuesta = await http.GetAsync($"{_invoicesEndpoint}/{documentId}");
+                if (!respuesta.IsSuccessStatusCode)
+                    return (null, $"HTTP {(int)respuesta.StatusCode}", null);
+
+                var json = await respuesta.Content.ReadAsStringAsync();
+                var estatus = LeerTextoJson(json, "estatus", "status")?.Trim().ToUpperInvariant() ?? "";
+                // El motivo de la DGII viene en seguimientos[].acceptanceComment (destino 1 = DGII), no en un campo propio
+                var mensaje = LeerTextoJson(json, "dgiiMessage") ?? LeerMotivoSeguimiento(json);
+                return (estatus, mensaje, LeerTextoJson(json, "qrData", "qrUrl"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[NC] No se pudo consultar el comprobante {DocumentId} en el proveedor", documentId);
+                return (null, ex.Message, null);
+            }
+        }
+
+        /// <summary>
+        /// Motivo de la respuesta de la DGII: acceptanceComment del seguimiento con destinationId = 1 (DGII); si no hay, el último
+        /// comentario no vacío de cualquier destino. Null si no hay.
+        /// </summary>
+        internal static string LeerMotivoSeguimiento(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object) return null;
+                foreach (var propiedad in doc.RootElement.EnumerateObject())
+                {
+                    if (!string.Equals(propiedad.Name, "seguimientos", StringComparison.OrdinalIgnoreCase) || propiedad.Value.ValueKind != JsonValueKind.Array)
+                        continue;
+
+                    string deLaDgii = null, cualquiera = null;
+                    foreach (var seguimiento in propiedad.Value.EnumerateArray())
+                    {
+                        if (seguimiento.ValueKind != JsonValueKind.Object) continue;
+                        string comentario = null;
+                        int? destino = null;
+                        foreach (var campo in seguimiento.EnumerateObject())
+                        {
+                            if (string.Equals(campo.Name, "acceptanceComment", StringComparison.OrdinalIgnoreCase) && campo.Value.ValueKind == JsonValueKind.String)
+                                comentario = campo.Value.GetString();
+                            else if (string.Equals(campo.Name, "destinationId", StringComparison.OrdinalIgnoreCase) && campo.Value.ValueKind == JsonValueKind.Number)
+                                destino = campo.Value.GetInt32();
+                        }
+                        if (string.IsNullOrWhiteSpace(comentario)) continue;
+                        cualquiera = comentario;
+                        if (destino == 1) deLaDgii = comentario;
+                    }
+                    return deLaDgii ?? cualquiera;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+            return null;
+        }
+
+        internal static string LeerTextoJson(string json, params string[] nombres)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object) return null;
+                foreach (var nombre in nombres)
+                    foreach (var propiedad in doc.RootElement.EnumerateObject())
+                        if (string.Equals(propiedad.Name, nombre, StringComparison.OrdinalIgnoreCase) && propiedad.Value.ValueKind == JsonValueKind.String)
+                            return propiedad.Value.GetString();
+            }
+            catch (JsonException)
+            {
+            }
+            return null;
+        }
+
+        private static NotaCreditoResultado ResultadoNc(string ncf, string estado, FacturaOrigenNotaCredito origen, string mensaje) =>
+            new NotaCreditoResultado
+            {
+                Ncf = ncf,
+                Estado = estado,
+                Anulada = string.Equals(origen.Estado, "X", StringComparison.OrdinalIgnoreCase),
+                Mensaje = mensaje,
+            };
 
         /// <summary>
         /// Obtiene el log de envío de una factura específica

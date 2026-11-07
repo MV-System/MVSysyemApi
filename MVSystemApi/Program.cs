@@ -78,6 +78,9 @@ builder.Services.AddSingleton<RevisorSincronizacion>();
 builder.Services.AddSingleton<EstadoAlertas>();
 builder.Services.AddSingleton<NotificadorAlertas>();
 builder.Services.AddHostedService<MonitorSincronizacionService>();
+builder.Services.AddSingleton<SeguimientoComprobantes>();
+builder.Services.AddSingleton<Proveedor2Lector>();
+builder.Services.AddHostedService<SeguimientoComprobantesService>();
 
 #region CONFIGURE SERVICES
 //(_ => new AccesoDatos(builder.Configuration.GetConnectionString("MVSystem")));

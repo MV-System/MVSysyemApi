@@ -30,6 +30,12 @@ namespace MVSystemApi.Interfaz
             string nombreEmisor);
 
         /// <summary>
+        /// Emite la nota de crédito total (E34) de una factura con e-NCF del proveedor 1 y espera la respuesta de la DGII
+        /// (hasta 60 s). Idempotente por factura. Lanza NotaCreditoException con el mensaje para el usuario.
+        /// </summary>
+        Task<NotaCreditoResultado> EmitirNotaCreditoAsync(int numeroFactura, int sucursal, string usuario, string rncEmisor, string nombreEmisor);
+
+        /// <summary>
         /// Obtiene el log de envío de una factura específica
         /// </summary>
         /// <param name="numeroFactura">Número de la factura</param>

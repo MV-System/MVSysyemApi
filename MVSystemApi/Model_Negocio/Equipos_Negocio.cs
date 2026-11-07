@@ -19,14 +19,15 @@ namespace MVSystemApi.Model
             var result = (from dt in Ac.Equipo_Insert(Equipo).AsEnumerable()
                           select new Equipo_return
                           {
-                              Imei = Convert.ToString(dt["Imei"]),
-                              Modelo = Convert.ToString(dt["Modelo"]),
-                              Marca = Convert.ToString(dt["Marca"]),
-                              Costo_Equipo = Convert.ToDecimal(dt["costo_equipo"]),
-                              precioPorMayor = Convert.ToDecimal(dt["Precio_Por_Mayor"]),
-                              PrecioDetalle = Convert.ToDecimal(dt["Precio_Detalle"]),
-                              Existe = Convert.ToString(dt["Existe"]),
-                              Mensaje = Convert.ToString(dt["Mensaje"])
+                              Imei = dt.Table.Columns.Contains("Imei") ? Convert.ToString(dt["Imei"]) : Equipo.Imei,
+                              Modelo = dt.Table.Columns.Contains("Modelo") ? Convert.ToString(dt["Modelo"]) : null,
+                              Marca = dt.Table.Columns.Contains("Marca") ? Convert.ToString(dt["Marca"]) : null,
+                              // Si el equipo ya existe (u otra validacion), el procedimiento puede devolver menos columnas
+                              Costo_Equipo = dt.Table.Columns.Contains("costo_equipo") && dt["costo_equipo"] != DBNull.Value ? Convert.ToDecimal(dt["costo_equipo"]) : 0,
+                              precioPorMayor = dt.Table.Columns.Contains("Precio_Por_Mayor") && dt["Precio_Por_Mayor"] != DBNull.Value ? Convert.ToDecimal(dt["Precio_Por_Mayor"]) : 0,
+                              PrecioDetalle = dt.Table.Columns.Contains("Precio_Detalle") && dt["Precio_Detalle"] != DBNull.Value ? Convert.ToDecimal(dt["Precio_Detalle"]) : 0,
+                              Existe = dt.Table.Columns.Contains("Existe") ? Convert.ToString(dt["Existe"]) : null,
+                              Mensaje = dt.Table.Columns.Contains("Mensaje") ? Convert.ToString(dt["Mensaje"]) : null
                           }).ToList(); // Usamos FirstOrDefault() ya que esperamos un único registro
 
             // Verificamos el valor de Result
@@ -51,7 +52,8 @@ namespace MVSystemApi.Model
                               PrecioDetalle = Convert.ToDecimal(dt["PrecioDetalle"]),
                               Disponible = Convert.ToString(dt["Disponible"]),
                               Disponible_Detalle = Convert.ToString(dt["Nota_Adicional"]),
-                              Mensaje = Convert.ToString(dt["Mensaje"])
+                              Mensaje = Convert.ToString(dt["Mensaje"]),
+                              Configuracion = dt.Table.Columns.Contains("Configuracion") && dt["Configuracion"] != DBNull.Value ? Convert.ToString(dt["Configuracion"]) : null
 
                           }).ToList().FirstOrDefault();
 
@@ -90,7 +92,8 @@ namespace MVSystemApi.Model
                               TotalRecord = Convert.ToInt32(dt["Cantidad_Registros"]),
                               TotalInventario = Convert.ToDecimal(dt["TotalInventario"]),
                               IdGrupo = dt.Table.Columns.Contains("ID_Grupo") && dt["ID_Grupo"] != DBNull.Value ? Convert.ToInt32(dt["ID_Grupo"]) : 0,
-                              Grupo = dt.Table.Columns.Contains("Grupo") && dt["Grupo"] != DBNull.Value ? Convert.ToString(dt["Grupo"]) : ""
+                              Grupo = dt.Table.Columns.Contains("Grupo") && dt["Grupo"] != DBNull.Value ? Convert.ToString(dt["Grupo"]) : "",
+                              Configuracion = dt.Table.Columns.Contains("Configuracion") && dt["Configuracion"] != DBNull.Value ? Convert.ToString(dt["Configuracion"]) : null
                           }).ToList();
             return result;
         }
@@ -131,7 +134,8 @@ namespace MVSystemApi.Model
                               TotalGanancia = Convert.ToDecimal(dt["TotalGanancia"]),
                               TotalComisionDetalle = Convert.ToDecimal(dt["TotalComisionDetalle"]),
                               TotalComisionXMayor = Convert.ToDecimal(dt["TotalComisionXMayor"]),
-                              TotalItbis = Convert.ToDecimal(dt["TotalItbis"])
+                              TotalItbis = Convert.ToDecimal(dt["TotalItbis"]),
+                              Configuracion = dt.Table.Columns.Contains("Configuracion") && dt["Configuracion"] != DBNull.Value ? Convert.ToString(dt["Configuracion"]) : null
 
                           }).ToList();
 
@@ -252,6 +256,16 @@ namespace MVSystemApi.Model
                               EstadoBloqueoId = Convert.ToInt32(dt["Estado Bloqueo Id"]),
                               EstadoBloqueoDescripcion = Convert.ToString(dt["Descripcion_Estado_Bloqueo"])
                           }).ToList().FirstOrDefault();
+
+            if (result != null)
+            {
+                var mm = Ac.GetEquipoMarcaModelo(imei);
+                if (mm.Rows.Count > 0)
+                {
+                    result.Marca = Convert.ToString(mm.Rows[0]["Marca"]);
+                    result.Modelo = Convert.ToString(mm.Rows[0]["Modelo"]);
+                }
+            }
             return result;
         }
         internal object ValidarEliminacionEquipo(string imei)

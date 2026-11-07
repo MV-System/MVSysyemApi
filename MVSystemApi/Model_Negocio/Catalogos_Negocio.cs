@@ -223,7 +223,8 @@ namespace MVSystemApi.Model
                           select new Modelos
                           {
                               ID_Modelo = Convert.ToInt32(dt["ID_Modelo"]),
-                              Descripcion = Convert.ToString(dt["Descripcion"])
+                              Descripcion = Convert.ToString(dt["Descripcion"]),
+                              ID_Grupo = dt.Table.Columns.Contains("ID_Grupo") && dt["ID_Grupo"] != DBNull.Value ? Convert.ToInt32(dt["ID_Grupo"]) : 0
                           }).ToList();
             return result;
         }

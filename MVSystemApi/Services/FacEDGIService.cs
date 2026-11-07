@@ -244,7 +244,12 @@ namespace MVSystemApi.Services
             
             // Si es consumidor final (32), usar "Consumidor Final", sino obtener nombre del cliente (31 = crédito fiscal)
             string buyerName = "Consumidor Final";
-            if (factura.NcfTipoNumero == 31) // Es Crédito Fiscal, no consumidor final
+            // Con comprador identificado: crédito fiscal (31), régimen especial (44) y gubernamental (45). El proveedor exige el RNC del comprador
+            // en el XML de esos tipos ("Comprador has incomplete content ... RNCComprador").
+            var exigeComprador = factura.NcfTipoNumero == 31 || factura.NcfTipoNumero == 44 || factura.NcfTipoNumero == 45;
+            // Régimen especial (44): sin ITBIS; las líneas van como exentas (taxCategory 4)
+            var esExento = factura.NcfTipoNumero == 44;
+            if (exigeComprador)
             {
                 if (factura.Cliente != null && !string.IsNullOrEmpty(factura.Cliente.Nombres))
                 {
@@ -280,7 +285,8 @@ namespace MVSystemApi.Services
             }
             
             // Si la empresa asume el ITBIS (S) el precio ya lo incluye; si lo suma al cliente (N) el precio va sin ITBIS.
-            var asumeItbis = EmpresaAsumeItbis();
+            // Exento (44): montos sin ITBIS, priceIncludesTax = false e indicador 0, sin importar el parámetro de la empresa.
+            var asumeItbis = !esExento && EmpresaAsumeItbis();
 
             var request = new EasyConexionRequestDTO
             {
@@ -296,10 +302,10 @@ namespace MVSystemApi.Services
                 IssuerAddress = null,  // N/A para este sistema
                 
                 // Datos del comprador
-                // Solo enviar RNC si ES Crédito Fiscal (NcfTipoNumero == 31)
+                // Solo se envía el RNC del comprador en 31, 44 y 45 (ver exigeComprador)
                 // Tipo 32 = CONSUMIDOR FINAL (e-CF) - no requiere RNC del cliente
                 // Tipo 31 = CRÉDITO FISCAL (e-CF) - requiere RNC del cliente
-                BuyerRnc = factura.NcfTipoNumero == 31 && !string.IsNullOrEmpty(factura.RNC) ? FormatearRnc(factura.RNC) : null,
+                BuyerRnc = exigeComprador && !string.IsNullOrEmpty(factura.RNC) ? FormatearRnc(factura.RNC) : null,
                 BuyerName = buyerName,
                 BuyerAddress = null,
                 BuyerPhone = null,
@@ -338,7 +344,7 @@ namespace MVSystemApi.Services
             };
 
             // Mapear líneas de detalle
-            request.Lines = MapearDetalles(detalles, asumeItbis);
+            request.Lines = MapearDetalles(detalles, asumeItbis, esExento);
 
             // Mapear métodos de pago
             request.Payments = MapearPagos(pagos, factura.Total);
@@ -386,7 +392,7 @@ namespace MVSystemApi.Services
         /// Envía Amount = SubTotal + Descuento + ITBIS (total con impuesto incluido).
         /// TaxedAmountIndicator=1 indica a DGI que el Amount ya incluye ITBIS, por lo que lo extrae correctamente.
         /// </summary>
-        private List<EasyConexionLineDTO> MapearDetalles(List<DetalleFactura> detalles, bool asumeItbis)
+        private List<EasyConexionLineDTO> MapearDetalles(List<DetalleFactura> detalles, bool asumeItbis, bool esExento = false)
         {
             var lines = new List<EasyConexionLineDTO>();
 
@@ -419,7 +425,7 @@ namespace MVSystemApi.Services
                     Quantity = detalle.Cantidad,
                     UnitPrice = precioUnitario,
                     Amount = montoLinea,
-                    TaxCategory = 1,
+                    TaxCategory = esExento ? 4 : 1,   // 1 = ITBIS 18 %, 4 = exento (régimen especial, E44)
                     Discount = null,   // el descuento ya va aplicado en el monto (DescuentoComprobante)
                     Surcharge = null,
                     GoodOrServiceIndicator = 1,

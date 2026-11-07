@@ -27,6 +27,7 @@ namespace MVSystemApi.Services
         private readonly IAccesoDatos _accesoDatos;
         private readonly ILogger<FacEDGIService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly MVSystemApi.MonitorSync.SeguimientoComprobantes _seguimiento;
 
         /// <summary>
         /// Configuración desde appsettings y contexto del usuario
@@ -69,8 +70,10 @@ namespace MVSystemApi.Services
             IConfiguration configuration,
             IAccesoDatos accesoDatos,
             ILogger<FacEDGIService> logger,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            MVSystemApi.MonitorSync.SeguimientoComprobantes seguimiento = null)
         {
+            _seguimiento = seguimiento;
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _accesoDatos = accesoDatos ?? throw new ArgumentNullException(nameof(accesoDatos));
@@ -200,10 +203,15 @@ namespace MVSystemApi.Services
                 };
 
                 var logInsertado = await InsertLogFacturaElectronica(logFactura);
+                await SeguirOAlertarAsync(estadoLog, errorLog, responseDto?.DocumentId, responseDto?.VoucherNumber ?? factura.NcfNumero,
+                    factura.NcfTipoNumero, factura.NumeroFactura, literalLog, false, nombreEmisor, rncEmisor, usuario);
                 return responseDto;
             }
             catch (Exception ex)
             {
+                await SeguirOAlertarAsync("ERROR", ex.Message, null, factura.NcfNumero, factura.NcfTipoNumero, factura.NumeroFactura,
+                    literalLog, false, nombreEmisor, rncEmisor, usuario);
+
                 // Guardar error en log
                 var logError = new LogFacturaElectronica
                 {
@@ -224,6 +232,48 @@ namespace MVSystemApi.Services
                     Message = $"Excepción: {ex.Message}"
                 };
             }
+        }
+
+        /// <summary>
+        /// Monitor de comprobantes: ENVIADA (pendiente) pasa a seguimiento; RECHAZADO_DGII / ERROR / RECHAZADA avisan de inmediato.
+        /// Nunca lanza: el monitor no puede afectar la factura ni la nota de crédito.
+        /// </summary>
+        private async Task SeguirOAlertarAsync(string estado, string detalle, int? documentId, string encf, int tipoNcf, int numeroFactura,
+            string literal, bool esNotaCredito, string empresa, string rnc, string usuario)
+        {
+            try
+            {
+                if (_seguimiento == null || !_seguimiento.Habilitado || string.IsNullOrWhiteSpace(encf)) return;
+                var item = new MVSystemApi.MonitorSync.ItemSeguimiento
+                {
+                    Proveedor = 1,
+                    Empresa = empresa,
+                    Rnc = rnc,
+                    NumeroFactura = numeroFactura,
+                    Literal = literal,
+                    Encf = encf,
+                    TipoNcf = tipoNcf,
+                    EsNotaCredito = esNotaCredito,
+                    DocumentId = documentId > 0 ? documentId : null,
+                    Usuario = usuario,
+                };
+
+                if (estado == "ENVIADA" && item.DocumentId != null)
+                    _seguimiento.Registrar(item);
+                else if (estado == "RECHAZADO_DGII" || estado == "RECHAZADA" || estado == "ERROR")
+                    await _seguimiento.AlertarProblemaAsync(item, estado, detalle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Comprobantes] No se pudo registrar el seguimiento de {Encf}", encf);
+            }
+        }
+
+        private Task AvisarNotaCreditoAsync(string estado, string detalle, LogFacturaElectronica logNc, string ncf, FacturaOrigenNotaCredito origen, string usuario)
+        {
+            var user = _httpContextAccessor?.HttpContext?.User;
+            return SeguirOAlertarAsync(estado, detalle, logNc.DocumentoId_EasyConexion, ncf, 34, origen.NumeroFactura, origen.Literal, true,
+                user?.FindFirst("Empresa")?.Value, user?.FindFirst("Rnc")?.Value, usuario);
         }
 
         /// <summary>
@@ -728,6 +778,7 @@ namespace MVSystemApi.Services
                     logNc.Estado = "RECHAZADA";
                     logNc.Error_Descripcion = $"{estatus}: {mensaje}";
                     await _accesoDatos.UpdateLogFacturaElectronica(logNc);
+                    await AvisarNotaCreditoAsync("RECHAZADA", $"{estatus}: {mensaje}", logNc, ncf, origen, usuario);
                     return ResultadoNc(ncf, "RECHAZADA", origen, $"La DGII no aprobó la nota de crédito ({estatus}). {mensaje}".Trim());
                 }
 
@@ -735,6 +786,7 @@ namespace MVSystemApi.Services
                     await Task.Delay(NcEsperaMs);
             }
 
+            await AvisarNotaCreditoAsync("ENVIADA", null, logNc, ncf, origen, usuario);
             return ResultadoNc(ncf, "PENDIENTE", origen,
                 "Nota de crédito enviada; pendiente de respuesta de la DGII. Espere un minuto y vuelva a pulsar el botón: no se emite otra nota de crédito, solo se consulta la respuesta.");
         }
@@ -782,7 +834,7 @@ namespace MVSystemApi.Services
         /// Motivo de la respuesta de la DGII: acceptanceComment del seguimiento con destinationId = 1 (DGII); si no hay, el último
         /// comentario no vacío de cualquier destino. Null si no hay.
         /// </summary>
-        private static string LeerMotivoSeguimiento(string json)
+        internal static string LeerMotivoSeguimiento(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
             try
@@ -820,7 +872,7 @@ namespace MVSystemApi.Services
             return null;
         }
 
-        private static string LeerTextoJson(string json, params string[] nombres)
+        internal static string LeerTextoJson(string json, params string[] nombres)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
             try

@@ -26,6 +26,18 @@ namespace MVSystemApi.MonitorSync
         /// <summary>Maximo de elementos detallados por categoria en un aviso.</summary>
         public int MaxItemsPorAviso { get; set; } = 25;
 
+        /// <summary>Comprobantes: minutos que se observa un comprobante pendiente tras emitirse (proveedor 1).</summary>
+        public int MinutosSeguimiento { get; set; } = 30;
+
+        /// <summary>Comprobantes: cada cuantos minutos se barre la tabla remota del proveedor 2.</summary>
+        public int IntervaloComprobantesMinutos { get; set; } = 5;
+
+        /// <summary>Comprobantes: dias hacia atras que revisa el barrido del proveedor 2.</summary>
+        public int DiasRevision { get; set; } = 3;
+
+        /// <summary>Comprobantes: minutos sin respuesta final del proveedor antes de avisar.</summary>
+        public int MinutosSinRespuesta { get; set; } = 30;
+
         public List<ParEmpresa> Pares { get; set; } = new List<ParEmpresa>
         {
             // Rol "principal" = la base donde esta la verdad; "espejo" = la copia. Ver ValidadorEspejos de DbCompare.
@@ -33,6 +45,7 @@ namespace MVSystemApi.MonitorSync
             new ParEmpresa { Nombre = "BESTPHONE_STORE", IdPrincipal = 4,  IdEspejo = 33 },
             new ParEmpresa { Nombre = "TECNOSTYLE",      IdPrincipal = 18, IdEspejo = 32 },
             new ParEmpresa { Nombre = "DATAMOVIL",       IdPrincipal = 3,  IdEspejo = 35 },
+            new ParEmpresa { Nombre = "VISIONTECH",      IdPrincipal = 31, IdEspejo = 36 },
         };
 
         public CorreoOptions Correo { get; set; } = new CorreoOptions();

@@ -110,6 +110,11 @@ Los 47 `[Authorize(Roles=...)]` comentados (Equipos 13, Inventario 9, Clientes 8
 - Aceptación (A y B): (a) usuario sin el permiso que llama directo al endpoint → 403; (b) usuario con el permiso → funciona igual que hoy; (c) ninguna pantalla que hoy funciona para un perfil deja de funcionar; (d) compila.
 
 ## Parte 3 – Cortar el acceso al instante (Alta)
+**Estado (10/11/2026): escrita en la copia local; falta ejecutar el SQL, compilar, probar y commit.**
+- SQL: `CREATE_Seguridad_TokensValidosDesde.sql` (columna `dbo.Usuarios.TokensValidosDesde` y permiso `USO_SISTEMA_DESCONECTAR`; la tabla es `dbo.Usuarios` de SEGURIDAD, no `seg.Usuarios`). **Ejecutarlo en SEGURIDAD antes de publicar el API** (sin la columna el API no falla: usa el último estado conocido y registra el error).
+- API: claim `iat` en el token (`JwtService`); `SesionUsuarioValidador` (caché de 30 s, invalidación inmediata) y `OnTokenValidated` en `Program.cs`; `POST api/UsoSistema/Desconectar` (permiso USO_SISTEMA_DESCONECTAR; no permite desconectarse a uno mismo); desactivar por `PUT api/usuarios/{id}` con Estado=0 corta los tokens. Los tokens emitidos antes de publicar no traen `iat`: siguen valiendo hasta su vencimiento, salvo que el usuario esté inactivo.
+- Front: botón Desconectar en Uso del sistema (con el permiso) y mensaje "Su sesión fue cerrada por el administrador" (cabecera `X-Sesion-Cerrada`, expuesta en CORS).
+- **Hallazgo (no tocado):** `ActivarUsuario` y `EliminarUsuario` ejecutan sobre la tabla `Usuarios` de la base de la **empresa** (`StringCon`), pero el login lee `Usuarios` de SEGURIDAD y MV_SYSTEM no tiene esa tabla; probablemente fallan o no surten efecto. Verificar. `DesactivarUsuario` (service) no se usa: el botón "eliminar" llama a `EliminarUsuario`.
 Es el pendiente "Desconectar usuario" (PENDIENTES_LAPTOPS):
 1. Columna `TokensValidosDesde` (datetime, NULL) en `seg.Usuarios` de SEGURIDAD.
 2. Al validar cada token (`JwtBearerEvents.OnTokenValidated`): si el usuario está **inactivo** o el token se emitió **antes** de `TokensValidosDesde` → 401. Caché de ~30 s por usuario para no consultar en cada petición.

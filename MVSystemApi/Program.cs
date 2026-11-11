@@ -53,16 +53,49 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwtBearerOptions => jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<SesionUsuarioValidador>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwtBearerOptions =>
 {
-    ValidateLifetime = true,
-    ValidateIssuer = true,
-    ValidateAudience = true,
-    ValidateIssuerSigningKey = true,
-    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-    ValidAudience = builder.Configuration["Jwt:Issuer"],
-    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-    ClockSkew = TimeSpan.Zero,
+    jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateLifetime = true,
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Issuer"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+        ClockSkew = TimeSpan.Zero,
+    };
+
+    // Corte inmediato: usuario desactivado, o token emitido antes de Usuarios.TokensValidosDesde (desconectar)
+    jwtBearerOptions.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async contexto =>
+        {
+            var principal = contexto.Principal;
+            var codigoTexto = principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                              ?? principal?.FindFirst("nameid")?.Value;
+            if (!int.TryParse(codigoTexto, out var codigo))
+            {
+                contexto.Fail("Token sin usuario");
+                return;
+            }
+
+            DateTime? emitidoUtc = null;
+            if (long.TryParse(principal?.FindFirst("iat")?.Value, out var iat))
+                emitidoUtc = DateTimeOffset.FromUnixTimeSeconds(iat).UtcDateTime;
+
+            var validador = contexto.HttpContext.RequestServices.GetRequiredService<SesionUsuarioValidador>();
+            if (!await validador.EsValidaAsync(codigo, emitidoUtc))
+            {
+                contexto.Response.Headers["X-Sesion-Cerrada"] = "1";
+                contexto.Fail("Sesión cerrada por el administrador");
+            }
+        }
+    };
 });
 
 builder.Services.AddHttpContextAccessor();
@@ -152,7 +185,7 @@ else
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader());
+app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader().WithExposedHeaders("X-Sesion-Cerrada"));
 
 app.UseAuthentication();
 app.UseAuthorization();

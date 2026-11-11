@@ -21,6 +21,12 @@ namespace MVSystemApi.Model
         public Guid SesionId { get; set; }
     }
 
+    public class UsoDesconectarDto
+    {
+        /// <summary>Login del usuario a desconectar (el mismo que muestra la lista de conectados).</summary>
+        public string Usuario { get; set; }
+    }
+
     public class UsoConectadoDto
     {
         public string Usuario { get; set; }

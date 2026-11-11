@@ -58,6 +58,7 @@ namespace MVSystemApi.Handlers
         public const string VerSistemas = "VerSistemas";
         public const string AsignarPermisos = "AsignarPermisos";
         public const string ModoDesarrollador = "ModoDesarrollador";
+        public const string UsoSistemaDesconectar = "USO_SISTEMA_DESCONECTAR";
 
         // Laptops (la pantalla de custodia lista los usuarios para elegir el técnico)
         public const string LaptopCambioPieza = "LAPTOP_CAMBIO_PIEZA";

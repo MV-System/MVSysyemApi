@@ -2,6 +2,7 @@ using DTO;
 using Microsoft.Data.SqlClient;
 using MVSystemApi.Model;
 using MVSystemApi.Model.Seguridad;
+using MVSystemApi.Services;
 using System.Data;
 using System.Security.Claims;
 
@@ -11,11 +12,13 @@ namespace MVSystemApi.Model_Negocio.Seguridad
     {
         private readonly string _connectionStringSeguridad;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly SesionUsuarioValidador _sesionValidador;
 
-        public UsuariosService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
+        public UsuariosService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor, SesionUsuarioValidador sesionValidador)
         {
             _connectionStringSeguridad = configuration.GetConnectionString("MVSystemSeguridad");
             _httpContextAccessor = httpContextAccessor;
+            _sesionValidador = sesionValidador;
         }
 
         private int ObtenerIdEmpresaActual()
@@ -211,6 +214,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (usuarioDTO.Estado.HasValue)
             {
                 updateStatement += ", Estado = @Estado";
+                // Desactivar corta de inmediato los tokens vigentes del usuario
+                if (usuarioDTO.Estado.Value == 0) updateStatement += ", TokensValidosDesde = GETUTCDATE()";
             }
 
             updateStatement += ", FechaModificado = GETDATE() WHERE Codigo = @Codigo AND Id_Empresa = @IdEmpresa";
@@ -231,6 +236,7 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             }
 
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            if (filasAfectadas > 0) _sesionValidador.Invalidar(usuarioDTO.Codigo);
             return filasAfectadas > 0;
         }
 

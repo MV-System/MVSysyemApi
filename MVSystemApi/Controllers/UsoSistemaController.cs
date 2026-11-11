@@ -16,11 +16,13 @@ namespace MVSystemApi.Controllers
     public class UsoSistemaController : ControllerBase
     {
         private readonly UsoSistemaService _servicio;
+        private readonly SesionUsuarioValidador _sesionValidador;
         private readonly ILogger<UsoSistemaController> _logger;
 
-        public UsoSistemaController(UsoSistemaService servicio, ILogger<UsoSistemaController> logger)
+        public UsoSistemaController(UsoSistemaService servicio, SesionUsuarioValidador sesionValidador, ILogger<UsoSistemaController> logger)
         {
             _servicio = servicio;
+            _sesionValidador = sesionValidador;
             _logger = logger;
         }
 
@@ -57,6 +59,29 @@ namespace MVSystemApi.Controllers
             {
                 _logger.LogError(ex, "No se pudo cerrar la sesion de uso");
                 return StatusCode(500);
+            }
+        }
+
+        /// <summary>POST api/UsoSistema/Desconectar: cierra de inmediato las sesiones de un usuario (sus tokens dejan de valer). Puede volver a entrar.</summary>
+        [RequierePermiso(PermisosApi.UsoSistemaDesconectar)]
+        [HttpPost("Desconectar")]
+        public async Task<IActionResult> Desconectar([FromBody] UsoDesconectarDto dto)
+        {
+            var login = (dto?.Usuario ?? "").Trim();
+            if (login.Length == 0) return BadRequest(new { error = "Indique el usuario a desconectar." });
+            if (string.Equals(login, User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { error = "No puede desconectar su propia sesión." });
+            try
+            {
+                if (!await _sesionValidador.DesconectarAsync(login))
+                    return NotFound(new { error = "Usuario no encontrado." });
+                _logger.LogWarning("[Sesion] {Admin} desconectó al usuario {Usuario}", User.Identity?.Name, login);
+                return Ok(new { mensaje = "Usuario desconectado." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo desconectar al usuario {Usuario}", login);
+                return StatusCode(500, new { error = "No se pudo desconectar al usuario." });
             }
         }
 

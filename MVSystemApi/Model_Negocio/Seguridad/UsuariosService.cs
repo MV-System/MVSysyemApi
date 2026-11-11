@@ -462,9 +462,14 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             if (permisosIds.Count == 0)
                 return nombres;
 
-            var ids = string.Join(",", permisosIds);
-
-            using var cmd = new SqlCommand($"SELECT Nombre FROM seg.Permisos WHERE Codigo IN ({ids})", conn);
+            using var cmd = new SqlCommand { Connection = conn };
+            var parametros = new List<string>();
+            for (int i = 0; i < permisosIds.Count; i++)
+            {
+                parametros.Add("@p" + i);
+                cmd.Parameters.AddWithValue("@p" + i, permisosIds[i]);
+            }
+            cmd.CommandText = $"SELECT Nombre FROM seg.Permisos WHERE Codigo IN ({string.Join(",", parametros)})";
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())

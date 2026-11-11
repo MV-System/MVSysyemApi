@@ -133,6 +133,7 @@ Es el pendiente "Desconectar usuario" (PENDIENTES_LAPTOPS):
 - Aceptación: (a) el front publicado funciona; una página de otro dominio no puede llamar al API; (b) un error inesperado no muestra detalles internos y queda en el log con su id; (c) 6.º intento fallido → bloqueado; el login correcto después del tiempo funciona; (d) compila.
 
 ## Parte 5 – Limpieza (Baja)
+**Estado (11/11/2026): escrita en la copia local; falta compilar, probar y commit.** Parametrizados: el UPDATE de disponibilidad de `AccesoDatos` (`@Disponible`) y el `IN` de `UsuariosService.ObtenerNombresPermisos`. Los `IN` de IMEI (`AccesoDatos` y `RevisorSincronizacion`) y el de `Proveedor2Lector` ya usaban parámetros (solo se concatenan los nombres `@p0, @p1…`), no hacía falta cambiarlos. Confirmado por el usuario (11/11/2026): el App Service no tiene `ASPNETCORE_ENVIRONMENT`, o sea corre como Production.
 1. Pasar a parámetros las 4 consultas armadas con texto: `AccesoDatos.cs` (UPDATE de Equipos con `Disponible` y el `IN` de IMEI), `UsuariosService.ObtenerNombresPermisos` (`IN ({ids})`), `RevisorSincronizacion.cs` (`IN` de IMEI).
 2. Confirmar en el App Service que `ASPNETCORE_ENVIRONMENT` no sea `Development` (si lo es, Swagger y la página de errores detallados quedan públicos).
 - Aceptación: mismas respuestas que hoy; compila.

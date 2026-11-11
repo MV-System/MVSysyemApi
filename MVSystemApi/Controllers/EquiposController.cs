@@ -405,6 +405,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("GestionarEquipo_EliminarRegistro")]
+        [RequierePermiso(PermisosApi.GestionarEquipo)]   // borra registros del equipo: mismo permiso que la pantalla Gestionar equipo
         public ActionResult<EquipoEliminado> EliminarRegistroEquipoDeTabla([FromQuery] string imei, [FromQuery] string tabla)
         {
             try

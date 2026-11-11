@@ -103,5 +103,6 @@ namespace MVSystemApi.Handlers
         public const string MantVendedores = "MNU_MANT_VENDEDORES";
         public const string MantSuplidores = "MNU_MANT_SUPLIDORES";
         public const string MantMarcas = "MNU_MANT_MARCAS";
+        public const string GestionarEquipo = "GESTIONEQUIPO";
     }
 }

@@ -44,7 +44,8 @@ namespace MVSystemApi.Controllers
 
         [HttpPut()]
         [Route("Cliente_Update")]
-        [RequierePermiso(PermisosApi.MantClientes)]
+        // El botón Editar está en Consulta de clientes y en el detalle, sin permiso propio en el front
+        [RequierePermiso(PermisosApi.MantClientes, PermisosApi.ConsClientes)]
         public ActionResult<Clientes> Cliente_Update([FromBody] Clientes cliente)
         {
             try

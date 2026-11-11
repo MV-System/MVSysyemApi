@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Services;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -15,11 +16,13 @@ namespace MVSystemApi.Controllers
     public class UsoSistemaController : ControllerBase
     {
         private readonly UsoSistemaService _servicio;
+        private readonly SesionUsuarioValidador _sesionValidador;
         private readonly ILogger<UsoSistemaController> _logger;
 
-        public UsoSistemaController(UsoSistemaService servicio, ILogger<UsoSistemaController> logger)
+        public UsoSistemaController(UsoSistemaService servicio, SesionUsuarioValidador sesionValidador, ILogger<UsoSistemaController> logger)
         {
             _servicio = servicio;
+            _sesionValidador = sesionValidador;
             _logger = logger;
         }
 
@@ -59,7 +62,31 @@ namespace MVSystemApi.Controllers
             }
         }
 
+        /// <summary>POST api/UsoSistema/Desconectar: cierra de inmediato las sesiones de un usuario (sus tokens dejan de valer). Puede volver a entrar.</summary>
+        [RequierePermiso(PermisosApi.UsoSistemaDesconectar)]
+        [HttpPost("Desconectar")]
+        public async Task<IActionResult> Desconectar([FromBody] UsoDesconectarDto dto)
+        {
+            var login = (dto?.Usuario ?? "").Trim();
+            if (login.Length == 0) return BadRequest(new { error = "Indique el usuario a desconectar." });
+            if (string.Equals(login, User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { error = "No puede desconectar su propia sesión." });
+            try
+            {
+                if (!await _sesionValidador.DesconectarAsync(login))
+                    return NotFound(new { error = "Usuario no encontrado." });
+                _logger.LogWarning("[Sesion] {Admin} desconectó al usuario {Usuario}", User.Identity?.Name, login);
+                return Ok(new { mensaje = "Usuario desconectado." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo desconectar al usuario {Usuario}", login);
+                return StatusCode(500, new { error = "No se pudo desconectar al usuario." });
+            }
+        }
+
         /// <summary>GET api/UsoSistema/Conectados?minutos=5</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Conectados")]
         public async Task<IActionResult> Conectados([FromQuery] int minutos = 5)
         {
@@ -68,6 +95,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Resumen?desde=2026-10-01&amp;hasta=2026-10-31&amp;empresa=</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Resumen")]
         public async Task<IActionResult> Resumen([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string empresa = null)
         {
@@ -77,6 +105,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Detalle?tipo=P&amp;ruta=/home/facturacion/consulta&amp;desde=...&amp;hasta=...: usuarios de una pantalla o boton.</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Detalle")]
         public async Task<IActionResult> Detalle([FromQuery] string tipo, [FromQuery] string ruta, [FromQuery] string detalle,
             [FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string empresa = null)
@@ -87,6 +116,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Empresas</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Empresas")]
         public async Task<IActionResult> Empresas()
         {
@@ -95,6 +125,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/PrimerRegistro</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("PrimerRegistro")]
         public async Task<IActionResult> PrimerRegistro()
         {

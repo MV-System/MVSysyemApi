@@ -1,4 +1,5 @@
 ﻿using DTO;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
@@ -87,7 +88,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetEquiposRecibidoVistaReporte")]
-        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [RequierePermiso(PermisosApi.MantEquipos, PermisosApi.RecepcionEquiposMenu, PermisosApi.RecepcionEquipos)]
         public IActionResult ReporteEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             filterData.PageSize = int.MaxValue;

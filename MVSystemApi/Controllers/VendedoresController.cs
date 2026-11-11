@@ -1,4 +1,5 @@
 ﻿using System;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Vendedor_Insert")]
-        //[Authorize(Roles = "MNU_MANT_VENDEDORES")]
+        [RequierePermiso(PermisosApi.MantVendedores)]
         public ActionResult<Vendedor> Vendedor_Insert([FromBody] Vendedor Vendedor)
         {
             try
@@ -33,7 +34,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

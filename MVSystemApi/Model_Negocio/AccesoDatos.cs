@@ -3948,8 +3948,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
             }
         }
 
-        private static string SqlDisponibilidad(bool disponible) =>
-            $"UPDATE Equipos SET Disponible = '{(disponible ? "S" : "N")}', Nota_Adicional = 'inverso' WHERE IMEI = @IMEI";
+        private const string SqlDisponibilidad = "UPDATE Equipos SET Disponible = @Disponible, Nota_Adicional = 'inverso' WHERE IMEI = @IMEI";
 
         /// <summary>
         /// Marca los equipos como disponibles / no disponibles en la BD espejo, en una sola conexión y una
@@ -3981,7 +3980,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
                     if (reales.TryGetValue(e.Imei, out var r) && (r == "S") != e.DisponibleEsperado)
                         _logger.LogWarning("[Sync] El equipo {Imei} quedo '{Real}' en la base de trabajo (se esperaba '{Esperado}'); se copia el estado real al espejo",
                             e.Imei, r, e.DisponibleEsperado ? "S" : "N");
-                    return (SqlDisponibilidad(disponible), new[] { new SqlParameter("@IMEI", e.Imei) });
+                    return (SqlDisponibilidad, new[] { new SqlParameter("@IMEI", e.Imei), new SqlParameter("@Disponible", disponible ? "S" : "N") });
                 })
                 .ToList();
 

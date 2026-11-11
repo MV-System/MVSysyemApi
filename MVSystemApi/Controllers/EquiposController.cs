@@ -1,4 +1,5 @@
 ﻿using System;
+using MVSystemApi.Handlers;
 using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("Equipo_Insert")]
-        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [RequierePermiso(PermisosApi.MantEquipos)]
         public ActionResult<Equipos> Equipo_Insert([FromBody] Equipos Equipo)
         {
             try
@@ -37,12 +38,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpGet("Equipo_Busca_Disponible")]
-        //[Authorize(Roles = "MNU_CONS_EQUIPOS")]
+        [RequierePermiso(PermisosApi.ConsEquipos, PermisosApi.MantFacturacion, PermisosApi.ConsFacturas, PermisosApi.CotizacionMenu)]
         public ActionResult<Equipos> Equipo_Busca_Disponible(string Equipo, int Id_Almacen)
         {
             try
@@ -56,12 +57,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
         [Route("GetEquiposVendidos")]
-       //[Authorize(Roles = "equiposVendidosMenu")]
+        [RequierePermiso(PermisosApi.EquiposVendidos, PermisosApi.VerUtilidades)]
         public ActionResult<List<EquipoVendido>> GetEquiposVendidos([FromQuery] EquipoVendidoFilter equipoVendidoFilter)
         {
             try
@@ -76,12 +77,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
         [Route("GetEquiposDisponible")]
-       //[Authorize(Roles = "MNU_CONS_EQUIPOS")]
+        [RequierePermiso(PermisosApi.ConsEquipos, PermisosApi.VerUtilidades)]
         public ActionResult<List<EquipoDisponibleDTO>> GetEquiposDisponible([FromQuery] EquipoDisponibleFilterDTO equipoDisponibleFilterDTO)
         {
             try
@@ -96,7 +97,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -116,13 +117,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpGet]
         [Route("GetEquipoPreciosEstatusByImei")]
-        //[Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
+        [RequierePermiso(PermisosApi.CambiarEstadoEquipo, PermisosApi.TransfiereEquipos)]
         public ActionResult<Equipo_return_Imei> GetEquipoPreciosEstatusByImei([FromQuery] string imei)
         {
             try
@@ -137,13 +138,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpPut]
         [Route("ModificarEstatusEquipo")]
-        //[Authorize(Roles = "cambiarEstadoDeEquipoToolStripMenuItem")]
+        [RequierePermiso(PermisosApi.CambiarEstadoEquipo, PermisosApi.TransfiereEquipos)]
         public ActionResult ModificarEquipo([FromBody] Equipo_return_Imei equipo)
         {
             try
@@ -153,13 +154,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpPost]
         [Route("RecepcionEquipos")]
-        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [RequierePermiso(PermisosApi.MantEquipos, PermisosApi.RecepcionEquiposMenu, PermisosApi.RecepcionEquipos, PermisosApi.ConsRecepcionEquipos)]
         public ActionResult RecibirEquipo(EquipoRecepcion equipo)
         {
             try
@@ -169,13 +170,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpGet]
         [Route("GetRecepcionEquipos")]
-      // [Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [RequierePermiso(PermisosApi.MantEquipos, PermisosApi.RecepcionEquiposMenu, PermisosApi.RecepcionEquipos, PermisosApi.ConsRecepcionEquipos)]
         public ActionResult<List<EquipoRecepcionGet>> GetEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
             try
@@ -185,13 +186,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpPost]
         [Route("EstadoActualiza")]
-        //[Authorize(Roles = "MNU_MANT_EQUIPOS")]
+        [RequierePermiso(PermisosApi.MantEquipos, PermisosApi.RecepcionEquiposMenu, PermisosApi.RecepcionEquipos, PermisosApi.ConsRecepcionEquipos)]
         public ActionResult EquipoEstadoActualiza(EquipoEstadoUpdate dataActualizar)
         {
             try
@@ -201,7 +202,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -221,7 +222,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -241,12 +242,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
         [Route("PostEquipoTransferencia")]
-       // [Authorize(Roles = "MNTransfiereEquipos")]
+        [RequierePermiso(PermisosApi.TransfiereEquipos)]
         public ActionResult<EquipoTransferencia> PostEquipoTransferencia([FromBody] EquipoTransferencia tranferencia)
         {
             try
@@ -260,7 +261,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -279,7 +280,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -298,11 +299,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
         [Route("ValidarEliminacionEquipo")]
+        [RequierePermiso(PermisosApi.GestionarEquipo)]   // solo la pantalla Gestionar equipo lo usa
         public ActionResult<EquipoValidacionEliminacion> ValidarEliminacionEquipo([FromQuery] string imei)
         {
             try
@@ -317,7 +319,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -362,7 +364,7 @@ namespace MVSystemApi.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
             catch (Exception ex)
             {
@@ -384,7 +386,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("PostEquipo_Delete")]
-        // [Authorize(Roles = "MNTransfiereEquipos")]
+        [RequierePermiso(PermisosApi.MantEquipos)]
         public ActionResult<EquipoTransferencia> PostEliminaEquipodeFactura([FromQuery] string imei, string Usuario)
         {
             try
@@ -398,12 +400,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpPost]
         [Route("GestionarEquipo_EliminarRegistro")]
+        [RequierePermiso(PermisosApi.GestionarEquipo)]   // borra registros del equipo: mismo permiso que la pantalla Gestionar equipo
         public ActionResult<EquipoEliminado> EliminarRegistroEquipoDeTabla([FromQuery] string imei, [FromQuery] string tabla)
         {
             try
@@ -418,12 +421,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
         [Route("PostReparacionEquipo")]
-        // [Authorize(Roles = "MNTransfiereEquipos")]
+        [RequierePermiso(PermisosApi.MantReparacion)]
         public ActionResult<ReparacionesInsert> PostReparacionEquipo([FromBody] ReparacionesInsert Reparaciones)
         {
             try
@@ -437,7 +440,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -456,7 +459,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     
@@ -475,7 +478,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         /// <summary>
@@ -505,13 +508,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
         [HttpPut]
         [Route("ActualizarCostoPrecioReparacion")]
-        // [Authorize(Roles = "MNTransfiereEquipos")]
+        [RequierePermiso(PermisosApi.MantReparacion)]
         public ActionResult<ReparacionUpdate_return> ActualizarCostoPrecioReparacion([FromBody] ReparacionPendienteUpdateDTO datos)
         {
             try
@@ -525,7 +528,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

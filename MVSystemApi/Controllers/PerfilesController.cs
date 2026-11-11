@@ -2,12 +2,14 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequierePermiso(PermisosApi.VerUsuarios, PermisosApi.AsignarPermisos)]
     public class PerfilesController : ControllerBase
     {
         private readonly RolesService _rolesService;
@@ -34,7 +36,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener perfiles");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfiles", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfiles", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -57,7 +59,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener perfil");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfil", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfil", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

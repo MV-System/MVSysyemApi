@@ -28,6 +28,8 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         new Claim(JwtRegisteredClaimNames.Name, user.Login),
         new Claim(JwtRegisteredClaimNames.GivenName, user.Nombre),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        // Momento de emision: permite invalidar los tokens anteriores a Usuarios.TokensValidosDesde
+        new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.UtcNow).ToString(), ClaimValueTypes.Integer64),
         new Claim("Perfil", user.Perfil.ToString()),
     };
 

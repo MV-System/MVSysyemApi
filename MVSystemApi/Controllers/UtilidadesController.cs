@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
     [Route("Utilidades")]
     [ApiController]
+    [RequierePermiso(PermisosApi.VerUtilidades)]
     public class UtilidadesController : ControllerBase
     {
         private readonly Utilidades_Negocio AD;
@@ -31,7 +33,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet()]
@@ -49,7 +51,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -63,7 +65,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

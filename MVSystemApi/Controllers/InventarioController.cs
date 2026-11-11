@@ -1,3 +1,4 @@
+using MVSystemApi.Handlers;
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
@@ -23,7 +24,7 @@ namespace MVSystemApi.Controllers
         /// POST: api/Inventario/IniciarSesion
         /// </summary>
         [HttpPost("IniciarSesion")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult<IniciarInventarioResponse> IniciarSesion([FromBody] IniciarInventarioDTO dto)
         {
             try
@@ -33,7 +34,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -42,7 +43,7 @@ namespace MVSystemApi.Controllers
         /// POST: api/Inventario/RegistrarEscaneo
         /// </summary>
         [HttpPost("RegistrarEscaneo")]
-        //[Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult<EscaneoResponse> RegistrarEscaneo([FromBody] RegistrarEscaneoDTO dto)
         {
             try
@@ -52,7 +53,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -61,7 +62,7 @@ namespace MVSystemApi.Controllers
         /// GET: api/Inventario/Pendientes/123
         /// </summary>
         [HttpGet("Pendientes/{idSesion}")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult<List<InventarioEquipo>> ObtenerPendientes(long idSesion)
         {
             try
@@ -71,7 +72,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -80,7 +81,7 @@ namespace MVSystemApi.Controllers
         /// GET: api/Inventario/Escaneados/123
         /// </summary>
         [HttpGet("Escaneados/{idSesion}")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult<List<InventarioEquipo>> ObtenerEscaneados(long idSesion)
         {
             try
@@ -90,7 +91,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -108,7 +109,7 @@ namespace MVSystemApi.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return BadRequest(new { message = ex.Message });
+                    return BadRequest(new { message = ErroresApi.Mensaje(ex) });
                 }
             }
 
@@ -126,7 +127,7 @@ namespace MVSystemApi.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return BadRequest(new { message = ex.Message });
+                    return BadRequest(new { message = ErroresApi.Mensaje(ex) });
                 }
             }
 
@@ -135,7 +136,7 @@ namespace MVSystemApi.Controllers
         /// POST: api/Inventario/Finalizar
         /// </summary>
         [HttpPost("Finalizar")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult<FinalizarInventarioResponse> FinalizarInventario([FromBody] FinalizarInventarioDTO dto)
         {
             try
@@ -145,7 +146,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -154,7 +155,7 @@ namespace MVSystemApi.Controllers
         /// GET: api/Inventario/Sesion/123
         /// </summary>
         [HttpGet("Sesion/{idSesion}")]
-      //  [Authorize(Roles = "MNU_MANT_PASARINVEQ,consultaInventarioToolStripMenuItem")]
+        [RequierePermiso(PermisosApi.MantPasarInventario, PermisosApi.ConsultaInventario)]
         public ActionResult<InventarioSesion> ObtenerSesion(long idSesion)
         {
             try
@@ -170,7 +171,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -179,7 +180,7 @@ namespace MVSystemApi.Controllers
         /// POST: api/Inventario/Pausar
         /// </summary>
         [HttpPost("Pausar")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult PausarInventario([FromBody] GestionarInventarioDTO dto)
         {
             try
@@ -196,7 +197,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -205,7 +206,7 @@ namespace MVSystemApi.Controllers
         /// POST: api/Inventario/Reanudar
         /// </summary>
         [HttpPost("Reanudar")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ")]
+        [RequierePermiso(PermisosApi.MantPasarInventario)]
         public ActionResult ReanudarInventario([FromBody] GestionarInventarioDTO dto)
         {
             try
@@ -222,7 +223,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -232,7 +233,7 @@ namespace MVSystemApi.Controllers
         /// GET: api/Inventario/Activos?idAlmacen=5
         /// </summary>
         [HttpGet("Activos")]
-       // [Authorize(Roles = "MNU_MANT_PASARINVEQ,consultaInventarioToolStripMenuItem")]
+        [RequierePermiso(PermisosApi.MantPasarInventario, PermisosApi.ConsultaInventario)]
         public ActionResult<List<InventarioSesion>> ObtenerInventariosActivos([FromQuery] int? idAlmacen = null)
         {
             try
@@ -242,7 +243,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -260,7 +261,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = ErroresApi.Mensaje(ex) });
             }
         }
 

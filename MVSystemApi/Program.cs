@@ -16,6 +16,19 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Sin secretos en el repositorio: se leen de la configuracion (variables del App Service o user-secrets).
+// Si faltan los indispensables, el API no arranca y lo dice en el log.
+{
+    var faltantes = new List<string>();
+    var llaveJwt = builder.Configuration["Jwt:Key"];
+    if (string.IsNullOrWhiteSpace(llaveJwt) || llaveJwt.Length < 32)
+        faltantes.Add("Jwt__Key (minimo 32 caracteres)");
+    if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("MVSystemSeguridad")))
+        faltantes.Add("ConnectionStrings__MVSystemSeguridad");
+    if (faltantes.Count > 0)
+        throw new InvalidOperationException("Configuracion incompleta. Defina estas variables: " + string.Join(", ", faltantes));
+}
+
 
 builder.Services.AddControllers().AddNewtonsoftJson(x => {
     x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
@@ -53,16 +66,50 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwtBearerOptions => jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<SesionUsuarioValidador>();
+builder.Services.AddSingleton<LimiteIntentosLogin>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwtBearerOptions =>
 {
-    ValidateLifetime = true,
-    ValidateIssuer = true,
-    ValidateAudience = true,
-    ValidateIssuerSigningKey = true,
-    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-    ValidAudience = builder.Configuration["Jwt:Issuer"],
-    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-    ClockSkew = TimeSpan.Zero,
+    jwtBearerOptions.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateLifetime = true,
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Issuer"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+        ClockSkew = TimeSpan.Zero,
+    };
+
+    // Corte inmediato: usuario desactivado, o token emitido antes de Usuarios.TokensValidosDesde (desconectar)
+    jwtBearerOptions.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async contexto =>
+        {
+            var principal = contexto.Principal;
+            var codigoTexto = principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                              ?? principal?.FindFirst("nameid")?.Value;
+            if (!int.TryParse(codigoTexto, out var codigo))
+            {
+                contexto.Fail("Token sin usuario");
+                return;
+            }
+
+            DateTime? emitidoUtc = null;
+            if (long.TryParse(principal?.FindFirst("iat")?.Value, out var iat))
+                emitidoUtc = DateTimeOffset.FromUnixTimeSeconds(iat).UtcDateTime;
+
+            var validador = contexto.HttpContext.RequestServices.GetRequiredService<SesionUsuarioValidador>();
+            if (!await validador.EsValidaAsync(codigo, emitidoUtc))
+            {
+                contexto.Response.Headers["X-Sesion-Cerrada"] = "1";
+                contexto.Fail("Sesión cerrada por el administrador");
+            }
+        }
+    };
 });
 
 builder.Services.AddHttpContextAccessor();
@@ -121,6 +168,11 @@ builder.Services.AddScoped<SistemasService>();
 
 var app = builder.Build();
 
+// Opcionales segun la empresa: solo se avisa (la facturacion electronica del proveedor afectado no funcionaria)
+foreach (var (clave, variable) in new[] { ("ConnectionStrings:Proveedor2MicroStar", "ConnectionStrings__Proveedor2MicroStar"), ("FacEDGI:ApiKey", "FacEDGI__ApiKey") })
+    if (string.IsNullOrWhiteSpace(builder.Configuration[clave]))
+        app.Logger.LogWarning("[Config] Falta {Variable}: la facturacion electronica de ese proveedor no funcionara.", variable);
+
 var whatsappService = app.Services.GetRequiredService<WhatsAppService>();
 var autoStart = builder.Configuration.GetValue<bool>("WhatsApp:AutoStart");
 
@@ -148,11 +200,40 @@ if (app.Environment.IsDevelopment())
     });
 }
 else
-    app.UseExceptionHandler("/error");
+{
+    // Errores no controlados: se registran completos con una referencia y el cliente solo recibe un mensaje generico
+    app.UseExceptionHandler(errorApp => errorApp.Run(async contexto =>
+    {
+        var id = ErroresApi.NuevoId();
+        var excepcion = contexto.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        ErroresApi.Registrar(excepcion, id);
+        contexto.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        contexto.Response.ContentType = "application/json";
+        await contexto.Response.WriteAsJsonAsync(new { error = ErroresApi.MensajeGenerico, id });
+    }));
+}
+
+ErroresApi.Inicializar(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader());
+// CORS: solo los dominios de Cors:Origenes. En Development tambien localhost. Si la lista esta vacia (o trae "*") se mantiene
+// el comportamiento anterior (cualquier origen) y se avisa en el log, para no romper el front al publicar sin configurarla.
+var origenesCors = (builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? Array.Empty<string>())
+    .Where(o => !string.IsNullOrWhiteSpace(o)).Select(o => o.Trim().TrimEnd('/')).ToArray();
+var cualquierOrigen = origenesCors.Length == 0 || origenesCors.Contains("*");
+if (cualquierOrigen)
+    app.Logger.LogWarning("[CORS] Cors:Origenes esta vacio: se acepta cualquier origen. Configure los dominios del front.");
+app.UseCors(politica =>
+{
+    politica.WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader().WithExposedHeaders("X-Sesion-Cerrada");
+    if (cualquierOrigen)
+        politica.WithOrigins("*");
+    else if (app.Environment.IsDevelopment())
+        politica.SetIsOriginAllowed(origen => origenesCors.Contains(origen.TrimEnd('/'), StringComparer.OrdinalIgnoreCase) || new Uri(origen).IsLoopback);
+    else
+        politica.WithOrigins(origenesCors);
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

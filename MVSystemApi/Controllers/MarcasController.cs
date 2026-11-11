@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
@@ -23,7 +24,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost()]
         [Route("Marca_Insert")]
-        //[Authorize(Roles = "MNU_MANT_MARCAS")]
+        [RequierePermiso(PermisosApi.MantMarcas)]
         public ActionResult<Marcas> Marca_Insert([FromBody] Marcas Marca)
         {
 
@@ -39,7 +40,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost()]
@@ -60,7 +61,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

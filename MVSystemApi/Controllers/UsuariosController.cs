@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.IdentityModel.Tokens.Jwt;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -23,6 +24,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene todos los usuarios del sistema
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios, PermisosApi.AsignarPermisos, PermisosApi.LaptopCambioPieza, PermisosApi.LaptopCustodiaConsulta, PermisosApi.LaptopCustodiaRecibir)]
         [HttpGet]
         [ProducesResponseType(typeof(List<UsuarioDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> ObtenerTodos()
@@ -35,13 +37,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener usuarios");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuarios", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuarios", error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Obtiene un usuario específico con sus permisos y roles
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpGet("{codigoUsuario}")]
         [ProducesResponseType(typeof(UsuarioConPermisosDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -58,13 +61,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Crea un nuevo usuario
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPost]
         [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -82,13 +86,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear usuario");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Actualiza los datos de un usuario
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPut("{codigoUsuario}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -110,7 +115,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -124,9 +129,7 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] Request recibido. DTO: {@cambioDTO}");
-                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] User.Identity.IsAuthenticated: {User.Identity.IsAuthenticated}");
-                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] Todos los claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+                // No registrar el DTO ni los claims: el DTO trae la contraseña actual y la nueva.
 
                 // Obtener el código del usuario del JWT token
                 // ASP.NET Core mapea JwtRegisteredClaimNames.NameId a esta URI
@@ -154,13 +157,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al cambiar contraseña");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Cambia la contraseña de un usuario (admin)
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPost("{codigoUsuario}/reset-contrasena")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -184,13 +188,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al resetear contraseña");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Elimina completamente un usuario (y sus permisos)
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpDelete("{codigoUsuario}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -207,13 +212,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Activa un usuario
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPost("{codigoUsuario}/activar")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -230,13 +236,14 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al activar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al activar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al activar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Elimina completamente un usuario (y sus relaciones de permisos)
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpDelete("{codigoUsuario}/eliminar")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -253,7 +260,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

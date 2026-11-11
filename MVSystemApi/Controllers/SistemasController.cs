@@ -2,6 +2,7 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -20,6 +21,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene todos los sistemas
         /// </summary>
+        [RequierePermiso(PermisosApi.VerSistemas, PermisosApi.VerModulos)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SistemaResponseDTO>>> ObtenerTodos()
         {
@@ -30,13 +32,14 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Obtiene un sistema por código
         /// </summary>
+        [RequierePermiso(PermisosApi.VerSistemas, PermisosApi.VerModulos)]
         [HttpGet("{codigo}")]
         public async Task<ActionResult<SistemaResponseDTO>> ObtenerPorCodigo(int codigo)
         {
@@ -50,13 +53,14 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Crea un nuevo sistema
         /// </summary>
+        [RequierePermiso(PermisosApi.VerSistemas)]
         [HttpPost]
         public async Task<ActionResult> Crear([FromBody] CrearSistemaDTO dto)
         {
@@ -70,13 +74,14 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Actualiza un sistema existente
         /// </summary>
+        [RequierePermiso(PermisosApi.VerSistemas)]
         [HttpPut("{codigo}")]
         public async Task<ActionResult> Actualizar(int codigo, [FromBody] ActualizarSistemaDTO dto)
         {
@@ -95,13 +100,14 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
         /// <summary>
         /// Elimina un sistema
         /// </summary>
+        [RequierePermiso(PermisosApi.VerSistemas)]
         [HttpDelete("{codigo}")]
         public async Task<ActionResult> Eliminar(int codigo)
         {
@@ -115,7 +121,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
     }

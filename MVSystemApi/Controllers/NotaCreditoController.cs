@@ -8,6 +8,7 @@ using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using MVSystemApi.Model_Negocio.Seguridad;
 using Rotativa.AspNetCore;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -42,6 +43,7 @@ namespace MVSystemApi.Controllers
         /// POST: NotaCredito/PostNotaCredito
         /// </summary>
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaNotaCredito)]
         [Route("PostNotaCredito")]
         public async Task<ActionResult> PostNotaCredito([FromBody] NotaCreditoProveedor2Request request)
         {
@@ -68,11 +70,11 @@ namespace MVSystemApi.Controllers
             }
             catch (NotaCreditoException ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -82,6 +84,7 @@ namespace MVSystemApi.Controllers
         /// Lo que se inserta en PIVOT_FACTURAS_ENC / _DET para el proveedor no cambia.
         /// </summary>
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaNotaCredito)]
         [Route("PostNotaCreditoProveedor2")]
         public async Task<ActionResult> PostNotaCreditoProveedor2([FromBody] NotaCreditoProveedor2Request request)
         {
@@ -249,7 +252,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 

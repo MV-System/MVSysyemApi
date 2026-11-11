@@ -2,12 +2,14 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequierePermiso(PermisosApi.VerRoles)]
     public class RolesController : ControllerBase
     {
         private readonly PerfilesService _rolesService;
@@ -34,7 +36,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener roles");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener roles", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener roles", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -57,7 +59,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener rol");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener rol", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener rol", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -81,7 +83,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear rol");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -109,7 +111,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar rol");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar rol", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar rol", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -132,7 +134,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al asignar permisos al rol");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al asignar permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al asignar permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -155,7 +157,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar rol");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar rol", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar rol", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

@@ -13,6 +13,7 @@ using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using DTO;
 using DTO.FacEDGI;
+using MVSystemApi.Handlers;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -40,7 +41,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost]
         [Route("PostFactura")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [RequierePermiso(PermisosApi.MantFacturacion, PermisosApi.CajaPreFacturas)]
         public async Task<ActionResult> PostFactura([FromBody] FacturaRegistroDTO request)
         {
             try
@@ -168,13 +169,13 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
         [HttpGet]
         [Route("GetDesglosePagos/{numeroFactura}")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult GetDesglosePagos([FromRoute] int numeroFactura, [FromQuery] string tipoDocumento = "F")
         {
             try
@@ -187,12 +188,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
         [HttpGet]
         [Route("GetFacturas")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult GetFacturas([FromQuery] FacturaFilter consulta)
         {
             try
@@ -204,12 +205,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
         [Route("GetDetalleFactura/{numeroFactura}/{sucursal}")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult GetDetalleFactura([FromRoute] int numeroFactura, int sucursal)
         {
             try
@@ -220,12 +221,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
         [Route("GetFacturaNumeroUltimo")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.MantFacturacion)]
         public IActionResult GetFacturaNumeroUltimo()
         {
             try
@@ -236,12 +237,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaAnular)]
         [Route("PostAnulaFactura")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<FilterAnulaFactura> PostAnulaFactura(FilterAnulaFactura Anulafactura)
         {
             try
@@ -263,12 +264,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaCambiaImei)]
         [Route("EditaDetalleFactura")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<EditaDetalleFactura> EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
         {
             try
@@ -282,12 +283,12 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaRebaja)]
         [Route("DetalleFacturaRebajaEquipo")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<RebajaEquipoModel> DetalleFacturaRebajaEquipo(RebajaEquipoModel model)
         {
             try
@@ -301,7 +302,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -410,7 +411,7 @@ namespace MVSystemApi.Controllers
                 _logger.LogError($"[CTRL-DGI-ERROR] Factura {facturaGuardada?.NumeroFactura}: {ex.Message}");
                 _logger.LogError($"[CTRL-DGI-ERROR] InnerException: {ex.InnerException?.Message}");
                 _logger.LogError($"[CTRL-DGI-ERROR] StackTrace: {ex.StackTrace}");
-                return $"Error al comunicarse con DGI: {ex.Message}";
+                return $"Error al comunicarse con DGI: {ErroresApi.Mensaje(ex)}";
             }
         }
     }

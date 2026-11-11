@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Services;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -60,6 +61,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Conectados?minutos=5</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Conectados")]
         public async Task<IActionResult> Conectados([FromQuery] int minutos = 5)
         {
@@ -68,6 +70,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Resumen?desde=2026-10-01&amp;hasta=2026-10-31&amp;empresa=</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Resumen")]
         public async Task<IActionResult> Resumen([FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string empresa = null)
         {
@@ -77,6 +80,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Detalle?tipo=P&amp;ruta=/home/facturacion/consulta&amp;desde=...&amp;hasta=...: usuarios de una pantalla o boton.</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Detalle")]
         public async Task<IActionResult> Detalle([FromQuery] string tipo, [FromQuery] string ruta, [FromQuery] string detalle,
             [FromQuery] DateTime desde, [FromQuery] DateTime hasta, [FromQuery] string empresa = null)
@@ -87,6 +91,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/Empresas</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("Empresas")]
         public async Task<IActionResult> Empresas()
         {
@@ -95,6 +100,7 @@ namespace MVSystemApi.Controllers
         }
 
         /// <summary>GET api/UsoSistema/PrimerRegistro</summary>
+        [RequierePermiso(PermisosApi.ModoDesarrollador)]
         [HttpGet("PrimerRegistro")]
         public async Task<IActionResult> PrimerRegistro()
         {

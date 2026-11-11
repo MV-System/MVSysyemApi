@@ -13,6 +13,7 @@ using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
 using DTO;
 using DTO.FacEDGI;
+using MVSystemApi.Handlers;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -240,6 +241,7 @@ namespace MVSystemApi.Controllers
             }
         }
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaAnular)]
         [Route("PostAnulaFactura")]
         //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<FilterAnulaFactura> PostAnulaFactura(FilterAnulaFactura Anulafactura)
@@ -267,6 +269,7 @@ namespace MVSystemApi.Controllers
             }
         }
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaCambiaImei)]
         [Route("EditaDetalleFactura")]
         //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<EditaDetalleFactura> EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
@@ -286,6 +289,7 @@ namespace MVSystemApi.Controllers
             }
         }
         [HttpPost]
+        [RequierePermiso(PermisosApi.FacturaRebaja)]
         [Route("DetalleFacturaRebajaEquipo")]
         //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<RebajaEquipoModel> DetalleFacturaRebajaEquipo(RebajaEquipoModel model)

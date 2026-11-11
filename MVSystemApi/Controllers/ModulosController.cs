@@ -2,6 +2,7 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -20,6 +21,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene todos los módulos
         /// </summary>
+        [RequierePermiso(PermisosApi.VerModulos, PermisosApi.VerPermisos)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ModuloResponseDTO>>> ObtenerTodos()
         {
@@ -37,6 +39,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene un módulo por código
         /// </summary>
+        [RequierePermiso(PermisosApi.VerModulos, PermisosApi.VerPermisos)]
         [HttpGet("{codigo}")]
         public async Task<ActionResult<ModuloResponseDTO>> ObtenerPorCodigo(int codigo)
         {
@@ -57,6 +60,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene los módulos de un sistema específico
         /// </summary>
+        [RequierePermiso(PermisosApi.VerModulos, PermisosApi.VerPermisos)]
         [HttpGet("por-sistema/{codigoSistema}")]
         public async Task<ActionResult<IEnumerable<ModuloResponseDTO>>> ObtenerPorSistema(int codigoSistema)
         {
@@ -74,6 +78,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Crea un nuevo módulo
         /// </summary>
+        [RequierePermiso(PermisosApi.VerModulos)]
         [HttpPost]
         public async Task<ActionResult> Crear([FromBody] CrearModuloDTO dto)
         {
@@ -94,6 +99,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Actualiza un módulo existente
         /// </summary>
+        [RequierePermiso(PermisosApi.VerModulos)]
         [HttpPut("{codigo}")]
         public async Task<ActionResult> Actualizar(int codigo, [FromBody] ActualizarModuloDTO dto)
         {
@@ -119,6 +125,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Elimina un módulo
         /// </summary>
+        [RequierePermiso(PermisosApi.VerModulos)]
         [HttpDelete("{codigo}")]
         public async Task<ActionResult> Eliminar(int codigo)
         {

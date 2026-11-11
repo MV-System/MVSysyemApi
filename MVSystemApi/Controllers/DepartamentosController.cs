@@ -2,6 +2,7 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -20,6 +21,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene todos los departamentos
         /// </summary>
+        [RequierePermiso(PermisosApi.VerDepartamentos, PermisosApi.VerUsuarios)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DepartamentoResponseDTO>>> ObtenerTodos()
         {
@@ -37,6 +39,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene un departamento por código
         /// </summary>
+        [RequierePermiso(PermisosApi.VerDepartamentos, PermisosApi.VerUsuarios)]
         [HttpGet("{codigo}")]
         public async Task<ActionResult<DepartamentoResponseDTO>> ObtenerPorCodigo(int codigo)
         {
@@ -57,6 +60,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Crea un nuevo departamento
         /// </summary>
+        [RequierePermiso(PermisosApi.VerDepartamentos)]
         [HttpPost]
         public async Task<ActionResult> Crear([FromBody] CrearDepartamentoDTO dto)
         {
@@ -77,6 +81,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Actualiza un departamento existente
         /// </summary>
+        [RequierePermiso(PermisosApi.VerDepartamentos)]
         [HttpPut("{codigo}")]
         public async Task<ActionResult> Actualizar(int codigo, [FromBody] ActualizarDepartamentoDTO dto)
         {
@@ -102,6 +107,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Elimina un departamento
         /// </summary>
+        [RequierePermiso(PermisosApi.VerDepartamentos)]
         [HttpDelete("{codigo}")]
         public async Task<ActionResult> Eliminar(int codigo)
         {

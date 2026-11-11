@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
 using MVSystemApi.Model_Negocio;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
     [Route("Utilidades")]
     [ApiController]
+    [RequierePermiso(PermisosApi.VerUtilidades)]
     public class UtilidadesController : ControllerBase
     {
         private readonly Utilidades_Negocio AD;

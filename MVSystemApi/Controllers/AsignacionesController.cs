@@ -2,12 +2,14 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequierePermiso(PermisosApi.AsignarPermisos)]
     public class AsignacionesController : ControllerBase
     {
         private readonly AsignacionesService _asignacionesService;

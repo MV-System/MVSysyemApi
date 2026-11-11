@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model_Negocio.Seguridad;
 using System.IdentityModel.Tokens.Jwt;
+using MVSystemApi.Handlers;
 
 namespace MVSystemApi.Controllers
 {
@@ -23,6 +24,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene todos los usuarios del sistema
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios, PermisosApi.AsignarPermisos, PermisosApi.LaptopCambioPieza, PermisosApi.LaptopCustodiaConsulta, PermisosApi.LaptopCustodiaRecibir)]
         [HttpGet]
         [ProducesResponseType(typeof(List<UsuarioDTO>), StatusCodes.Status200OK)]
         public async Task<IActionResult> ObtenerTodos()
@@ -42,6 +44,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Obtiene un usuario específico con sus permisos y roles
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpGet("{codigoUsuario}")]
         [ProducesResponseType(typeof(UsuarioConPermisosDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -65,6 +68,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Crea un nuevo usuario
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPost]
         [ProducesResponseType(typeof(object), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -89,6 +93,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Actualiza los datos de un usuario
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPut("{codigoUsuario}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -124,9 +129,7 @@ namespace MVSystemApi.Controllers
         {
             try
             {
-                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] Request recibido. DTO: {@cambioDTO}");
-                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] User.Identity.IsAuthenticated: {User.Identity.IsAuthenticated}");
-                _logger.LogInformation($"[CAMBIAR CONTRASEÑA] Todos los claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+                // No registrar el DTO ni los claims: el DTO trae la contraseña actual y la nueva.
 
                 // Obtener el código del usuario del JWT token
                 // ASP.NET Core mapea JwtRegisteredClaimNames.NameId a esta URI
@@ -161,6 +164,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Cambia la contraseña de un usuario (admin)
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPost("{codigoUsuario}/reset-contrasena")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -191,6 +195,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Elimina completamente un usuario (y sus permisos)
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpDelete("{codigoUsuario}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -214,6 +219,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Activa un usuario
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpPost("{codigoUsuario}/activar")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -237,6 +243,7 @@ namespace MVSystemApi.Controllers
         /// <summary>
         /// Elimina completamente un usuario (y sus relaciones de permisos)
         /// </summary>
+        [RequierePermiso(PermisosApi.VerUsuarios)]
         [HttpDelete("{codigoUsuario}/eliminar")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

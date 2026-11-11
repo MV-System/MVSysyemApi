@@ -304,6 +304,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("ValidarEliminacionEquipo")]
+        [RequierePermiso(PermisosApi.GestionarEquipo)]   // solo la pantalla Gestionar equipo lo usa
         public ActionResult<EquipoValidacionEliminacion> ValidarEliminacionEquipo([FromQuery] string imei)
         {
             try

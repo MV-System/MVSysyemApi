@@ -11,8 +11,13 @@ class Program
         Console.WriteLine("=== SINCRONIZACIÓN DE PERMISOS: EMPRESAS -> SEGURIDAD ===\n");
 
         // Conexiones
-        string connectionEmpresa = "Server=cellcontrolserver.database.windows.net;Database=TECNO_STYLE;User Id=cellcontroladmin;Password=Laserpiente04;";
-        string connectionSeguridad = "Server=cellcontroldesarrolloserver.database.windows.net;Database=SEGURIDAD;User Id=cellcontroldesarrollouser;Password=Laserpiente04;";
+        string connectionEmpresa = Environment.GetEnvironmentVariable("PERMISOSSYNC_CONEXION_EMPRESA");
+        string connectionSeguridad = Environment.GetEnvironmentVariable("PERMISOSSYNC_CONEXION_SEGURIDAD");
+        if (string.IsNullOrWhiteSpace(connectionEmpresa) || string.IsNullOrWhiteSpace(connectionSeguridad))
+        {
+            Console.WriteLine("Defina las variables de entorno PERMISOSSYNC_CONEXION_EMPRESA y PERMISOSSYNC_CONEXION_SEGURIDAD con las cadenas de conexion.");
+            return;
+        }
 
         try
         {

@@ -16,6 +16,19 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Sin secretos en el repositorio: se leen de la configuracion (variables del App Service o user-secrets).
+// Si faltan los indispensables, el API no arranca y lo dice en el log.
+{
+    var faltantes = new List<string>();
+    var llaveJwt = builder.Configuration["Jwt:Key"];
+    if (string.IsNullOrWhiteSpace(llaveJwt) || llaveJwt.Length < 32)
+        faltantes.Add("Jwt__Key (minimo 32 caracteres)");
+    if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("MVSystemSeguridad")))
+        faltantes.Add("ConnectionStrings__MVSystemSeguridad");
+    if (faltantes.Count > 0)
+        throw new InvalidOperationException("Configuracion incompleta. Defina estas variables: " + string.Join(", ", faltantes));
+}
+
 
 builder.Services.AddControllers().AddNewtonsoftJson(x => {
     x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
@@ -154,6 +167,11 @@ builder.Services.AddScoped<SistemasService>();
 #endregion
 
 var app = builder.Build();
+
+// Opcionales segun la empresa: solo se avisa (la facturacion electronica del proveedor afectado no funcionaria)
+foreach (var (clave, variable) in new[] { ("ConnectionStrings:Proveedor2MicroStar", "ConnectionStrings__Proveedor2MicroStar"), ("FacEDGI:ApiKey", "FacEDGI__ApiKey") })
+    if (string.IsNullOrWhiteSpace(builder.Configuration[clave]))
+        app.Logger.LogWarning("[Config] Falta {Variable}: la facturacion electronica de ese proveedor no funcionara.", variable);
 
 var whatsappService = app.Services.GetRequiredService<WhatsAppService>();
 var autoStart = builder.Configuration.GetValue<bool>("WhatsApp:AutoStart");

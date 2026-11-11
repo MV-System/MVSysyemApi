@@ -20,6 +20,12 @@ Lo que ya está bien: todos los endpoints exigen token (`MapControllers().Requir
 ---
 
 ## Parte 1 – Sacar los secretos del repositorio (Alta)
+**Estado (11/11/2026): código listo en la copia local; falta commit, crear las variables en Azure ANTES de publicar y rotar las credenciales.**
+- `appsettings.json` y `appsettings.Development.json` quedan sin secretos (JWT:Key, MVSystemSeguridad, Proveedor2MicroStar, FacEDGI:ApiKey y ApiKey_Dev vacíos; Monitor:Correo:Password ya estaba vacío). `Program.cs`: sin `Jwt:Key` (mínimo 32 caracteres) o sin `MVSystemSeguridad` el API **no arranca** y lo dice; sin Proveedor2 o sin `FacEDGI:ApiKey` solo avisa en el log.
+- Desarrollo local: `dotnet user-secrets` (UserSecretsId ya existente en el csproj); los valores locales ya se pasaron al almacén de la PC del usuario. `appsettings.Development.json` sigue versionado, pero sin secretos (así no se pierde al cambiar de rama). No hizo falta .gitignore.
+- `PermisosSync/Program.cs` traía dos cadenas de conexión con contraseña fijas: ahora lee `PERMISOSSYNC_CONEXION_EMPRESA` y `PERMISOSSYNC_CONEXION_SEGURIDAD` de variables de entorno.
+- Variables a crear en el App Service del API (App settings, solo nombres): `Jwt__Key`, `ConnectionStrings__MVSystemSeguridad`, `ConnectionStrings__Proveedor2MicroStar`, `FacEDGI__ApiKey`. `Monitor__Correo__Password` ya existe. `FacEDGI__ApiKey_Dev` no se usa en el código.
+- Los secretos siguen en el historial de git hasta rotarlos.
 **Lo hace el usuario en Azure; el agente solo prepara el código.** No escribir ni mostrar ningún secreto en commits, logs ni mensajes.
 1. **Código:** dejar en `appsettings.json` solo las llaves vacías (`""`) de: `JWT:Key`, `ConnectionStrings:*` con contraseña, `FacEDGI:ApiKey`, `FacEDGI:ApiKey_Dev`, `Monitor:Correo:Password` y cualquier otro secreto que aparezca. El valor real se lee de la configuración del App Service (`JWT__Key`, `ConnectionStrings__MVSystemSeguridad`, `FacEDGI__ApiKey`, …), que .NET ya sobreescribe sin cambios de código.
 2. **Al arrancar:** si `JWT:Key` está vacía o tiene menos de 32 caracteres, el API **no arranca** y lo registra (evita firmar tokens con una llave vacía).

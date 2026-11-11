@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
@@ -37,7 +38,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("FacturacionReporte/RptFactura")]// Generar Factura Nueva
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [RequierePermiso(PermisosApi.MantFacturacion, PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult RptFactura(Facturas factura)
         {
             if (factura.Cliente != null)

@@ -65,6 +65,46 @@ Lo que ya está bien: todos los endpoints exigen token (`MapControllers().Requir
   ```
 - **Visto de paso (no se tocó):** el front hace `PUT api/roles` sin el id y el API espera `PUT api/roles/{rolId}`; editar un rol probablemente ya falla hoy. Las contraseñas se guardan cifradas con AES (reversible), no con hash; queda para otra tarea.
 
+### Grupo B – escrito (10/11/2026, copia local; falta compilar, probar y commit)
+Aplicado con los permisos del front. Las reparaciones (`PostReparacionEquipo`, `ActualizarCostoPrecioReparacion`) usan MNU_MANT_EET_REPARACION; `PostEquipo_Delete` (método `PostEliminaEquipodeFactura`, que solo se llama al quitar un equipo en el registro de equipos) usa MNU_MANT_EQUIPOS. Rebajar equipo de una factura es otro endpoint (`DetalleFacturaRebajaEquipo`, VNT_DETALLE_FACTURA_BTN_REBAJA). Los 3 comentados de `Factura/*` que ya tenían permiso del Grupo A se borraron.
+Los 14 permisos de la tabla existen en `seg.Permisos`. **Ojo con los endpoints compartidos**: varios los llaman pantallas con permisos distintos al del comentario; si se exige solo el permiso comentado, esas pantallas se romperían. Por eso van varios permisos (basta uno).
+
+**Equipos**
+| Endpoint | Permiso(s) propuestos | Nota |
+|---|---|---|
+| `Equipo_Insert` | MNU_MANT_EQUIPOS | |
+| `Equipo_Busca_Disponible` | MNU_CONS_EQUIPOS, MNU_MANT_FACTURACION, MNU_CONS_FACTURAS, CotizacionMenu | lo usan Facturación, Consulta de facturas (cambiar IMEI) y Cotización |
+| `GetEquiposDisponible` | MNU_CONS_EQUIPOS, verUtilidadesToolStripMenuItem | el dashboard completo se muestra con el permiso de utilidades (confirmado por el usuario) |
+| `GetEquiposVendidos` | equiposVendidosMenu, verUtilidadesToolStripMenuItem | idem |
+| `GetEquipoPreciosEstatusByImei`, `ModificarEquipo` | cambiarEstadoDeEquipoToolStripMenuItem, MNTransfiereEquipos | `GetEquipoByImei` lo usa también Transferencia |
+| `RecibirEquipo`, `GetEquiposRecibidos`, `EquipoEstadoActualiza` | MNU_MANT_EQUIPOS, MNU_RECEPCION_EQUIPOS, recepcionequipos, MNU_CONS_RECEPCION_EQUIPOS | el comentario decía MNU_MANT_EQUIPOS, pero las pantallas de recepción usan otros |
+| `PostEquipoTransferencia` | MNTransfiereEquipos | |
+| `PostEliminaEquipodeFactura`, `PostReparacionEquipo`, `ActualizarCostoPrecioReparacion` | **confirmar**: el comentario dice MNTransfiereEquipos (parece copiado); las pantallas son Taller/Reparaciones → MNU_MANT_EET_REPARACION | |
+
+**Inventario** (`api/Inventario/*`): MNU_MANT_PASARINVEQ; `ObtenerSesion` y `ObtenerInventariosActivos` también consultaInventarioToolStripMenuItem.
+
+**Facturación**
+| Endpoint | Permiso(s) propuestos | Nota |
+|---|---|---|
+| `PostFactura` | MNU_MANT_FACTURACION, CajaPreFacturas | también se factura desde Caja (pre-facturas) |
+| `GetFacturas`, `GetDetalleFactura`, `GetDesglosePagos` | MNU_CONS_FACTURAS, CajaPreFacturas | |
+| `GetFacturaNumeroUltimo` | MNU_MANT_FACTURACION | el comentario decía MNU_CONS_FACTURAS pero lo llama Facturación |
+| `RptFactura` | MNU_MANT_FACTURACION, MNU_CONS_FACTURAS, CajaPreFacturas | reimpresión desde la consulta |
+| Cotización `GetCotizacionFacturaConsulta`, `GetDetalleCotizacionConsulta` | MNU_MANT_FACTURACION, CotizacionMenu, MNU_CONS_COTIZACIONES | |
+
+**Clientes**
+| Endpoint | Permiso(s) propuestos | Nota |
+|---|---|---|
+| `Get_Cliente` | MNU_CONS_CLIENTES, MNU_MANT_CLIENTES, MNU_MANT_FACTURACION, CotizacionMenu, MNU_MANT_EET_REPARACION | lo usan Clientes, Facturación, Cotización y Taller |
+| `Cliente_Insert` | MNU_MANT_CLIENTES, MNU_MANT_FACTURACION | alta rápida desde Facturación |
+| `Cliente_Update` | MNU_MANT_CLIENTES | |
+| `GetClientesConFacturasPendientes`, `GetFacturasPendientesPorCliente`, `GetHistorialAbonos` | MNU_CONS_CLIENTES, clienteConCuentesPendientesToolStripMenuItem | pantalla de cuentas por cobrar |
+| `AbonoAfactura`, `AbonoGeneral` | MNU_MANT_CLIENTES, clienteConCuentesPendientesToolStripMenuItem | |
+
+**Catálogos de mantenimiento:** `Vendedor_Insert` MNU_MANT_VENDEDORES; `Proveedor_Insert` MNU_MANT_SUPLIDORES; `Marca_Insert` MNU_MANT_MARCAS; `ReporteEquiposRecibidos` MNU_MANT_EQUIPOS, MNU_RECEPCION_EQUIPOS, recepcionequipos.
+
+**Pendiente de confirmar antes de aplicar:** (1) ~~permisos de los widgets del dashboard~~ → resuelto: verUtilidadesToolStripMenuItem; (2) el permiso real de eliminar equipo de factura y de reparaciones; (3) que existan en `seg.Permisos` los nombres nuevos que no estaban en el plan (CotizacionMenu, MNU_CONS_COTIZACIONES, CajaPreFacturas, MNU_RECEPCION_EQUIPOS, recepcionequipos, MNU_CONS_RECEPCION_EQUIPOS, MNU_MANT_EET_REPARACION, clienteConCuentesPendientesToolStripMenuItem).
+
 ### Grupo B – pendiente
 Los 47 `[Authorize(Roles=...)]` comentados (Equipos 13, Inventario 9, Clientes 8, Facturación 8, otros 9): **no descomentarlos**; reemplazarlos por `[RequierePermiso(...)]` con el permiso que usa el front para esa pantalla o botón, uno por uno, verificando el nombre en `seg.Permisos`. Entregar la misma tabla endpoint → permiso antes de activar.
 - Aceptación (A y B): (a) usuario sin el permiso que llama directo al endpoint → 403; (b) usuario con el permiso → funciona igual que hoy; (c) ninguna pantalla que hoy funciona para un perfil deja de funcionar; (d) compila.

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
@@ -71,7 +72,7 @@ namespace MVSystemApi.Controllers
         }
 
         [HttpGet("GetCotizacionFacturaConsulta/{telefono}")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [RequierePermiso(PermisosApi.MantFacturacion, PermisosApi.CotizacionMenu, PermisosApi.ConsCotizaciones)]
         public IActionResult GetCotizacionFacturaConsulta([FromRoute] string telefono)
         {
             try
@@ -86,7 +87,7 @@ namespace MVSystemApi.Controllers
             }
         }
         [HttpGet("GetDetalleCotizacionConsulta/{numeroFactura}/{sucursal}")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [RequierePermiso(PermisosApi.MantFacturacion, PermisosApi.CotizacionMenu, PermisosApi.ConsCotizaciones)]
         public IActionResult GetDetalleCotizacionConsulta([FromRoute] int numeroFactura, int sucursal)
         {
             try

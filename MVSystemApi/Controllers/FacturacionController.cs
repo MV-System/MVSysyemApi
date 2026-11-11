@@ -41,7 +41,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost]
         [Route("PostFactura")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
+        [RequierePermiso(PermisosApi.MantFacturacion, PermisosApi.CajaPreFacturas)]
         public async Task<ActionResult> PostFactura([FromBody] FacturaRegistroDTO request)
         {
             try
@@ -175,7 +175,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet]
         [Route("GetDesglosePagos/{numeroFactura}")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult GetDesglosePagos([FromRoute] int numeroFactura, [FromQuery] string tipoDocumento = "F")
         {
             try
@@ -193,7 +193,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturas")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult GetFacturas([FromQuery] FacturaFilter consulta)
         {
             try
@@ -210,7 +210,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetDetalleFactura/{numeroFactura}/{sucursal}")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.ConsFacturas, PermisosApi.CajaPreFacturas)]
         public IActionResult GetDetalleFactura([FromRoute] int numeroFactura, int sucursal)
         {
             try
@@ -226,7 +226,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet]
         [Route("GetFacturaNumeroUltimo")]
-        //[Authorize(Roles = "MNU_CONS_FACTURAS")]
+        [RequierePermiso(PermisosApi.MantFacturacion)]
         public IActionResult GetFacturaNumeroUltimo()
         {
             try
@@ -243,7 +243,6 @@ namespace MVSystemApi.Controllers
         [HttpPost]
         [RequierePermiso(PermisosApi.FacturaAnular)]
         [Route("PostAnulaFactura")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<FilterAnulaFactura> PostAnulaFactura(FilterAnulaFactura Anulafactura)
         {
             try
@@ -271,7 +270,6 @@ namespace MVSystemApi.Controllers
         [HttpPost]
         [RequierePermiso(PermisosApi.FacturaCambiaImei)]
         [Route("EditaDetalleFactura")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<EditaDetalleFactura> EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
         {
             try
@@ -291,7 +289,6 @@ namespace MVSystemApi.Controllers
         [HttpPost]
         [RequierePermiso(PermisosApi.FacturaRebaja)]
         [Route("DetalleFacturaRebajaEquipo")]
-        //[Authorize(Roles = "MNU_MANT_FACTURACION")]
         public ActionResult<RebajaEquipoModel> DetalleFacturaRebajaEquipo(RebajaEquipoModel model)
         {
             try

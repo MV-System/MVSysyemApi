@@ -1,4 +1,5 @@
 ﻿using System;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
@@ -21,7 +22,7 @@ namespace MVSystemApi.Controllers
         // GET: /<controller>/
         [HttpPost()]
         [Route("Cliente_Insert")]
-        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
+        [RequierePermiso(PermisosApi.MantClientes, PermisosApi.MantFacturacion)]
         public ActionResult<Clientes> Cliente_Insert([FromBody] Clientes cliente)
         {
 
@@ -43,7 +44,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPut()]
         [Route("Cliente_Update")]
-        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
+        [RequierePermiso(PermisosApi.MantClientes)]
         public ActionResult<Clientes> Cliente_Update([FromBody] Clientes cliente)
         {
             try
@@ -63,7 +64,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet()]
         [Route("Get_Cliente")]
-        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        [RequierePermiso(PermisosApi.ConsClientes, PermisosApi.MantClientes, PermisosApi.MantFacturacion, PermisosApi.CotizacionMenu, PermisosApi.MantReparacion)]
         public ActionResult<List<Clientes_consulta>> Get_Cliente(string criterio)
         {
 
@@ -85,7 +86,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet()]
         [Route("GetClientesConFacturasPendientes")]
-        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        [RequierePermiso(PermisosApi.ConsClientes, PermisosApi.ClientesCuentasPendientes)]
         public ActionResult<ObtenerClientesConFacturasPendientes> GetClientesConFacturasPendientes([FromQuery] string FechaInicio, string FechaFin, string Criterio)
         {
 
@@ -106,7 +107,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpGet()]
         [Route("GetFacturasPendientesPorCliente")]
-        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        [RequierePermiso(PermisosApi.ConsClientes, PermisosApi.ClientesCuentasPendientes)]
         public ActionResult<ObtenerClientesConFacturasPendientes> GetFacturasPendientesPorCliente([FromQuery] int cliente)
         {
 
@@ -127,7 +128,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost()]
         [Route("AbonoAfactura")]
-        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
+        [RequierePermiso(PermisosApi.MantClientes, PermisosApi.ClientesCuentasPendientes)]
         public ActionResult<string> AbonoAfactura([FromBody] AbonoFacturaParam param)
         {
 
@@ -148,7 +149,7 @@ namespace MVSystemApi.Controllers
         }
         [HttpPost()]
         [Route("AbonoGeneral")]
-        //[Authorize(Roles = "MNU_MANT_CLIENTES")]
+        [RequierePermiso(PermisosApi.MantClientes, PermisosApi.ClientesCuentasPendientes)]
         public ActionResult<string> AbonoGeneral([FromBody] AbonoFacturaParam param)
         {
 
@@ -170,7 +171,7 @@ namespace MVSystemApi.Controllers
 
         [HttpGet()]
         [Route("GetHistorialAbonos")]
-        //[Authorize(Roles = "MNU_CONS_CLIENTES")]
+        [RequierePermiso(PermisosApi.ConsClientes, PermisosApi.ClientesCuentasPendientes)]
         public ActionResult GetHistorialAbonos([FromQuery] int idCliente, [FromQuery] string fechaInicio = null, [FromQuery] string fechaFinal = null)
         {
             try

@@ -70,7 +70,37 @@ namespace MVSystemApi.Handlers
         public const string FacturaCambiaImei = "VNT_DETALLE_FACTURA_BTN_CAMBIA_IMEI";
         public const string FacturaRebaja = "VNT_DETALLE_FACTURA_BTN_REBAJA";
 
-        // Utilidades
+        // Utilidades (tambien habilita el dashboard completo)
         public const string VerUtilidades = "verUtilidadesToolStripMenuItem";
+
+        // Equipos
+        public const string MantEquipos = "MNU_MANT_EQUIPOS";
+        public const string ConsEquipos = "MNU_CONS_EQUIPOS";
+        public const string EquiposVendidos = "equiposVendidosMenu";
+        public const string CambiarEstadoEquipo = "cambiarEstadoDeEquipoToolStripMenuItem";
+        public const string TransfiereEquipos = "MNTransfiereEquipos";
+        public const string RecepcionEquiposMenu = "MNU_RECEPCION_EQUIPOS";
+        public const string RecepcionEquipos = "recepcionequipos";
+        public const string ConsRecepcionEquipos = "MNU_CONS_RECEPCION_EQUIPOS";
+        public const string MantReparacion = "MNU_MANT_EET_REPARACION";
+
+        // Inventario
+        public const string MantPasarInventario = "MNU_MANT_PASARINVEQ";
+        public const string ConsultaInventario = "consultaInventarioToolStripMenuItem";
+
+        // Facturacion, caja y cotizacion
+        public const string MantFacturacion = "MNU_MANT_FACTURACION";
+        public const string ConsFacturas = "MNU_CONS_FACTURAS";
+        public const string CajaPreFacturas = "CajaPreFacturas";
+        public const string CotizacionMenu = "CotizacionMenu";
+        public const string ConsCotizaciones = "MNU_CONS_COTIZACIONES";
+
+        // Clientes y catalogos de mantenimiento
+        public const string MantClientes = "MNU_MANT_CLIENTES";
+        public const string ConsClientes = "MNU_CONS_CLIENTES";
+        public const string ClientesCuentasPendientes = "clienteConCuentesPendientesToolStripMenuItem";
+        public const string MantVendedores = "MNU_MANT_VENDEDORES";
+        public const string MantSuplidores = "MNU_MANT_SUPLIDORES";
+        public const string MantMarcas = "MNU_MANT_MARCAS";
     }
 }

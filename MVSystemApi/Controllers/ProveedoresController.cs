@@ -1,4 +1,5 @@
 ﻿using System;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Model;
@@ -18,7 +19,7 @@ namespace MVSystemApi.Controllers
 
         [HttpPost]
         [Route("Proveedor_Insert")]
-        //[Authorize(Roles = "MNU_MANT_SUPLIDORES")]
+        [RequierePermiso(PermisosApi.MantSuplidores)]
         public ActionResult Proveedor_Insert(Suplidor Suplidor)
         {
             try

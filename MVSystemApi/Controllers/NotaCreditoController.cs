@@ -70,11 +70,11 @@ namespace MVSystemApi.Controllers
             }
             catch (NotaCreditoException ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -252,7 +252,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 

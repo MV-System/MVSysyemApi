@@ -40,7 +40,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al modificar permisos");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al modificar permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al modificar permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -63,7 +63,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al asignar permisos");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al asignar permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al asignar permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -89,7 +89,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al desasignar permiso");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al desasignar permiso", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al desasignar permiso", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -112,7 +112,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al asignar perfil");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al asignar perfil", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al asignar perfil", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -135,7 +135,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al desasignar perfil");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al desasignar perfil", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al desasignar perfil", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -154,7 +154,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener permisos efectivos");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -173,7 +173,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al verificar permiso");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al verificar permiso", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al verificar permiso", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -192,7 +192,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener perfil del usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfil", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfil", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -211,7 +211,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener permisos directos");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -230,7 +230,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener permisos heredados");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

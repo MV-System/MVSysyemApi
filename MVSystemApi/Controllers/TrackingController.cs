@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MVSystemApi.Interfaz;
@@ -89,7 +90,7 @@ namespace MVSystemApi.Controllers
                 {
                     Success = false,
                     Message = "Error interno del servidor",
-                    Data = ex.Message
+                    Data = ErroresApi.Mensaje(ex)
                 });
             }
         }
@@ -125,7 +126,7 @@ namespace MVSystemApi.Controllers
                 {
                     Success = false,
                     Message = "Error al obtener historial",
-                    Data = ex.Message
+                    Data = ErroresApi.Mensaje(ex)
                 });
             }
         }
@@ -157,7 +158,7 @@ namespace MVSystemApi.Controllers
                 {
                     Success = false,
                     Message = "Error al obtener estadísticas",
-                    Data = ex.Message
+                    Data = ErroresApi.Mensaje(ex)
                 });
             }
         }
@@ -187,7 +188,7 @@ namespace MVSystemApi.Controllers
                 {
                     Success = false,
                     Message = "Error al obtener usuarios activos",
-                    Data = ex.Message
+                    Data = ErroresApi.Mensaje(ex)
                 });
             }
         }
@@ -225,7 +226,7 @@ namespace MVSystemApi.Controllers
                 {
                     Success = false,
                     Message = "Error al enviar notificación",
-                    Data = ex.Message
+                    Data = ErroresApi.Mensaje(ex)
                 });
             }
         }
@@ -254,7 +255,7 @@ namespace MVSystemApi.Controllers
                 {
                     Success = false,
                     Message = "Error al verificar estado",
-                    Data = ex.Message
+                    Data = ErroresApi.Mensaje(ex)
                 });
             }
         }

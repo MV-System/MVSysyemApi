@@ -1,4 +1,5 @@
 ﻿using DTO;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
@@ -37,7 +38,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         // Permiso (seg.Permisos) para la vista "Movimientos" de la consulta de accesorios. Llega en el token como claim "role".
@@ -116,7 +117,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -146,7 +147,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         /// <summary>Suma cantidad a un accesorio que ya existe (en lugar de registrarlo de nuevo).</summary>
@@ -168,7 +169,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPut]
@@ -188,7 +189,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet()]
@@ -208,7 +209,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet()]
@@ -228,7 +229,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet("GetAccesorios")]
@@ -248,7 +249,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet("GetAccesoriosVendidos")]
@@ -268,7 +269,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

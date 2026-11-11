@@ -37,7 +37,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener usuarios");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuarios", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuarios", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -61,7 +61,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -86,7 +86,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear usuario");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -115,7 +115,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -157,7 +157,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al cambiar contraseña");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -188,7 +188,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al resetear contraseña");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -212,7 +212,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -236,7 +236,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al activar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al activar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al activar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -260,7 +260,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar usuario");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar usuario", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

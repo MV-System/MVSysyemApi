@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MVSystemApi.Handlers;
 using MVSystemApi.Model;
 
 namespace MVSystemApi.Controllers
@@ -30,7 +31,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -51,7 +52,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -72,7 +73,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -93,7 +94,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -114,7 +115,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -135,7 +136,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet()]
@@ -155,7 +156,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet()]
@@ -175,7 +176,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet()]
@@ -195,7 +196,7 @@ namespace MVSystemApi.Controllers
 
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -217,7 +218,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
 
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -238,7 +239,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
 
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -258,7 +259,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -277,7 +278,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -296,7 +297,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -316,7 +317,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -335,7 +336,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -354,7 +355,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -373,7 +374,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -392,7 +393,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -412,7 +413,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
 
         }
@@ -433,7 +434,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -449,7 +450,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -465,7 +466,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 

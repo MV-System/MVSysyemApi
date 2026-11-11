@@ -55,6 +55,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<SesionUsuarioValidador>();
+builder.Services.AddSingleton<LimiteIntentosLogin>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwtBearerOptions =>
 {
@@ -181,11 +182,40 @@ if (app.Environment.IsDevelopment())
     });
 }
 else
-    app.UseExceptionHandler("/error");
+{
+    // Errores no controlados: se registran completos con una referencia y el cliente solo recibe un mensaje generico
+    app.UseExceptionHandler(errorApp => errorApp.Run(async contexto =>
+    {
+        var id = ErroresApi.NuevoId();
+        var excepcion = contexto.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        ErroresApi.Registrar(excepcion, id);
+        contexto.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        contexto.Response.ContentType = "application/json";
+        await contexto.Response.WriteAsJsonAsync(new { error = ErroresApi.MensajeGenerico, id });
+    }));
+}
+
+ErroresApi.Inicializar(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseCors(Builder => Builder.WithOrigins("*").WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader().WithExposedHeaders("X-Sesion-Cerrada"));
+// CORS: solo los dominios de Cors:Origenes. En Development tambien localhost. Si la lista esta vacia (o trae "*") se mantiene
+// el comportamiento anterior (cualquier origen) y se avisa en el log, para no romper el front al publicar sin configurarla.
+var origenesCors = (builder.Configuration.GetSection("Cors:Origenes").Get<string[]>() ?? Array.Empty<string>())
+    .Where(o => !string.IsNullOrWhiteSpace(o)).Select(o => o.Trim().TrimEnd('/')).ToArray();
+var cualquierOrigen = origenesCors.Length == 0 || origenesCors.Contains("*");
+if (cualquierOrigen)
+    app.Logger.LogWarning("[CORS] Cors:Origenes esta vacio: se acepta cualquier origen. Configure los dominios del front.");
+app.UseCors(politica =>
+{
+    politica.WithMethods("GET", "POST", "PUT", "DELETE").AllowAnyHeader().WithExposedHeaders("X-Sesion-Cerrada");
+    if (cualquierOrigen)
+        politica.WithOrigins("*");
+    else if (app.Environment.IsDevelopment())
+        politica.SetIsOriginAllowed(origen => origenesCors.Contains(origen.TrimEnd('/'), StringComparer.OrdinalIgnoreCase) || new Uri(origen).IsLoopback);
+    else
+        politica.WithOrigins(origenesCors);
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -169,7 +169,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -188,7 +188,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
             }
         }
         [HttpGet]
@@ -205,7 +205,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -221,7 +221,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -237,7 +237,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
@@ -264,7 +264,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
@@ -283,7 +283,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
@@ -302,7 +302,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -411,7 +411,7 @@ namespace MVSystemApi.Controllers
                 _logger.LogError($"[CTRL-DGI-ERROR] Factura {facturaGuardada?.NumeroFactura}: {ex.Message}");
                 _logger.LogError($"[CTRL-DGI-ERROR] InnerException: {ex.InnerException?.Message}");
                 _logger.LogError($"[CTRL-DGI-ERROR] StackTrace: {ex.StackTrace}");
-                return $"Error al comunicarse con DGI: {ex.Message}";
+                return $"Error al comunicarse con DGI: {ErroresApi.Mensaje(ex)}";
             }
         }
     }

@@ -1,4 +1,5 @@
 using DTO;
+using MVSystemApi.Handlers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MVSystemApi.Interfaz;
@@ -60,7 +61,7 @@ namespace MVSystemApi.Controllers
                 _logger.LogError(ex, "Error generando ReciboAbono. idCliente={IdCliente}, numeroFactura={NumeroFactura}, idSucursal={IdSucursal}, idEmpresa={IdEmpresa}",
                     idCliente, numeroFactura, idSucursal, idEmpresa);
 
-                return StatusCode(500, $"Error generando ReciboAbono: {ex.Message}");
+                return StatusCode(500, $"Error generando ReciboAbono: {ErroresApi.Mensaje(ex)}");
             }
         }
 
@@ -98,7 +99,7 @@ namespace MVSystemApi.Controllers
                 _logger.LogError(ex, "Error generando ReciboAbonoGeneral. idLoteAbono={IdLoteAbono}, idSucursal={IdSucursal}, idEmpresa={IdEmpresa}",
                     idLoteAbono, idSucursal, idEmpresa);
 
-                return StatusCode(500, $"Error generando ReciboAbonoGeneral: {ex.Message}");
+                return StatusCode(500, $"Error generando ReciboAbonoGeneral: {ErroresApi.Mensaje(ex)}");
             }
         }
 
@@ -157,7 +158,7 @@ namespace MVSystemApi.Controllers
                 _logger.LogError(ex, "Error generando HistorialAbonos. idCliente={IdCliente}, idSucursal={IdSucursal}, idEmpresa={IdEmpresa}",
                     idCliente, idSucursal, idEmpresa);
 
-                return StatusCode(500, $"Error generando HistorialAbonos: {ex.Message}");
+                return StatusCode(500, $"Error generando HistorialAbonos: {ErroresApi.Mensaje(ex)}");
             }
         }
     }

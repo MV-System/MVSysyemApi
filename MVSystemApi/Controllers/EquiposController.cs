@@ -38,7 +38,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -57,7 +57,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -77,7 +77,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -97,7 +97,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -117,7 +117,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -138,7 +138,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -154,7 +154,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -170,7 +170,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -186,7 +186,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -202,7 +202,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -222,7 +222,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -242,7 +242,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
@@ -261,7 +261,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -280,7 +280,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -299,7 +299,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet]
@@ -318,7 +318,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -363,7 +363,7 @@ namespace MVSystemApi.Controllers
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
             catch (Exception ex)
             {
@@ -399,7 +399,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -419,7 +419,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpPost]
@@ -438,7 +438,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -457,7 +457,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     
@@ -476,7 +476,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         /// <summary>
@@ -506,7 +506,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -526,7 +526,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

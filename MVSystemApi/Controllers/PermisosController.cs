@@ -36,7 +36,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener permisos");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -56,7 +56,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener permisos por módulo");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permisos", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -80,7 +80,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener permiso");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permiso", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener permiso", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -105,7 +105,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear permiso");
-                return BadRequest(new { mensaje = ex.Message });
+                return BadRequest(new { mensaje = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -134,7 +134,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar permiso");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar permiso", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al actualizar permiso", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -158,7 +158,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar permiso");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar permiso", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al eliminar permiso", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

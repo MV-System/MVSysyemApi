@@ -36,7 +36,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener perfiles");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfiles", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfiles", error = ErroresApi.Mensaje(ex) });
             }
         }
 
@@ -59,7 +59,7 @@ namespace MVSystemApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener perfil");
-                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfil", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = "Error al obtener perfil", error = ErroresApi.Mensaje(ex) });
             }
         }
     }

@@ -30,7 +30,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -52,7 +52,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -67,7 +67,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
 
@@ -83,7 +83,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
         [HttpGet("GetDetalleCotizacionConsulta/{numeroFactura}/{sucursal}")]
@@ -98,7 +98,7 @@ namespace MVSystemApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ErroresApi.Mensaje(ex));
             }
         }
     }

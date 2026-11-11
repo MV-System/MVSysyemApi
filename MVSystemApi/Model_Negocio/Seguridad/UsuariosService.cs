@@ -41,24 +41,6 @@ namespace MVSystemApi.Model_Negocio.Seguridad
             return idEmpresa;
         }
 
-        private async Task<string> ObtenerConnectionStringEmpresa()
-        {
-            var idEmpresa = ObtenerIdEmpresaActual();
-
-            using var conn = new SqlConnection(_connectionStringSeguridad);
-            await conn.OpenAsync();
-
-            using var cmd = new SqlCommand(@"
-                SELECT StringCon FROM dbo.Empresas WHERE ID_Empresa = @IdEmpresa", conn);
-            cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
-
-            var result = await cmd.ExecuteScalarAsync();
-            if (result == null)
-                throw new Exception($"No se encontró connection string para la empresa {idEmpresa}");
-
-            return result.ToString();
-        }
-
         /// <summary>
         /// Obtiene todos los usuarios del sistema filtrados por empresa del usuario logueado
         /// Lee usuarios y roles de SEGURIDAD, filtra por sucursal del usuario logueado
@@ -327,16 +309,18 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> DesactivarUsuario(int codigoUsuario)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
+            var idEmpresa = ObtenerIdEmpresaActual();
 
-            using var conn = new SqlConnection(connectionString);
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(
-                "UPDATE [Usuarios] SET Estado = 0, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
+                "UPDATE [Usuarios] SET Estado = 0, TokensValidosDesde = GETUTCDATE(), FechaModificado = GETDATE() WHERE Codigo = @Codigo AND Id_Empresa = @IdEmpresa", conn);
 
             cmd.Parameters.AddWithValue("@Codigo", codigoUsuario);
+            cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            if (filasAfectadas > 0) _sesionValidador.Invalidar(codigoUsuario);
             return filasAfectadas > 0;
         }
 
@@ -345,43 +329,73 @@ namespace MVSystemApi.Model_Negocio.Seguridad
         /// </summary>
         public async Task<bool> ActivarUsuario(int codigoUsuario)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
+            var idEmpresa = ObtenerIdEmpresaActual();
 
-            using var conn = new SqlConnection(connectionString);
+            // En SEGURIDAD (donde lee el login), solo usuarios de la empresa de la sesion. Los tokens emitidos antes de
+            // desactivarlo siguen invalidos (TokensValidosDesde se conserva): debe volver a iniciar sesion.
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
 
             using var cmd = new SqlCommand(
-                "UPDATE [Usuarios] SET Estado = 1, FechaModificado = GETDATE() WHERE Codigo = @Codigo", conn);
+                "UPDATE [Usuarios] SET Estado = 1, FechaModificado = GETDATE() WHERE Codigo = @Codigo AND Id_Empresa = @IdEmpresa", conn);
 
             cmd.Parameters.AddWithValue("@Codigo", codigoUsuario);
+            cmd.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
             var filasAfectadas = await cmd.ExecuteNonQueryAsync();
+            if (filasAfectadas > 0) _sesionValidador.Invalidar(codigoUsuario);
             return filasAfectadas > 0;
         }
 
         /// <summary>
-        /// Elimina completamente un usuario (y sus relaciones de permisos)
+        /// Elimina completamente un usuario (y sus permisos directos) de SEGURIDAD, que es donde lo lee el login.
+        /// Antes se borraba en la base de la empresa (StringCon), por eso el usuario seguía pudiendo entrar.
+        /// Solo borra usuarios de la empresa de la sesión y nunca al propio usuario. Su sesión se corta de inmediato.
         /// </summary>
         public async Task<bool> EliminarUsuario(int codigoUsuario)
         {
-            var connectionString = await ObtenerConnectionStringEmpresa();
+            var idEmpresa = ObtenerIdEmpresaActual();
 
-            using var conn = new SqlConnection(connectionString);
+            var codigoSesion = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                               ?? _httpContextAccessor.HttpContext?.User?.FindFirst("nameid")?.Value;
+            if (int.TryParse(codigoSesion, out var codigoActual) && codigoActual == codigoUsuario)
+                throw new Exception("No puede eliminar su propio usuario.");
+
+            using var conn = new SqlConnection(_connectionStringSeguridad);
             await conn.OpenAsync();
             using var transaction = conn.BeginTransaction();
 
             try
             {
+                // 0. El usuario debe existir y ser de la empresa de la sesión
+                using (var cmdExiste = new SqlCommand(
+                    "SELECT COUNT(*) FROM [Usuarios] WHERE Codigo = @Codigo AND Id_Empresa = @IdEmpresa", conn, transaction))
+                {
+                    cmdExiste.Parameters.AddWithValue("@Codigo", codigoUsuario);
+                    cmdExiste.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
+                    if ((int)await cmdExiste.ExecuteScalarAsync() == 0)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+                }
+
                 // 1. Eliminar permisos del usuario
-                using var cmdDeletePermisos = new SqlCommand(
-                    "DELETE FROM seg.PermisosUsuario WHERE Usuario = @Codigo", conn, transaction);
-                cmdDeletePermisos.Parameters.AddWithValue("@Codigo", codigoUsuario);
-                await cmdDeletePermisos.ExecuteNonQueryAsync();
+                using (var cmdDeletePermisos = new SqlCommand(
+                    "DELETE FROM seg.PermisosUsuario WHERE Usuario = @Codigo", conn, transaction))
+                {
+                    cmdDeletePermisos.Parameters.AddWithValue("@Codigo", codigoUsuario);
+                    await cmdDeletePermisos.ExecuteNonQueryAsync();
+                }
 
                 // 2. Eliminar el usuario
-                using var cmdDeleteUsuario = new SqlCommand(
-                    "DELETE FROM [Usuarios] WHERE Codigo = @Codigo", conn, transaction);
-                cmdDeleteUsuario.Parameters.AddWithValue("@Codigo", codigoUsuario);
-                var filasAfectadas = await cmdDeleteUsuario.ExecuteNonQueryAsync();
+                int filasAfectadas;
+                using (var cmdDeleteUsuario = new SqlCommand(
+                    "DELETE FROM [Usuarios] WHERE Codigo = @Codigo AND Id_Empresa = @IdEmpresa", conn, transaction))
+                {
+                    cmdDeleteUsuario.Parameters.AddWithValue("@Codigo", codigoUsuario);
+                    cmdDeleteUsuario.Parameters.AddWithValue("@IdEmpresa", idEmpresa);
+                    filasAfectadas = await cmdDeleteUsuario.ExecuteNonQueryAsync();
+                }
 
                 if (filasAfectadas == 0)
                 {
@@ -390,12 +404,19 @@ namespace MVSystemApi.Model_Negocio.Seguridad
                 }
 
                 transaction.Commit();
+                _sesionValidador.Invalidar(codigoUsuario);   // usuario inexistente = token rechazado al instante
                 return true;
             }
-            catch (Exception ex)
+            catch (SqlException ex) when (ex.Number == 547)
+            {
+                // Otra tabla de SEGURIDAD lo referencia (llave foránea): no se borra nada
+                transaction.Rollback();
+                throw new Exception("No se puede eliminar el usuario porque tiene registros asociados. Desactívelo en su lugar.");
+            }
+            catch
             {
                 transaction.Rollback();
-                throw new Exception($"Error al eliminar usuario: {ex.Message}");
+                throw;
             }
         }
 

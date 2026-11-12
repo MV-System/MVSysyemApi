@@ -122,6 +122,8 @@ namespace MVSystemApi.Interfaz
         public Task<List<LogFacturaElectronica>> GetLogFacturasElectronicasPendientes();
         public Task<(bool success, string errorMessage)> InsertFacturaProveedor2Dual(Facturas factura, List<DetalleFactura> detalles, string usuario, string rncEmisor, NotaCreditoInfo notaCreditoInfo = null);
         public Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor);
+        /// <summary>Busca un RNC o cédula en el listado de la DGII (SEGURIDAD); null si no está.</summary>
+        Task<RncDgii> ConsultarRncDgii(string rnc);
         /// <summary>Literal real de la factura (Facturas.Literal) por número + sucursal; vacío si no existe.</summary>
         public Task<string> ObtenerLiteralFactura(int numeroFactura, int sucursal);
         /// <summary>Anula la factura por una nota de crédito aprobada, solo si sigue activa (evita devolver el inventario dos veces).</summary>

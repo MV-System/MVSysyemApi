@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MVSystemApi.Handlers;
+using MVSystemApi.Interfaz;
 using MVSystemApi.Model;
 
 namespace MVSystemApi.Controllers
@@ -9,9 +10,34 @@ namespace MVSystemApi.Controllers
     public class CatalogosController : ControllerBase
     {
         private readonly Catalogos_Negocio AD;
-        public CatalogosController(Catalogos_Negocio _ad)
+        private readonly IAccesoDatos _accesoDatos;
+        public CatalogosController(Catalogos_Negocio _ad, IAccesoDatos accesoDatos)
         {
             AD = _ad;
+            _accesoDatos = accesoDatos;
+        }
+
+        /// <summary>Consulta un RNC (9 dígitos) o cédula (11) en el listado de la DGII para llenar el nombre de la empresa al facturar con comprobante.</summary>
+        [HttpGet("RncDgii/{rnc}")]
+        [RequierePermiso(PermisosApi.MantFacturacion, PermisosApi.CotizacionMenu)]
+        public async Task<ActionResult> RncDgii(string rnc)
+        {
+            try
+            {
+                var limpio = (rnc ?? "").Trim();
+                if ((limpio.Length != 9 && limpio.Length != 11) || !limpio.All(char.IsDigit))
+                    return BadRequest(new { error = "El RNC debe tener 9 dígitos o la cédula 11." });
+
+                var registro = await _accesoDatos.ConsultarRncDgii(limpio);
+                if (registro == null)
+                    return NotFound(new { error = "RNC no encontrado en el listado de la DGII." });
+
+                return Ok(new { rnc = registro.Rnc, razonSocial = registro.RazonSocial, nombreComercial = registro.NombreComercial, estado = registro.Estado, activo = registro.Activo });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
+            }
         }
 
         [HttpGet()]

@@ -617,6 +617,27 @@ namespace MVSystemApi.Model
             }
         }
 
+        /// <summary>Busca un RNC o cédula en el listado de la DGII (SEGURIDAD, tabla RNC_DGII); null si no está.</summary>
+        public async Task<RncDgii> ConsultarRncDgii(string rnc)
+        {
+            await using var connection = new SqlConnection(_seguridadConnectionString);
+            await connection.OpenAsync();
+
+            await using var cmd = new SqlCommand("RNC_DGII_Consulta", connection) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.AddWithValue("@RNC", rnc);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync()) return null;
+
+            return new RncDgii
+            {
+                Rnc = Convert.ToString(reader["RNC"]),
+                RazonSocial = Convert.ToString(reader["Razon_Social"]),
+                NombreComercial = reader["Nombre_Comercial"] == DBNull.Value ? null : Convert.ToString(reader["Nombre_Comercial"]),
+                Estado = Convert.ToString(reader["Estado"])
+            };
+        }
+
         /// <summary>
         /// Obtiene los datos ciertos de la factura origen (FT) necesarios para construir una Nota de Crédito
         /// (Proveedor 2), consultando directamente PIVOT_FACTURAS_ENC local (lo que realmente se transmitió a la DGII),

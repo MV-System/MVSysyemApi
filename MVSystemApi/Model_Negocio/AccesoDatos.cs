@@ -2401,10 +2401,24 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
                 throw;
             }
         }
+        /// <summary>
+        /// El comprobante de una factura debe estar activo en la base de la sesión (TIPO_NFC.NFCTipoEstado = 1), igual que el listado
+        /// que ve el usuario. Evita que un formulario armado con otra empresa (por ejemplo, otra pestaña con otra sesión) guarde en
+        /// esta base una factura con un comprobante que aquí no se usa.
+        /// </summary>
+        private static void ValidarComprobanteActivo(SqlConnection connection, int ncfTipoNumero)
+        {
+            using var cmd = new SqlCommand("SELECT COUNT(1) FROM TIPO_NFC WHERE NFCTipoNumero = @tipo AND NFCTipoEstado = 1", connection);
+            cmd.Parameters.AddWithValue("@tipo", ncfTipoNumero);
+            if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+                throw new Exception("El tipo de comprobante seleccionado no está activo en esta empresa. Recargue la página (puede haber otra sesión abierta en otra pestaña) y vuelva a intentar.");
+        }
+
         public Facturas PostFacturaConPagos(Facturas factura, List<DetallePagoDTO> detallesPagos)
         {
             using var connection = new SqlConnection(_connectionStrings);
             connection.Open();
+            ValidarComprobanteActivo(connection, factura.NcfTipoNumero);
             using var transaction = connection.BeginTransaction();
 
             try
@@ -4266,6 +4280,8 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
             cn.Open();
             try
             {
+                if (int.TryParse(prefactura.NFCTipoNumero, out var tipoPre))
+                    ValidarComprobanteActivo(cn, tipoPre);
                 SqlCommand cmd = cn.CreateCommand();
                 cmd.CommandText = "PreFacturas_Insert";
                 cmd.CommandType = CommandType.StoredProcedure;

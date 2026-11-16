@@ -31,6 +31,7 @@ namespace MVSystemApi.Model
         public DateTime? Fecha_Registro { get; set; }
         public DateTime? Fecha_Procesamiento { get; set; }
         public string Usuario_Procesamiento { get; set; }
+        public string Motivo_Anulacion { get; set; }
         public string NFCTipoNumero { get; set; }
         public string NFCFISCAL { get; set; }
         public string NCF_NUMERO { get; set; }

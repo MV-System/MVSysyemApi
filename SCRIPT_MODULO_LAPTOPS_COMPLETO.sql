@@ -2806,6 +2806,13 @@ SELECT Imei, ID_Estado_Bloqueo, Desbloqueado, Disponible, Nota_Adicional
 -- ############################################################
 
 -- ------------------------------------------------------------
+-- Columna Motivo_Anulacion en PreFacturas (motivo de la anulacion, opcional en la tabla)
+-- ------------------------------------------------------------
+IF COL_LENGTH('dbo.PreFacturas', 'Motivo_Anulacion') IS NULL
+    ALTER TABLE dbo.PreFacturas ADD Motivo_Anulacion VARCHAR(500) NULL;
+GO
+
+-- ------------------------------------------------------------
 -- PreFacturas_Anular: anular una prefactura (estado 'X', el estandar de anuladas en el sistema)
 -- ------------------------------------------------------------
 SET ANSI_NULLS ON
@@ -2815,14 +2822,16 @@ GO
 CREATE OR ALTER PROCEDURE [dbo].[PreFacturas_Anular]
 @Numero_PreFactura INT,
 @Usuario_Anulacion VARCHAR(50),
-@Literal CHAR(1) = NULL   -- el numero de prefactura se repite entre literales: con @Literal solo se anula la de esa literal
+@Literal CHAR(1) = NULL,   -- el numero de prefactura se repite entre literales: con @Literal solo se anula la de esa literal
+@Motivo VARCHAR(500) = NULL
 AS
 BEGIN
-    -- Cambia el estado a 'X' (Anulada), registra usuario y fecha de anulacion
+    -- Cambia el estado a 'X' (Anulada), registra usuario, fecha y motivo de anulacion
     UPDATE PreFacturas
     SET Estado = 'X',
         Fecha_Procesamiento = GETDATE(),
-        Usuario_Procesamiento = @Usuario_Anulacion
+        Usuario_Procesamiento = @Usuario_Anulacion,
+        Motivo_Anulacion = NULLIF(LTRIM(RTRIM(@Motivo)), '')
     WHERE Numero_PreFactura = @Numero_PreFactura
       AND (@Literal IS NULL OR Literal = @Literal)
 
@@ -2871,6 +2880,7 @@ BEGIN
         pf.Fecha_Registro,
         pf.Fecha_Procesamiento,
         pf.Usuario_Procesamiento,
+        pf.Motivo_Anulacion,
         pf.NFCTipoNumero,
         pf.NFCFISCAL,
         pf.NCF_NUMERO,

@@ -239,11 +239,21 @@ namespace MVSystemApi.Controllers
         // POST /PreFacturas/{id}/anular
         [HttpPost]
         [Route("{id}/anular")]
-        public IActionResult AnularPreFactura(int id, [FromQuery] string literal = null)
+        public IActionResult AnularPreFactura(int id, [FromBody] AnularPreFacturaRequest request, [FromQuery] string literal = null)
         {
             try
             {
-                var result = AD.AnularPreFactura(id, literal);
+                if (request == null || string.IsNullOrWhiteSpace(request.Motivo) || request.Motivo.Trim().Length < 5)
+                {
+                    return BadRequest("Debe indicar el motivo de la anulación (mínimo 5 caracteres).");
+                }
+                var usuario = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(usuario))
+                {
+                    return BadRequest("No se pudo identificar al usuario de la sesión. Inicie sesión nuevamente.");
+                }
+
+                var result = AD.AnularPreFactura(id, literal, usuario, request.Motivo.Trim());
                 if (result == null) return NotFound();
                 return Ok(result);
             }
@@ -251,6 +261,11 @@ namespace MVSystemApi.Controllers
             {
                 return BadRequest(ErroresApi.Mensaje(ex));
             }
+        }
+
+        public class AnularPreFacturaRequest
+        {
+            public string Motivo { get; set; }
         }
 
         public class ActualizarTipoPagoRequest

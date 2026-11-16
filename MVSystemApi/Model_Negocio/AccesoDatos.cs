@@ -4223,7 +4223,7 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
             }
         }
 
-        public DataTable AnularPreFactura(int numeroPreFactura, string literal = null)
+        public DataTable AnularPreFactura(int numeroPreFactura, string literal, string usuario, string motivo)
         {
             cn.Open();
             try
@@ -4232,8 +4232,9 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
                 cmd.CommandText = "PreFacturas_Anular";
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Numero_PreFactura", numeroPreFactura);
-                cmd.Parameters.AddWithValue("@Usuario_Anulacion", "suser_sname()" /* Puedes cambiar por usuario real */);
+                cmd.Parameters.AddWithValue("@Usuario_Anulacion", usuario);
                 if (!string.IsNullOrEmpty(literal)) cmd.Parameters.AddWithValue("@Literal", literal);
+                cmd.Parameters.Add("@Motivo", SqlDbType.VarChar, 500).Value = (object)motivo ?? DBNull.Value;
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);

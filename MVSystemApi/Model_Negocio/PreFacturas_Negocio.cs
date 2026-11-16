@@ -61,9 +61,9 @@ namespace MVSystemApi.Model_Negocio
             return resultado;
         }
 
-        public object AnularPreFactura(int numeroPreFactura, string literal = null)
+        public object AnularPreFactura(int numeroPreFactura, string literal, string usuario, string motivo)
         {
-            return _accesoDatos.AnularPreFactura(numeroPreFactura, literal);
+            return _accesoDatos.AnularPreFactura(numeroPreFactura, literal, usuario, motivo);
         }
 
         public PreFactura ActualizarTipoPagoPreFactura(int numeroPreFactura, int idTipoPagos)

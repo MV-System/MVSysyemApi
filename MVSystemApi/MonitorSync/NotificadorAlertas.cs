@@ -52,6 +52,14 @@ namespace MVSystemApi.MonitorSync
                     Body = cuerpo,
                     IsBodyHtml = false,
                 };
+                if (cuerpo.StartsWith("<html", StringComparison.OrdinalIgnoreCase))
+                {
+                    // HTML con version en texto plano para clientes de correo que no lo muestran
+                    var plano = System.Net.WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Replace(
+                        System.Text.RegularExpressions.Regex.Replace(cuerpo, "</(tr|p|li|h3|ul)>|<br>", "\n"), "<[^>]+>", " "));
+                    mensaje.Body = plano;
+                    mensaje.AlternateViews.Add(System.Net.Mail.AlternateView.CreateAlternateViewFromString(cuerpo, null, "text/html"));
+                }
                 foreach (var destinatario in c.Destinatarios.Where(d => !string.IsNullOrWhiteSpace(d)))
                     mensaje.To.Add(destinatario.Trim());
 

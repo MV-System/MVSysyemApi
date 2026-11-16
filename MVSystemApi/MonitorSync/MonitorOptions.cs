@@ -46,6 +46,7 @@ namespace MVSystemApi.MonitorSync
             new ParEmpresa { Nombre = "TECNOSTYLE",      IdPrincipal = 18, IdEspejo = 32 },
             new ParEmpresa { Nombre = "DATAMOVIL",       IdPrincipal = 3,  IdEspejo = 35 },
             new ParEmpresa { Nombre = "VISIONTECH",      IdPrincipal = 31, IdEspejo = 36 },
+            new ParEmpresa { Nombre = "SOLUSHOP_TECHNOLOGY", IdPrincipal = 34, IdEspejo = 37 },
         };
 
         public CorreoOptions Correo { get; set; } = new CorreoOptions();

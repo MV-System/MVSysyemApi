@@ -4293,7 +4293,7 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
                 cmd.Parameters.AddWithValue("@SubTotal", prefactura.SubTotal);
                 cmd.Parameters.AddWithValue("@Descuento", prefactura.Descuento ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Itbis", prefactura.Itbis ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@Abono", prefactura.Abono ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Abono", prefactura.Abono ?? 0m);
                 cmd.Parameters.AddWithValue("@Tiempo_Credito", prefactura.Tiempo_Credito ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Total", prefactura.Total);
                 cmd.Parameters.AddWithValue("@Cantidad_Articulos", prefactura.Cantidad_Articulos);

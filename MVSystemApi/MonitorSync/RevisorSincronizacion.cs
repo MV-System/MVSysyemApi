@@ -62,6 +62,9 @@ namespace MVSystemApi.MonitorSync
             var dispP = await CargarImeisDisponiblesAsync(connP, ct);
             var dispE = await CargarImeisDisponiblesAsync(connE, ct);
             resultado.Resumen.Add($"{par.Nombre}: disponibles principal {dispP.Count} / espejo {dispE.Count}");
+            var resumenEmpresa = resultado.EmpresaResumen(par.Nombre);
+            resumenEmpresa.EquiposPrincipal = dispP.Count;
+            resumenEmpresa.EquiposEspejo = dispE.Count;
 
             var soloP = dispP.Where(i => !dispE.Contains(i)).ToList();
             var soloE = dispE.Where(i => !dispP.Contains(i)).ToList();
@@ -100,6 +103,11 @@ namespace MVSystemApi.MonitorSync
             var accP = await CargarAccesoriosAsync(connP, ct);
             var accE = await CargarAccesoriosAsync(connE, ct);
             resultado.Resumen.Add($"{par.Nombre}: accesorios principal {accP.Count} (existencia {accP.Values.Sum(a => (long)a.Cantidad)}) / espejo {accE.Count} (existencia {accE.Values.Sum(a => (long)a.Cantidad)})");
+            var resumenAcc = resultado.EmpresaResumen(par.Nombre);
+            resumenAcc.AccesoriosPrincipal = accP.Count;
+            resumenAcc.AccesoriosEspejo = accE.Count;
+            resumenAcc.ExistenciaPrincipal = accP.Values.Sum(a => (long)a.Cantidad);
+            resumenAcc.ExistenciaEspejo = accE.Values.Sum(a => (long)a.Cantidad);
 
             foreach (var (id, p) in accP.OrderBy(a => a.Key))
             {

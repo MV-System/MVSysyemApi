@@ -27,20 +27,69 @@ namespace MVSystemApi.MonitorSync
             return sb.ToString();
         }
 
+        /// <summary>Los correos del monitor van en HTML; el notificador lo detecta por este inicio.</summary>
+        public const string EstiloHtml = "<html><body style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#222\">";
+
+        private static string E(string s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+
+        private const string Celda = "border:1px solid #ccc;padding:5px 9px;";
+
+        private static string TablaCantidades(ResultadoRevision revision, List<Hallazgo> hallazgos)
+        {
+            if (revision == null || revision.Empresas.Count == 0) return "";
+            var sb = new StringBuilder();
+            sb.Append("<h3>Cantidades disponibles</h3>");
+            sb.Append("<table style=\"border-collapse:collapse\">");
+            sb.Append($"<tr style=\"background:#e9eef5\"><th rowspan=\"2\" style=\"{Celda}text-align:left\">Empresa</th>");
+            sb.Append($"<th colspan=\"2\" style=\"{Celda}\">Equipos</th><th colspan=\"2\" style=\"{Celda}\">Accesorios (modelos / existencia)</th>");
+            sb.Append($"<th rowspan=\"2\" style=\"{Celda}\">Estado</th></tr>");
+            sb.Append($"<tr style=\"background:#e9eef5\"><th style=\"{Celda}\">Principal</th><th style=\"{Celda}\">Espejo</th><th style=\"{Celda}\">Principal</th><th style=\"{Celda}\">Espejo</th></tr>");
+            foreach (var e in revision.Empresas.OrderBy(x => x.Nombre))
+            {
+                var dif = hallazgos.Count(h => h.Empresa == e.Nombre);
+                var distinto = dif > 0 || e.EquiposPrincipal != e.EquiposEspejo || e.AccesoriosPrincipal != e.AccesoriosEspejo || e.ExistenciaPrincipal != e.ExistenciaEspejo;
+                var fondo = distinto ? "background:#fde8e8;" : "";
+                var estado = distinto ? $"&#10006; {(dif > 0 ? dif.ToString() : "")}" : "&#10004;";
+                sb.Append($"<tr style=\"{fondo}\"><td style=\"{Celda}\">{E(e.Nombre)}</td>");
+                sb.Append($"<td style=\"{Celda}text-align:right\">{e.EquiposPrincipal:N0}</td><td style=\"{Celda}text-align:right\">{e.EquiposEspejo:N0}</td>");
+                sb.Append($"<td style=\"{Celda}text-align:right\">{e.AccesoriosPrincipal:N0} / {e.ExistenciaPrincipal:N0}</td><td style=\"{Celda}text-align:right\">{e.AccesoriosEspejo:N0} / {e.ExistenciaEspejo:N0}</td>");
+                sb.Append($"<td style=\"{Celda}text-align:center\">{estado}</td></tr>");
+            }
+            sb.Append("</table>");
+            return sb.ToString();
+        }
+
+        private static string DetalleHtml(IEnumerable<Hallazgo> hallazgos, int maxPorCategoria)
+        {
+            var sb = new StringBuilder();
+            foreach (var empresa in hallazgos.GroupBy(h => h.Empresa).OrderBy(g => g.Key))
+            {
+                sb.Append($"<p><b>{E(empresa.Key)}</b></p><ul>");
+                foreach (var categoria in empresa.GroupBy(h => h.Categoria).OrderBy(g => g.Key))
+                {
+                    var lista = categoria.ToList();
+                    sb.Append($"<li>{E(categoria.Key)} ({lista.Count})<ul>");
+                    foreach (var h in lista.Take(maxPorCategoria)) sb.Append($"<li>{E(h.Detalle)}</li>");
+                    if (lista.Count > maxPorCategoria) sb.Append($"<li>... y {lista.Count - maxPorCategoria} mas</li>");
+                    sb.Append("</ul></li>");
+                }
+                sb.Append("</ul>");
+            }
+            return sb.ToString();
+        }
+
         public static (string Asunto, string Cuerpo, string Corto) Nuevos(List<Hallazgo> nuevos, ResultadoRevision revision, int maxPorCategoria)
         {
             var asunto = $"[MVSystem] Sincronizacion: {nuevos.Count} diferencia(s) nueva(s)";
-            var sb = new StringBuilder();
-            sb.AppendLine($"Se detectaron {nuevos.Count} diferencia(s) entre la base principal y su espejo ({FechaRD()}, hora RD).");
-            sb.AppendLine("Persistieron en revisiones seguidas, asi que no son una sincronizacion en curso.");
-            sb.AppendLine();
-            sb.Append(Detalle(nuevos, maxPorCategoria));
-            sb.AppendLine("Cantidades disponibles:");
-            foreach (var linea in revision.Resumen) sb.AppendLine("  " + linea);
-            sb.AppendLine();
-            sb.AppendLine("Para investigar: consola DbCompare (opcion 1 para ver diferencias, 2 para el historial de los equipos, 11 para los accesorios).");
+            var html = new StringBuilder(EstiloHtml);
+            html.Append($"<p>Se detectaron <b>{nuevos.Count}</b> diferencia(s) entre la base principal y su espejo ({FechaRD()}, hora RD).<br>");
+            html.Append("Persistieron en revisiones seguidas, asi que no son una sincronizacion en curso.</p>");
+            html.Append(TablaCantidades(revision, nuevos));
+            html.Append("<h3>Diferencias nuevas</h3>");
+            html.Append(DetalleHtml(nuevos, maxPorCategoria));
+            html.Append("<p>Para investigar: consola DbCompare (opcion 1 para ver diferencias, 2 para el historial de los equipos, 11 para los accesorios).</p>");
 
-            return (asunto, sb.ToString(), Corto("Nuevas diferencias de sincronizacion", nuevos));
+            return (asunto, html.ToString(), Corto("Nuevas diferencias de sincronizacion", nuevos));
         }
 
         public static (string Asunto, string Cuerpo, string Corto) Resueltos(List<Hallazgo> resueltos)
@@ -61,24 +110,15 @@ namespace MVSystemApi.MonitorSync
                 ? "[MVSystem] Resumen diario de sincronizacion: todo en orden"
                 : $"[MVSystem] Resumen diario de sincronizacion: {pendientes.Count} diferencia(s) pendiente(s)";
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"Resumen diario ({FechaRD()}, hora RD). Este correo confirma que el monitor sigue en funcionamiento.");
-            sb.AppendLine();
-            if (ultima != null)
-            {
-                sb.AppendLine("Cantidades disponibles en la ultima revision:");
-                foreach (var linea in ultima.Resumen) sb.AppendLine("  " + linea);
-                sb.AppendLine();
-            }
+            var sb = new StringBuilder(EstiloHtml);
+            sb.Append($"<p>Resumen diario ({FechaRD()}, hora RD). Este correo confirma que el monitor sigue en funcionamiento.</p>");
+            if (ultima != null) sb.Append(TablaCantidades(ultima, pendientes));
             if (pendientes.Count == 0)
-            {
-                sb.AppendLine("Sin diferencias pendientes.");
-            }
+                sb.Append("<p>Sin diferencias pendientes.</p>");
             else
             {
-                sb.AppendLine($"Diferencias pendientes ({pendientes.Count}):");
-                sb.AppendLine();
-                sb.Append(Detalle(pendientes, maxPorCategoria));
+                sb.Append($"<h3>Diferencias pendientes ({pendientes.Count})</h3>");
+                sb.Append(DetalleHtml(pendientes, maxPorCategoria));
             }
 
             var corto = pendientes.Count == 0

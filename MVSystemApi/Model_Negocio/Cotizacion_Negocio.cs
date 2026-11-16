@@ -38,7 +38,7 @@ namespace MVSystemApi.Model_Negocio
                               SubTotal = Convert.ToDecimal(dt["SubTotal"]),
                               Descuento = Convert.ToDecimal(dt["Descuento"]),
                               Itbis = Convert.ToDecimal(dt["Itbis"]),
-                              Abono = Convert.ToDecimal(dt["Abono"]),
+                              Abono = (dt["Abono"] == DBNull.Value ? 0m : Convert.ToDecimal(dt["Abono"])),
                               Total = Convert.ToDecimal(dt["Total"]),
                               TotalCotizado = Convert.ToDecimal(dt["TotalCotizado"]),
                               Nota = Convert.ToString(dt["Nota"]),
@@ -72,7 +72,7 @@ namespace MVSystemApi.Model_Negocio
                 SubTotal = Convert.ToDecimal(row["SubTotal"]),
                 Descuento = Convert.ToDecimal(row["Descuento"]),
                 Itbis = Convert.ToDecimal(row["Itbis"]),
-                Abono = Convert.ToDecimal(row["Abono"]),
+                Abono = (row["Abono"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Abono"])),
                 Total = Convert.ToDecimal(row["Total"]),
                 CantidadArticulos = Convert.ToInt32(row["CantidadArticulos"]),
                 Nota = Convert.ToString(row["Nota"]),
@@ -117,7 +117,7 @@ namespace MVSystemApi.Model_Negocio
                               Descuento = Convert.ToDecimal(dt["Descuento"]),
                               Total = Convert.ToDecimal(dt["Total"]),
                               Itbis = Convert.ToDecimal(dt["Itbis"]),
-                              Abono = Convert.ToDecimal(dt["Abono"]),
+                              Abono = (dt["Abono"] == DBNull.Value ? 0m : Convert.ToDecimal(dt["Abono"])),
                           }).ToList();
             return result;
         }

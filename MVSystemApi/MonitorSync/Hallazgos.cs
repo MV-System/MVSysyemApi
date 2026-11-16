@@ -27,9 +27,30 @@ namespace MVSystemApi.MonitorSync
         public List<Hallazgo> Hallazgos { get; } = new List<Hallazgo>();
         /// <summary>Lineas de resumen por empresa (cantidades disponibles de cada base).</summary>
         public List<string> Resumen { get; } = new List<string>();
+        /// <summary>Cantidades por empresa (para la tabla del correo).</summary>
+        public List<ResumenEmpresa> Empresas { get; } = new List<ResumenEmpresa>();
+
+        public ResumenEmpresa EmpresaResumen(string nombre)
+        {
+            var r = Empresas.FirstOrDefault(e => e.Nombre == nombre);
+            if (r == null) { r = new ResumenEmpresa { Nombre = nombre }; Empresas.Add(r); }
+            return r;
+        }
         /// <summary>Empresas que no se pudieron revisar (conexion, permisos...).</summary>
         public List<string> Errores { get; } = new List<string>();
         /// <summary>Nombres de las empresas con error: sus hallazgos anteriores no se dan por resueltos.</summary>
         public HashSet<string> EmpresasConError { get; } = new HashSet<string>();
+    }
+
+    /// <summary>Cantidades de una empresa en la principal y en el espejo.</summary>
+    public class ResumenEmpresa
+    {
+        public string Nombre { get; set; }
+        public int EquiposPrincipal { get; set; }
+        public int EquiposEspejo { get; set; }
+        public int AccesoriosPrincipal { get; set; }
+        public int AccesoriosEspejo { get; set; }
+        public long ExistenciaPrincipal { get; set; }
+        public long ExistenciaEspejo { get; set; }
     }
 }

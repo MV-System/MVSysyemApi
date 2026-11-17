@@ -16,6 +16,9 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fallos de sincronizacion con la base espejo ([SYNC-FALLO]) a un archivo permanente (LogFiles\sync-fallos-AAAAMM.log)
+builder.Logging.AddProvider(new SyncFallosLoggerProvider(builder.Environment.ContentRootPath));
+
 // Sin secretos en el repositorio: se leen de la configuracion (variables del App Service o user-secrets).
 // Si faltan los indispensables, el API no arranca y lo dice en el log.
 {

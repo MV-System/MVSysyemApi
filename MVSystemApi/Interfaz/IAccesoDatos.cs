@@ -134,7 +134,10 @@ namespace MVSystemApi.Interfaz
         /// <summary>Candado de aplicación en la base de la empresa. Devuelve null si el recurso ya está tomado.</summary>
         public Task<CandadoAplicacion> TomarCandadoAsync(string recurso);
         public Task<string> ObtenerEstatusRemotoProveedor2(string encf, string rncEmisor);
+        public Task<string> ObtenerQrUrlNotaCreditoProveedor2(string encf, string rncEmisor);
+        public string ArmarQrUrlCompleta(string rncEmisor, string rncComprador, string encf, DateTime fechaEmision, decimal total, DateTime fechaFirma, string codigoSeguridad);
         public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporte(int numeroFacturaOrigen, int sucursal, string rncEmisor, string encfNotaCredito);
+        public Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporteProveedor1(int numeroFactura, int sucursal, LogFacturaElectronica logNc);
 
         #endregion
 

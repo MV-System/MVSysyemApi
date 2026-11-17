@@ -641,9 +641,31 @@ namespace MVSystemApi.Model
         /// <summary>
         /// Obtiene los datos ciertos de la factura origen (FT) necesarios para construir una Nota de Crédito
         /// (Proveedor 2), consultando directamente PIVOT_FACTURAS_ENC local (lo que realmente se transmitió a la DGII),
-        /// sin depender de la tabla Facturas.
+        /// sin depender de la tabla Facturas para lo demás. Las columnas locales SUB_TOTAL/IMPUESTO/TOTAL son numeric(18,0)
+        /// y pierden los decimales: por cada monto, si el valor local es igual al de Facturas redondeado a 0 decimales
+        /// se usa el de Facturas (con decimales); si no coincide (descuento, otro tratamiento) se conserva el local,
+        /// que es lo que se transmitió. Si la factura no está en Facturas se conservan los locales.
         /// </summary>
         public async Task<Facturas> ObtenerFacturaParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor)
+        {
+            var factura = await LeerFacturaPivotParaNotaCredito(numeroFactura, sucursal, rncEmisor);
+            if (factura == null)
+                return null;
+
+            var real = await ObtenerFacturaOrigenNotaCredito(numeroFactura, sucursal);
+            if (real != null)
+            {
+                decimal Corregir(decimal local, decimal real2) =>
+                    local == Math.Round(real2, 0, MidpointRounding.AwayFromZero) ? Math.Round(real2, 2) : local;
+
+                factura.SubTotal = Corregir(factura.SubTotal, real.SubTotal);
+                factura.Itbis = Corregir(factura.Itbis, real.Itbis);
+                factura.Total = Corregir(factura.Total, real.Total);
+            }
+            return factura;
+        }
+
+        private async Task<Facturas> LeerFacturaPivotParaNotaCredito(int numeroFactura, int sucursal, string rncEmisor)
         {
             await using var connection = new SqlConnection(_seguridadConnectionString);
             await connection.OpenAsync();
@@ -929,7 +951,8 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
             await using (var cmdEnc = new SqlCommand(@"
 SELECT TOP (1)
     ENCF, ENCF_REFERENCIA, NOMBRE_CLIENTE, NUM_RNC, FECHA_FACTURA,
-    SUB_TOTAL, IMPUESTO, TOTAL
+    SUB_TOTAL, IMPUESTO, TOTAL, ENCF_FECHA_FIRMA, ENCF_CODIGO_SEGURIDAD,
+    FECHA_DOC_REFERENCIA, COD_MODIFICACION
 FROM PIVOT_FACTURAS_ENC
 WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactura AND COD_SUCURSAL = @sucursal AND TIPO_DOCUMENTO = 'NC'
 ORDER BY FECHA_REGISTRO DESC", connection))
@@ -953,27 +976,24 @@ ORDER BY FECHA_REGISTRO DESC", connection))
                     SubTotal = reader.GetDecimal(reader.GetOrdinal("SUB_TOTAL")),
                     Impuesto = reader.GetDecimal(reader.GetOrdinal("IMPUESTO")),
                     Total = reader.GetDecimal(reader.GetOrdinal("TOTAL")),
-                    Condicion = ""
+                    Condicion = "",
+                    FechaNcfModificado = reader.IsDBNull(reader.GetOrdinal("FECHA_DOC_REFERENCIA")) ? (DateTime?)null : Convert.ToDateTime(reader["FECHA_DOC_REFERENCIA"]),
+                    CodigoModificacion = reader.IsDBNull(reader.GetOrdinal("COD_MODIFICACION")) ? (int?)null : Convert.ToInt32(reader["COD_MODIFICACION"])
                 };
+
+                // Firma y código guardados en la copia local (pueden venir vacíos); el controlador los usa para reconstruir el QR
+                if (!reader.IsDBNull(reader.GetOrdinal("ENCF_FECHA_FIRMA")))
+                    data.FechaFirma = reader.GetDateTime(reader.GetOrdinal("ENCF_FECHA_FIRMA")).ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                if (!reader.IsDBNull(reader.GetOrdinal("ENCF_CODIGO_SEGURIDAD")))
+                    data.CodigoSeguridad = reader.GetString(reader.GetOrdinal("ENCF_CODIGO_SEGURIDAD")).Trim();
             }
 
-            await using (var cnTipoPago = new SqlConnection(_connectionStrings))
-            await using (var cmdTipoPago = new SqlCommand(@"
-SELECT TOP (1) TP.Descripcion_Tipo_Pagos
-FROM Facturas F
-INNER JOIN Tipos_Pagos TP ON TP.ID_Tipo_Pagos = F.ID_Tipo_Pagos
-WHERE F.Numero_Factura = @numeroFactura AND F.ID_Sucursal = @sucursal", cnTipoPago))
-            {
-                await cnTipoPago.OpenAsync();
-                cmdTipoPago.Parameters.AddWithValue("@numeroFactura", numeroFacturaOrigen);
-                cmdTipoPago.Parameters.AddWithValue("@sucursal", sucursal);
-
-                var descripcionTipoPago = await cmdTipoPago.ExecuteScalarAsync();
-                data.Condicion = descripcionTipoPago?.ToString() ?? "";
-            }
+            // Pagos reales de la factura de origen (tipo documento 'F'); si no hay, la plantilla no muestra la sección
+            foreach (var pago in GetDetallesPagoFactura(numeroFacturaOrigen, "F"))
+                data.Pagos.Add(new NotaCreditoPagoReporte { Descripcion = pago.Descripcion_Tipo_Pago, Monto = pago.Monto_Pago });
 
             await using (var cmdDet = new SqlCommand(@"
-SELECT COD_PRODUCTO, DESCRIPCION, UND_MEDIDA, TIPO_PRODUCTO, CANTIDAD, PRECIO, IMPUESTO, TOTAL
+SELECT COD_PRODUCTO, DESCRIPCION, UND_MEDIDA, TIPO_PRODUCTO, CANTIDAD, PRECIO, IMPUESTO, TOTAL, IND_EXENTO, TASA_IMPUESTO
 FROM PIVOT_FACTURAS_DET
 WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactura AND TIPO_DOCUMENTO = 'NC'", connection))
             {
@@ -993,12 +1013,204 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
                         Cantidad = reader.GetDecimal(reader.GetOrdinal("CANTIDAD")),
                         Precio = reader.GetDecimal(reader.GetOrdinal("PRECIO")),
                         Impuesto = reader.GetDecimal(reader.GetOrdinal("IMPUESTO")),
-                        Total = reader.GetDecimal(reader.GetOrdinal("TOTAL"))
+                        Total = reader.GetDecimal(reader.GetOrdinal("TOTAL")),
+                        Exento = !reader.IsDBNull(reader.GetOrdinal("IND_EXENTO")) && reader["IND_EXENTO"].ToString().Trim().ToUpper() == "S",
+                        TasaImpuesto = reader.IsDBNull(reader.GetOrdinal("TASA_IMPUESTO")) ? 0 : Convert.ToDecimal(reader["TASA_IMPUESTO"])
                     });
                 }
             }
 
+            // Montos tal como se transmitieron: gravado = total - ITBIS de las líneas con ITBIS; exento = total de las líneas exentas
+            foreach (var d in data.Detalle)
+            {
+                if (d.Exento) data.MontoExento += d.Total;
+                else
+                {
+                    data.MontoGravado += d.Total - d.Impuesto;
+                    if (d.TasaImpuesto > 0) data.TasaItbis = d.TasaImpuesto;
+                }
+            }
+
             return data;
+        }
+
+        /// <summary>
+        /// Datos de la Nota de Crédito del proveedor 1 (EasyConexión) para el PDF. El proveedor 1 no escribe en PIVOT: se arma desde
+        /// las tablas de la empresa (Facturas, Detalle_Facturas, pagos) y el log de la NC, con los mismos criterios con que se armó el
+        /// pedido (FacEDGIService.MapearFacturaARequest): comprador con RNC y nombre solo en E31/44/45 (los demás, "Consumidor Final"),
+        /// línea con el descuento ya aplicado, ITBIS incluido o sumado según el parámetro de la empresa, y E44 exento.
+        /// Null si la factura no existe o no tiene líneas. Firma y código del QR los asigna el controlador desde log.QR_Url.
+        /// </summary>
+        public async Task<NotaCreditoReporteViewModel> ObtenerNotaCreditoReporteProveedor1(int numeroFactura, int sucursal, LogFacturaElectronica logNc)
+        {
+            var origen = await ObtenerFacturaOrigenNotaCredito(numeroFactura, sucursal);
+            if (origen == null || logNc == null || string.IsNullOrWhiteSpace(logNc.VoucherNumber_DGII))
+                return null;
+
+            // Líneas: con la factura aún activa (NC pendiente) son las 'A'. Ya anulada, Proc_Anular_Factura las pasó a 'X' y puso
+            // Fecha_registro = momento de la anulación (igual que Facturas.Fecha_Registro): se toman las 'X' de esa ventana de +-5 minutos,
+            // para no incluir líneas quitadas antes (rebaja/edición) que también quedaron en 'X' con otra fecha. Si la ventana no trae
+            // nada (anulaciones antiguas sin ese ajuste) se toman todas las 'X' del literal.
+            List<DetalleFactura> lineas;
+            if (string.Equals(origen.Estado, "A", StringComparison.OrdinalIgnoreCase))
+                lineas = origen.Detalles;
+            else
+            {
+                lineas = await LeerLineasAnuladasNotaCredito(numeroFactura, origen.Literal, origen.FechaRegistro, true);
+                if (lineas.Count == 0)
+                    lineas = await LeerLineasAnuladasNotaCredito(numeroFactura, origen.Literal, origen.FechaRegistro, false);
+            }
+            if (lineas.Count == 0)
+                return null;
+
+            var exigeComprador = origen.NcfTipoNumero == 31 || origen.NcfTipoNumero == 44 || origen.NcfTipoNumero == 45;
+            var esExento = origen.NcfTipoNumero == 44;
+            var asumeItbis = true;
+            try
+            {
+                var dtItbis = AsumeITBIS();
+                if (dtItbis != null && dtItbis.Rows.Count > 0)
+                    asumeItbis = string.Equals((Convert.ToString(dtItbis.Rows[0]["AsumeITBIS"]) ?? "").Trim(), "S", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[NC-PDF] No se pudo leer 'asume ITBIS' de la empresa; se usa 'S'");
+            }
+            if (esExento) asumeItbis = false;
+
+            var nombreCliente = "Consumidor Final";
+            if (exigeComprador)
+            {
+                nombreCliente = "Cliente";
+                var clientes = Cliente_Consulta_Por_Id_Cliente(origen.IdCliente);
+                if (clientes != null && clientes.Rows.Count > 0)
+                {
+                    var nombres = Convert.ToString(clientes.Rows[0]["Nombres"]);
+                    var apellidos = Convert.ToString(clientes.Rows[0]["Apellidos"]);
+                    nombreCliente = !string.IsNullOrEmpty(nombres) ? nombres : "Cliente";
+                    if (!string.IsNullOrEmpty(apellidos)) nombreCliente += " " + apellidos;
+                }
+            }
+
+            var data = new NotaCreditoReporteViewModel
+            {
+                Encf = logNc.VoucherNumber_DGII.Trim(),
+                EncfReferencia = origen.NcfNumero,
+                NombreCliente = nombreCliente,
+                RncCliente = exigeComprador ? origen.RNC : "",
+                // FechaEmision del QR de la NC; si no hay URL completa, la de envío (el servidor guarda hora UTC) a hora de RD
+                FechaEmision = LeerFechaEmisionQr(logNc.QR_Url) ?? logNc.Fecha_Envio.AddHours(-4),
+                // Fecha del NCF modificado: Proc_Anular_Factura pisa Facturas.Fecha_Registro con la hora de la anulación, así que la
+                // fecha original sale del log de la factura (FechaEmision de su QR; si no, su Fecha_Envio a hora de RD)
+                FechaNcfModificado = await ObtenerFechaEmisionFacturaOrigen(numeroFactura, origen),
+                CodigoModificacion = 1,   // lo que se envía: ModifReasonId = 1 (anulación total)
+                Impuesto = origen.Itbis,
+                Total = origen.Total,
+                Condicion = ""
+            };
+
+            foreach (var d in lineas)
+            {
+                var itbis = esExento ? 0m : d.Itbis;
+                var bruto = asumeItbis ? d.SubTotal + d.Descuento + d.Itbis : d.SubTotal + d.Descuento;
+                var (monto, precioUnitario) = DescuentoComprobante.AplicarEnLinea(bruto, d.Precio, d.Cantidad, d.Descuento);
+                data.Detalle.Add(new NotaCreditoDetalleReporte
+                {
+                    CodProducto = d.IdEquipo ?? "",
+                    Descripcion = d.Descripcion ?? "",
+                    UndMedida = "",
+                    TipoProducto = d.IdTipo.ToString(),
+                    Cantidad = d.Cantidad,
+                    Precio = precioUnitario,
+                    Impuesto = itbis,
+                    Total = asumeItbis ? monto : monto + itbis,   // el valor de la línea siempre incluye su ITBIS
+                    Exento = esExento,
+                    TasaImpuesto = esExento ? 0m : 18m
+                });
+            }
+
+            data.SubTotal = data.Detalle.Sum(x => x.Total);
+            foreach (var d in data.Detalle)
+            {
+                if (d.Exento) data.MontoExento += d.Total;
+                else
+                {
+                    data.MontoGravado += d.Total - d.Impuesto;
+                    data.TasaItbis = d.TasaImpuesto;
+                }
+            }
+
+            // Pagos reales de la factura (tipo documento 'F'); si no hay, la plantilla no muestra la sección
+            foreach (var pago in GetDetallesPagoFactura(numeroFactura, "F"))
+                data.Pagos.Add(new NotaCreditoPagoReporte { Descripcion = pago.Descripcion_Tipo_Pago, Monto = pago.Monto_Pago });
+
+            return data;
+        }
+
+        /// <summary>Líneas 'X' de la factura (número + literal); con ventana, solo las de +-5 minutos de la fecha de anulación.</summary>
+        private async Task<List<DetalleFactura>> LeerLineasAnuladasNotaCredito(int numeroFactura, string literal, DateTime fechaAnulacion, bool conVentana)
+        {
+            var lista = new List<DetalleFactura>();
+            await using var connection = new SqlConnection(_connectionStrings);
+            await connection.OpenAsync();
+            await using var cmd = new SqlCommand(@"
+SELECT ID_Equipo, Descripcion, ID_Tipo, cantidad, precio, SubTotal, Descuento, Itbis, Total
+  FROM Detalle_Facturas
+ WHERE Numero_Factura = @numero AND LiteralF = @literalF AND Estado = 'X'
+   AND (@conVentana = 0 OR Fecha_registro BETWEEN DATEADD(MINUTE, -5, @fecha) AND DATEADD(MINUTE, 5, @fecha))", connection);
+            cmd.Parameters.AddWithValue("@numero", numeroFactura);
+            cmd.Parameters.AddWithValue("@literalF", literal + numeroFactura.ToString());
+            cmd.Parameters.AddWithValue("@conVentana", conVentana ? 1 : 0);
+            cmd.Parameters.AddWithValue("@fecha", fechaAnulacion);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                lista.Add(new DetalleFactura
+                {
+                    NumeroFactura = numeroFactura,
+                    IdEquipo = Convert.ToString(reader["ID_Equipo"]),
+                    Descripcion = Convert.ToString(reader["Descripcion"]),
+                    IdTipo = Convert.ToInt32(reader["ID_Tipo"]),
+                    Cantidad = Convert.ToInt32(reader["cantidad"]),
+                    Precio = Convert.ToDecimal(reader["precio"]),
+                    SubTotal = Convert.ToDecimal(reader["SubTotal"]),
+                    Descuento = Convert.ToDecimal(reader["Descuento"]),
+                    Itbis = Convert.ToDecimal(reader["Itbis"]),
+                    Total = Convert.ToDecimal(reader["Total"]),
+                });
+            }
+            return lista;
+        }
+
+        /// <summary>
+        /// Fecha de emisión original de la factura modificada, desde su log (literal real, o "A" en facturas antiguas; el e-NCF del log debe
+        /// coincidir con el de la factura): FechaEmision de la URL completa del timbre; si no hay, Fecha_Envio a hora de RD. Null si no hay log.
+        /// </summary>
+        private async Task<DateTime?> ObtenerFechaEmisionFacturaOrigen(int numeroFactura, FacturaOrigenNotaCredito origen)
+        {
+            foreach (var literal in new[] { origen.Literal, "A" }.Distinct())
+            {
+                var log = await GetLogFacturaElectronica(numeroFactura, literal);
+                if (log == null || !string.Equals(log.VoucherNumber_DGII?.Trim(), origen.NcfNumero, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                return LeerFechaEmisionQr(log.QR_Url) ?? log.Fecha_Envio.AddHours(-4);
+            }
+            return null;
+        }
+
+        /// <summary>FechaEmision (dd-MM-yyyy) de una URL completa del timbre; null si la URL no la trae (URL corta o vacía).</summary>
+        private static DateTime? LeerFechaEmisionQr(string qrUrl)
+        {
+            if (string.IsNullOrWhiteSpace(qrUrl)) return null;
+            try
+            {
+                var valor = System.Web.HttpUtility.ParseQueryString(new Uri(qrUrl).Query)["FechaEmision"];
+                if (DateTime.TryParseExact(valor, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fecha))
+                    return fecha;
+            }
+            catch { /* URL no válida: se usa la otra fuente */ }
+            return null;
         }
 
         /// <summary>
@@ -2609,8 +2821,38 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
                 throw;
             }
         }
+        // Una factura con comprobante solo se anula completa con nota de crédito: no admite cambios ni rebajas de artículo.
+        // Si la factura no se encuentra no bloquea (se deja el comportamiento actual).
+        private void ValidarFacturaSinComprobante(int numeroFactura, string idSucursal)
+        {
+            bool conSucursal = int.TryParse(idSucursal, out var sucursal);
+            bool conComprobante = false;
+            using (var cnVal = new SqlConnection(_connectionStrings))
+            using (var cmd = new SqlCommand(@"
+SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
+  FROM Facturas
+ WHERE Numero_Factura = @numero" + (conSucursal ? " AND ID_Sucursal = @sucursal" : "") + @"
+ ORDER BY Codigo DESC", cnVal))
+            {
+                cmd.Parameters.AddWithValue("@numero", numeroFactura);
+                if (conSucursal) cmd.Parameters.AddWithValue("@sucursal", sucursal);
+                cnVal.Open();
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        string ncf = reader.IsDBNull(0) ? "" : Convert.ToString(reader[0]).Trim();
+                        string tipo = reader.IsDBNull(1) ? "" : Convert.ToString(reader[1]).Trim();
+                        conComprobante = ncf != "" || (tipo != "" && tipo != "0");
+                    }
+                }
+            }
+            if (conComprobante)
+                throw new Exception("No se puede modificar un artículo de una factura con comprobante. Emita una nota de crédito para anular la factura completa.");
+        }
         public string EditaDetalleFactura(EditaDetalleFactura EditaDetalleFactura)
         {
+            ValidarFacturaSinComprobante(EditaDetalleFactura.NumeroFactura, EditaDetalleFactura.IDsucursal);
             try
             {
                 // Crear comando SQL
@@ -2655,6 +2897,7 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor AND NUM_DOCUMENTO = @numeroFactur
         }
         public string RebajaEquipo(RebajaEquipoModel model)
         {
+            ValidarFacturaSinComprobante(model.NumeroFactura, model.IDsucursal);
             try
             {
                 using (SqlCommand cmd = new SqlCommand("Proc_Detalle_Factura_Elimina_Equipo", cn))
@@ -5025,21 +5268,18 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
         {
             try
             {
-                if (factura?.NcfTipoNumero == 31 && string.IsNullOrWhiteSpace(_dgiQrBaseUrlFiscal))
+                // Tipo 31 y 34 (nota de crédito): URL completa del timbre
+                var timbreCompleto = factura?.NcfTipoNumero == 31 || factura?.NcfTipoNumero == 34;
+
+                if (timbreCompleto && string.IsNullOrWhiteSpace(_dgiQrBaseUrlFiscal))
                     return null;
 
-                if (factura?.NcfTipoNumero != 31 && string.IsNullOrWhiteSpace(_dgiQrBaseUrl))
+                if (!timbreCompleto && string.IsNullOrWhiteSpace(_dgiQrBaseUrl))
                     return null;
 
                 string url;
-                if (factura?.NcfTipoNumero == 31)
-                {
-                    var rncComprador = NormalizarRncReceptor(factura.RNC);
-                    var fechaEmision = factura.FechaRegistro.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
-                    var fechaFirmaValor = (fechaFirma ?? DateTime.Now).ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture);
-
-                    url = $"{_dgiQrBaseUrlFiscal}?RncEmisor={Uri.EscapeDataString(rncEmisor)}&RncComprador={Uri.EscapeDataString(rncComprador)}&ENCF={Uri.EscapeDataString(encf)}&FechaEmision={Uri.EscapeDataString(fechaEmision)}&MontoTotal={total.ToString("F2", CultureInfo.InvariantCulture)}&FechaFirma={Uri.EscapeDataString(fechaFirmaValor)}&CodigoSeguridad={Uri.EscapeDataString(codigoSeguridad)}";
-                }
+                if (timbreCompleto)
+                    url = ArmarQrUrlCompleta(rncEmisor, factura.RNC, encf, factura.FechaRegistro, total, fechaFirma ?? DateTime.Now, codigoSeguridad);
                 else
                     url = $"{_dgiQrBaseUrl}?rncemisor={rncEmisor}&encf={encf}&montototal={total:F2}&codigoseguridad={codigoSeguridad}";
 
@@ -5049,6 +5289,54 @@ WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
             {
                 return null;
             }
+        }
+
+        /// <summary>URL completa del timbre (ConsultaTimbre). Null si no hay URL fiscal configurada.</summary>
+        public string ArmarQrUrlCompleta(string rncEmisor, string rncComprador, string encf, DateTime fechaEmision, decimal total, DateTime fechaFirma, string codigoSeguridad)
+        {
+            if (string.IsNullOrWhiteSpace(_dgiQrBaseUrlFiscal))
+                return null;
+
+            var comprador = NormalizarRncReceptor(rncComprador);
+            var fechaEmisionValor = fechaEmision.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
+            var fechaFirmaValor = fechaFirma.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+
+            // Igual que la URL que genera el proveedor 2: sin RncComprador cuando el comprador es consumidor final (sin RNC)
+            // y con los dos puntos de la hora sin codificar (se lee igual; solo se codifican el espacio y los demás caracteres).
+            var parametroComprador = comprador.Length > 0 ? $"&RncComprador={Uri.EscapeDataString(comprador)}" : "";
+            var fechaFirmaEscapada = Uri.EscapeDataString(fechaFirmaValor).Replace("%3A", ":");
+
+            return $"{_dgiQrBaseUrlFiscal}?RncEmisor={Uri.EscapeDataString(rncEmisor ?? "")}{parametroComprador}&ENCF={Uri.EscapeDataString(encf ?? "")}&FechaEmision={Uri.EscapeDataString(fechaEmisionValor)}&MontoTotal={total.ToString("F2", CultureInfo.InvariantCulture)}&FechaFirma={fechaFirmaEscapada}&CodigoSeguridad={Uri.EscapeDataString(codigoSeguridad ?? "")}";
+        }
+
+        /// <summary>
+        /// QR completo de una NC aceptada en una consulta posterior: toma de la tabla remota (Proveedor 2) el código de seguridad,
+        /// la fecha de firma y lo transmitido (RNC comprador, fecha, total). Null si falta algo o no hay URL fiscal.
+        /// </summary>
+        public async Task<string> ObtenerQrUrlNotaCreditoProveedor2(string encf, string rncEmisor)
+        {
+            await using var connection = new SqlConnection(_proveedor2ConnectionString);
+            await connection.OpenAsync();
+
+            await using var cmd = new SqlCommand(@"
+SELECT TOP (1) ENCF_CODIGO_SEGURIDAD, COALESCE(ENCF_FECHA_FIRMA, FECHA_REGISTRO) AS FECHA_FIRMA, NUM_RNC, FECHA_FACTURA, TOTAL
+FROM PIVOT_FACTURAS_ENC
+WHERE ENCF = @encf AND RNC_EMISOR = @rncEmisor", connection);
+
+            cmd.Parameters.AddWithValue("@encf", encf);
+            cmd.Parameters.AddWithValue("@rncEmisor", rncEmisor);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return null;
+
+            var codigo = reader["ENCF_CODIGO_SEGURIDAD"]?.ToString() ?? "";
+            if (string.IsNullOrWhiteSpace(codigo) || reader.IsDBNull(reader.GetOrdinal("FECHA_FIRMA")) || reader.IsDBNull(reader.GetOrdinal("FECHA_FACTURA")))
+                return null;
+
+            return ArmarQrUrlCompleta(rncEmisor, reader["NUM_RNC"]?.ToString(), encf,
+                Convert.ToDateTime(reader["FECHA_FACTURA"]), Convert.ToDecimal(reader["TOTAL"]),
+                Convert.ToDateTime(reader["FECHA_FIRMA"]), codigo.Trim());
         }
 
         private string NormalizarRncReceptor(string rnc)

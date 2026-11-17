@@ -2,159 +2,200 @@
 
 @{
     Layout = null;
+
+    var qrUrl = Model.QrUrl;
+    string qrBase64 = null;
+    if (!string.IsNullOrEmpty(qrUrl))
+    {
+        var qrGenerator = new QRCoder.QRCodeGenerator();
+        var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
+        var qrCode = new QRCoder.PngByteQRCode(qrData);
+        var qrBytes = qrCode.GetGraphic(6);
+        qrBase64 = Convert.ToBase64String(qrBytes);
+    }
+
+    // Códigos de modificación (a confirmar con el informe técnico de la DGII):
+    // 1 Anula el NCF modificado, 2 Corrige el texto del documento, 3 Corrige montos,
+    // 4 Reemplazo de NCF emitido en contingencia, 5 Referencia Factura de Consumo Electrónica
+    string textoModificacion = null;
+    switch (Model.CodigoModificacion)
+    {
+        case 1: textoModificacion = "Anula el NCF modificado"; break;
+        case 2: textoModificacion = "Corrige el texto del documento"; break;
+        case 3: textoModificacion = "Corrige montos"; break;
+        case 4: textoModificacion = "Reemplazo de NCF emitido en contingencia"; break;
+        case 5: textoModificacion = "Referencia Factura de Consumo Electrónica"; break;
+    }
+
+    var empresa = Model.DatosEmpresaFactura;
+    var razonSocial = empresa?.Empresa;
+    // Nombre comercial: el encabezado de la sucursal, solo si es distinto de la razón social
+    var nombreComercial = empresa?.Encabezado;
+    if (string.IsNullOrWhiteSpace(nombreComercial) || string.Equals(nombreComercial.Trim(), razonSocial?.Trim(), StringComparison.OrdinalIgnoreCase))
+        nombreComercial = null;
+
+    var direccionTelefono = string.Join(" - ", new[] { empresa?.Direccion, empresa?.Telefonos }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    var subtotalLineas = Model.Detalle.Sum(x => x.Total);
+    var tieneCliente = !string.IsNullOrWhiteSpace(Model.NombreCliente) || !string.IsNullOrWhiteSpace(Model.RncCliente);
 }
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link href="/assets/bootstrap.min.css" rel="stylesheet" />
     <title>Nota de Crédito</title>
     <style>
-        .p0 p {
-            padding: 0%;
-            margin: 0%;
-        }
-        .nc-box {
-            border: 2px solid #dc3545;
-            border-radius: 4px;
-            padding: 8px;
-            text-align: center;
-        }
-        .nc-titulo {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .total-row {
-            color: #dc3545;
-            font-weight: bold;
-        }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222; margin: 0; padding: 0; }
+        table { border-collapse: collapse; }
+        .w100 { width: 100%; }
+        .r { text-align: right; }
+        .c { text-align: center; }
+        .gris { color: #777; }
+        .acento { color: #dc3545; }
+        .mono { font-family: "Courier New", Courier, monospace; }
+        .caja { border: 1px solid #ccc; padding: 8px 10px; margin-top: 10px; }
+        .ambar { background-color: #fff6df; border: 1px solid #f0d99a; }
+        .items th { background-color: #f1f1f1; border-bottom: 2px solid #999; padding: 6px 5px; font-size: 11px; }
+        .items td { border-bottom: 1px solid #ddd; padding: 6px 5px; vertical-align: top; }
+        .tot td { padding: 3px 5px; }
     </style>
 </head>
 <body>
-    <div class="container text-center">
-        <img src="@Model.DatosEmpresaFactura?.Logo" alt="Logo Empresa" />
-    </div>
-
-    <div class="container text-center p0 mb-3">
-        <p>@Model.DatosEmpresaFactura?.Encabezado</p>
-        <p>@Model.DatosEmpresaFactura?.Direccion</p>
-        <p>@Model.DatosEmpresaFactura?.Telefonos</p>
-        <p><b>RNC: @Model.DatosEmpresaFactura?.RNC</b></p>
-    </div>
-
-    @{
-        var qrUrl = Model.QrUrl;
-        string qrBase64 = null;
-        if (!string.IsNullOrEmpty(qrUrl))
-        {
-            var qrGenerator = new QRCoder.QRCodeGenerator();
-            var qrData = qrGenerator.CreateQrCode(qrUrl, QRCoder.QRCodeGenerator.ECCLevel.M);
-            var qrCode = new QRCoder.PngByteQRCode(qrData);
-            var qrBytes = qrCode.GetGraphic(6);
-            qrBase64 = Convert.ToBase64String(qrBytes);
-        }
-    }
-
-    <div class="container border border-dark">
-        <div class="row">
-            <div class="col-6 border border-dark">
-                <p><b>Fecha Emisión: </b>@Model.FechaEmision.ToString("dd/MM/yyyy")</p>
-            </div>
-            <div class="col-6 border border-dark nc-box">
-                <div class="nc-titulo">NOTA DE CRÉDITO ELECTRÓNICA</div>
-                <div><b>e-NCF: @Model.Encf</b></div>
-                <div>Condición: @Model.Condicion</div>
-                <div>Ref. NCF: @Model.EncfReferencia</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="row text-center mt-3 mb-2">
-            <b>DATOS DEL CLIENTE/COMPRADOR</b>
-        </div>
-        <div class="row">
-            <div class="col-6">
-                <b>Razón Social: </b>@Model.NombreCliente
-            </div>
-            <div class="col-6">
-                <b>RNC/Cédula: </b>@Model.RncCliente
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="row text-center mt-4 mb-3">
-            <b>DETALLE DE PRODUCTOS / SERVICIOS</b>
-        </div>
-        <div class="row">
-            <table class="table table-bordered">
-                <thead>
+    <table class="w100">
+        <tr>
+            <td style="width:55%; vertical-align:top;">
+                <table>
                     <tr>
-                        <th scope="col">COD.</th>
-                        <th scope="col">DESCRIPCIÓN</th>
-                        <th scope="col">U/M</th>
-                        <th scope="col">TIPO</th>
-                        <th scope="col">CANT.</th>
-                        <th scope="col">PRECIO</th>
-                        <th scope="col">ITBIS</th>
-                        <th scope="col">TOTAL</th>
+                        <td style="vertical-align:top; padding-right:12px;">
+                            @if (!string.IsNullOrEmpty(empresa?.Logo))
+                            {
+                                <img src="@empresa.Logo" alt="Logo Empresa" style="max-width:110px; max-height:80px;" />
+                            }
+                        </td>
+                        <td style="vertical-align:top;">
+                            <div style="font-size:17px; font-weight:bold;">@razonSocial</div>
+                            @if (nombreComercial != null)
+                            {
+                                <div class="gris" style="font-size:11px;">@nombreComercial</div>
+                            }
+                            <div style="margin-top:4px;">RNC: @empresa?.RNC</div>
+                            @if (direccionTelefono != "")
+                            {
+                                <div class="gris" style="font-size:9px;">@direccionTelefono</div>
+                            }
+                            <div>Fecha Emisión: @Model.FechaEmision.ToString("dd-MM-yyyy")</div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Detalle)
+                </table>
+            </td>
+            <td class="r" style="width:45%; vertical-align:top;">
+                <div class="acento" style="font-size:14px; font-weight:bold;">Nota de Crédito Electrónica</div>
+                <div class="mono" style="font-size:18px; font-weight:bold;">@Model.Encf</div>
+                <div>NCF Modificado: @Model.EncfReferencia</div>
+                @if (textoModificacion != null)
+                {
+                    <div>@textoModificacion</div>
+                }
+                <div class="gris" style="font-size:10px;">Valores en @Model.Moneda</div>
+            </td>
+        </tr>
+    </table>
+    <div style="border-top:2px solid #999; margin-top:8px;"></div>
+
+    <div class="caja">
+        <div><b>Cliente:</b> @(tieneCliente && !string.IsNullOrWhiteSpace(Model.NombreCliente) ? Model.NombreCliente : "Consumidor Final")</div>
+        <div><b>RNC/Cédula:</b> @(!string.IsNullOrWhiteSpace(Model.RncCliente) ? Model.RncCliente : "—")</div>
+    </div>
+
+    <div class="caja ambar">
+        <div style="font-size:10px; font-weight:bold;">INFORMACIÓN DE REFERENCIA</div>
+        <div>Fecha NCF Modificado: @(Model.FechaNcfModificado.HasValue ? Model.FechaNcfModificado.Value.ToString("dd-MM-yyyy") : "—")</div>
+    </div>
+
+    <table class="w100 items" style="margin-top:12px;">
+        <thead>
+            <tr>
+                <th style="width:5%; text-align:left;">#</th>
+                <th style="text-align:left;">DESCRIPCIÓN</th>
+                <th class="r" style="width:8%;">CANT.</th>
+                <th class="r" style="width:15%;">P. UNIT.</th>
+                <th class="r" style="width:13%;">ITBIS</th>
+                <th class="r" style="width:15%;">VALOR</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{ var n = 0; }
+            @foreach (var item in Model.Detalle)
+            {
+                n++;
+                <tr>
+                    <td>@n</td>
+                    <td>@item.Descripcion</td>
+                    <td class="r">@item.Cantidad.ToString("N0")</td>
+                    <td class="r">@item.Precio.ToString("N2")</td>
+                    <td class="r">@item.Impuesto.ToString("N2")</td>
+                    <td class="r">@item.Total.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <table class="w100" style="margin-top:12px; page-break-inside:avoid;">
+        <tr>
+            <td style="width:50%; vertical-align:top;">
+                @if (Model.Pagos != null && Model.Pagos.Any())
+                {
+                    <div style="font-size:10px; font-weight:bold;">FORMA DE PAGO</div>
+                    @foreach (var pago in Model.Pagos)
                     {
-                        <tr>
-                            <td>@item.CodProducto</td>
-                            <td>@item.Descripcion</td>
-                            <td>@item.UndMedida</td>
-                            <td>@item.TipoProducto</td>
-                            <td>@item.Cantidad.ToString("N2")</td>
-                            <td>@item.Precio.ToString("N2")</td>
-                            <td>@item.Impuesto.ToString("N2")</td>
-                            <td>@item.Total.ToString("N2")</td>
-                        </tr>
+                        <div>@pago.Descripcion — $@pago.Monto.ToString("N2")</div>
                     }
-                </tbody>
-            </table>
-        </div>
-    </div>
+                }
+            </td>
+            <td style="width:50%; vertical-align:top;">
+                <table class="w100 tot">
+                    <tr><td>Subtotal</td><td class="r">@subtotalLineas.ToString("N2")</td></tr>
+                    @if (Model.MontoGravado != 0 || Model.MontoExento == 0)
+                    {
+                        <tr><td>Monto Gravado (@Model.TasaItbis.ToString("0.##")%)</td><td class="r">@Model.MontoGravado.ToString("N2")</td></tr>
+                    }
+                    @if (Model.MontoExento != 0)
+                    {
+                        <tr><td>Monto Exento</td><td class="r">@Model.MontoExento.ToString("N2")</td></tr>
+                    }
+                    <tr><td>Total ITBIS</td><td class="r">@Model.Impuesto.ToString("N2")</td></tr>
+                    <tr><td style="border-top:2px solid #999; font-size:15px; font-weight:bold;">TOTAL</td><td class="r" style="border-top:2px solid #999; font-size:15px; font-weight:bold;">@Model.Total.ToString("N2")</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <div class="container text-right">
-        <div>Subtotal: <b>@Model.SubTotal.ToString("N2")</b></div>
-        <div>Total ITBIS: <b>@Model.Impuesto.ToString("N2")</b></div>
-        <div class="total-row">TOTAL: RD$@Model.Total.ToString("N2")</div>
-    </div>
-
-    <div id="invoice-footer" style="page-break-inside: avoid;">
-        @if (qrBase64 != null)
-        {
-            <div class="container" style="margin-top: 2rem;">
-                <div class="row">
-                    <div class="col-6">
-                        <div style="padding: 0.5rem; width: fit-content;">
-                            <img src="data:image/png;base64,@qrBase64" style="width:3.0cm;height:3.0cm; display: block;" />
-                            <div style="font-size:8px; margin-top:6px; line-height:1.25;">
-                                @if (!string.IsNullOrEmpty(Model.CodigoSeguridad))
-                                {
-                                    <p style="margin:2px 0;"><b>Código de Seguridad:</b> @Model.CodigoSeguridad</p>
-                                }
-                                @if (!string.IsNullOrEmpty(Model.FechaFirma))
-                                {
-                                    <p style="margin:2px 0;"><b>Fecha/Hora Firma:</b> @Model.FechaFirma</p>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        <div class="container text-center" style="margin-top: 1rem;">
-            <small>Representación impresa de un e-CF — Consulte el original en ecf.dgii.gov.do</small>
-        </div>
+    <div style="page-break-inside:avoid; margin-top:24px;">
+        <table class="w100">
+            <tr>
+                @if (qrBase64 != null)
+                {
+                    <td style="width:3.4cm; vertical-align:top;">
+                        <img src="data:image/png;base64,@qrBase64" style="width:3.0cm; height:3.0cm; display:block;" />
+                    </td>
+                }
+                <td style="vertical-align:top; font-size:9px;">
+                    @if (!string.IsNullOrEmpty(Model.QrUrl))
+                    {
+                        <div class="gris" style="word-break:break-all;">@Model.QrUrl</div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.CodigoSeguridad))
+                    {
+                        <div style="margin-top:4px;"><b>Código de Seguridad:</b> @Model.CodigoSeguridad</div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.FechaFirma))
+                    {
+                        <div><b>Fecha Firma:</b> @Model.FechaFirma</div>
+                    }
+                </td>
+            </tr>
+        </table>
+        <div class="c gris" style="margin-top:12px; font-size:10px;">Representación impresa de un e-CF — Consulte el original en ecf.dgii.gov.do</div>
     </div>
 </body>
 </html>

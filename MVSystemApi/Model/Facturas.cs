@@ -189,6 +189,13 @@ namespace MVSystemApi.Model
         public decimal Precio { get; set; }
         public decimal Impuesto { get; set; }
         public decimal Total { get; set; }
+        public bool Exento { get; set; }
+        public decimal TasaImpuesto { get; set; }
+    }
+    public class NotaCreditoPagoReporte
+    {
+        public string Descripcion { get; set; }
+        public decimal Monto { get; set; }
     }
     public class NotaCreditoReporteViewModel
     {
@@ -206,6 +213,13 @@ namespace MVSystemApi.Model
         public string QrUrl { get; set; }
         public string CodigoSeguridad { get; set; }
         public string FechaFirma { get; set; }
+        public DateTime? FechaNcfModificado { get; set; }
+        public int? CodigoModificacion { get; set; }
+        public decimal MontoGravado { get; set; }
+        public decimal MontoExento { get; set; }
+        public decimal TasaItbis { get; set; }
+        public string Moneda { get; set; } = "DOP";
+        public List<NotaCreditoPagoReporte> Pagos { get; set; } = new List<NotaCreditoPagoReporte>();
     }
     public class EditaDetalleFactura
     {

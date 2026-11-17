@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -133,6 +134,9 @@ namespace MVSystemApi.Controllers
                             logNc.Estado = "ACEPTADA";
                             logNc.Fecha_Confirmacion = DateTime.Now;
                             logNc.Error_Descripcion = null;
+                            // QR completo con el código y la firma de la tabla remota; si no se obtiene, el log queda como estaba
+                            var qrTardio = await _accesoDatos.ObtenerQrUrlNotaCreditoProveedor2(logNc.VoucherNumber_DGII, rncClaim);
+                            if (!string.IsNullOrWhiteSpace(qrTardio)) logNc.QR_Url = qrTardio;
                             await _accesoDatos.UpdateLogFacturaElectronica(logNc);
                             return Ok(await ResultadoAprobadaAsync(numero, sucursal, usuario, logNc.VoucherNumber_DGII, "La DGII aceptó la nota de crédito."));
                         }
@@ -284,7 +288,21 @@ namespace MVSystemApi.Controllers
             if (log == null || string.IsNullOrWhiteSpace(log.VoucherNumber_DGII))
                 return NotFound(new { error = "Nota de crédito anterior: consúltela en el portal del proveedor." });
 
-            var data = await _accesoDatos.ObtenerNotaCreditoReporte(request.NumeroFacturaOrigen, sucursal, rncClaim, log.VoucherNumber_DGII.Trim());
+            // Proveedor 2: copia local en PIVOT (como siempre). Proveedor 1: no escribe en PIVOT, se arma de Facturas/Detalle_Facturas y el log
+            var idProveedorClaim = User?.FindFirst("IdProveedor")?.Value ?? "1";
+            int.TryParse(idProveedorClaim, out var idProveedor);
+
+            NotaCreditoReporteViewModel data;
+            try
+            {
+                data = idProveedor == 2
+                    ? await _accesoDatos.ObtenerNotaCreditoReporte(request.NumeroFacturaOrigen, sucursal, rncClaim, log.VoucherNumber_DGII.Trim())
+                    : await _accesoDatos.ObtenerNotaCreditoReporteProveedor1(request.NumeroFacturaOrigen, sucursal, log);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ErroresApi.Mensaje(ex) });
+            }
             if (data == null)
                 return NotFound(new { error = "Nota de Crédito no encontrada." });
 
@@ -294,12 +312,34 @@ namespace MVSystemApi.Controllers
             string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
             data.DatosEmpresaFactura.Logo = baseUrl + "/assets/" + data.DatosEmpresaFactura.Logo + ".png";
 
+            // Firma y código de la copia local (pueden venir vacíos)
+            var firmaLocal = data.FechaFirma;
+            var codigoLocal = data.CodigoSeguridad;
+            data.FechaFirma = null;
+            data.CodigoSeguridad = null;
+
             if (log.QR_Url != null)
             {
                 data.QrUrl = log.QR_Url;
                 var (fechaFirma, codigoSeguridad) = ExtractQrParameters(log.QR_Url);
                 data.FechaFirma = fechaFirma;
                 data.CodigoSeguridad = codigoSeguridad;
+            }
+
+            // QR corto (o sin firma): se arma el completo en memoria con lo transmitido; si no se puede, queda lo que hay
+            if (string.IsNullOrWhiteSpace(data.FechaFirma))
+            {
+                var codigo = !string.IsNullOrWhiteSpace(codigoLocal) ? codigoLocal : data.CodigoSeguridad;
+                if (!string.IsNullOrWhiteSpace(codigo) && DateTime.TryParseExact(firmaLocal, "dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var firma))
+                {
+                    var urlCompleta = _accesoDatos.ArmarQrUrlCompleta(rncClaim, data.RncCliente, data.Encf, data.FechaEmision, data.Total, firma, codigo);
+                    if (!string.IsNullOrWhiteSpace(urlCompleta))
+                    {
+                        data.QrUrl = urlCompleta;
+                        data.FechaFirma = firmaLocal;
+                        data.CodigoSeguridad = codigo;
+                    }
+                }
             }
 
             return new ViewAsPdf(data);
@@ -315,8 +355,9 @@ namespace MVSystemApi.Controllers
                 var uri = new Uri(qrUrl);
                 var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
-                string fechaFirma = queryParams["FechaFirma"];
-                string codigoSeguridad = queryParams["CodigoSeguridad"];
+                // ParseQueryString distingue mayúsculas: la URL corta trae los nombres en minúsculas
+                string fechaFirma = queryParams["FechaFirma"] ?? queryParams["fechafirma"];
+                string codigoSeguridad = queryParams["CodigoSeguridad"] ?? queryParams["codigoseguridad"];
 
                 return (fechaFirma, codigoSeguridad);
             }

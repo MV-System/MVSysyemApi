@@ -24,18 +24,31 @@
 </head>
 
 <body>
-    <div class="container text-center">
-        <img src="@Model.logoEmpresa" alt="Logo" />
-    </div>
-
-    <div class="container text-center p0">
-        <p>Reparación, Desbloqueo, Accesorios, y Ventas de Celulares por mayor y al Detalle.</p>
-        <p>
-            Isabel Aguiar #402,frente a la estacion de combustible Texaco Santo Domingo, República Dominicana
-            Tel.:809-908-6952 Cel.: 809-883-8858
-        </p>
-        <p> <b> RNC: 132307382 </b> </p>
-    </div>
+    <table width="100%" style="text-align:center;">
+        @if (!string.IsNullOrWhiteSpace(Model.logoEmpresa))
+        {
+            <tr><td align="center"><img src="@Model.logoEmpresa" alt="Logo" /></td></tr>
+        }
+        @{
+            var encabezado = !string.IsNullOrWhiteSpace(Model.DatosEmpresa?.Encabezado) ? Model.DatosEmpresa.Encabezado : Model.DatosEmpresa?.Empresa;
+        }
+        @if (!string.IsNullOrWhiteSpace(encabezado))
+        {
+            <tr><td align="center">@encabezado</td></tr>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DatosEmpresa?.Direccion))
+        {
+            <tr><td align="center">@Model.DatosEmpresa.Direccion</td></tr>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DatosEmpresa?.Telefonos))
+        {
+            <tr><td align="center">Tel.: @Model.DatosEmpresa.Telefonos</td></tr>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DatosEmpresa?.RNC))
+        {
+            <tr><td align="center"><b>RNC: @Model.DatosEmpresa.RNC</b></td></tr>
+        }
+    </table>
      <div  class="container text-center">
         <h1><b> REPORTE DE EQUIPOS RECIBIDOS</b></h1>
     </div>

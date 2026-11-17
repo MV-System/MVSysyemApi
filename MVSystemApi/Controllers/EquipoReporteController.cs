@@ -17,9 +17,11 @@ namespace MVSystemApi.Controllers
         private readonly Equipos_Negocio _equipos_Negocio;
         private readonly SeguridadService _SS;
         private readonly AccesoDatos _accesoDatos;
+        private readonly ILogger<EquipoReporteController> _logger;
 
-        public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS, AccesoDatos accesoDatos, IConfiguration configuration)
+        public EquipoReporteController(Equipos_Negocio equipos_Negocio, SeguridadService SS, AccesoDatos accesoDatos, IConfiguration configuration, ILogger<EquipoReporteController> logger)
         {
+            _logger = logger;
             _equipos_Negocio = equipos_Negocio;
             _SS = SS;
             _accesoDatos = accesoDatos;
@@ -96,7 +98,31 @@ namespace MVSystemApi.Controllers
 
             if (equiposRecibidos == null)
                 return NotFound();
-            return new ViewAsPdf(new ReporteData() { Registros = equiposRecibidos, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy") });
+
+            // Datos de la empresa/sucursal del usuario; si fallan, el reporte sale sin encabezado
+            DatosEmpresa datosEmpresa = null;
+            string logoEmpresa = null;
+            try
+            {
+                if (int.TryParse(User?.FindFirst("IdEmpresa")?.Value, out int idEmp) &&
+                    int.TryParse(User?.FindFirst("idSucursal")?.Value, out int idSuc))
+                {
+                    datosEmpresa = _SS.GetDatosEmpresa(idEmp, idSuc);
+                    if (!string.IsNullOrWhiteSpace(datosEmpresa?.Logo))
+                    {
+                        string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
+                        logoEmpresa = baseUrl + "/assets/" + datosEmpresa.Logo + ".png";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                datosEmpresa = null;
+                logoEmpresa = null;
+                _logger.LogWarning(ex, "No se pudieron obtener los datos de la empresa para el reporte de equipos recibidos.");
+            }
+
+            return new ViewAsPdf(new ReporteData() { Registros = equiposRecibidos, FechaImpresion = DateTime.Now.ToString("ddd, dd MMM yyyy"), DatosEmpresa = datosEmpresa, logoEmpresa = logoEmpresa });
         }
 
         [HttpPost]

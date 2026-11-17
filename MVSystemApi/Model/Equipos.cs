@@ -159,6 +159,7 @@ namespace MVSystemApi.Model
         public List<EquipoRecepcionGet> Registros { get; set; }
         public string FechaImpresion { get; set; }
         public string logoEmpresa { get; set; }
+        public DatosEmpresa DatosEmpresa { get; set; }
     }
 
     public class EquipoEstadoUpdate

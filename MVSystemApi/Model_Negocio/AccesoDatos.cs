@@ -3111,6 +3111,9 @@ SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
             };
         }
 
+        private const int TimeoutConsultaSqlSegundos = 60;
+        private const int TimeoutModificacionSqlSegundos = 30;
+
         public ConsultaSqlResultado EjecutarConsultaSql(string consulta, int maxFilas)
         {
             var tipoOperacion = ValidarConsultaSqlPermitida(consulta);
@@ -3137,7 +3140,7 @@ SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
                     using var command = new SqlCommand(consulta, connection)
                     {
                         CommandType = CommandType.Text,
-                        CommandTimeout = 0
+                        CommandTimeout = TimeoutConsultaSqlSegundos
                     };
 
                     using var reader = command.ExecuteReader();
@@ -3189,7 +3192,7 @@ SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
                     using var command = new SqlCommand(commandText, connection, transaction)
                     {
                         CommandType = CommandType.Text,
-                        CommandTimeout = 0
+                        CommandTimeout = TimeoutModificacionSqlSegundos
                     };
 
                     var filasAfectadas = Convert.ToInt32(command.ExecuteScalar());

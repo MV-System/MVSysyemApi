@@ -33,6 +33,7 @@ namespace MVSystemApi.Controllers
         {
             try
             {
+                equipoReporte.PageIndex = 1;
                 equipoReporte.PageSize = int.MaxValue;
 
                 // Obtener los equipos disponibles
@@ -65,6 +66,7 @@ namespace MVSystemApi.Controllers
         [Route("EquipoVendidoReporte/GetEquiposVendidos")]
         public IActionResult ReportEquipoVendido(EquipoVendidoFilter equipoReporte)
         {
+            equipoReporte.PageIndex = 1;
             equipoReporte.PageSize = int.MaxValue;
             var equipoVendidos = (List<EquipoVendido>)_equipos_Negocio.GetEquiposVendidos(equipoReporte);
 
@@ -93,6 +95,7 @@ namespace MVSystemApi.Controllers
         [RequierePermiso(PermisosApi.MantEquipos, PermisosApi.RecepcionEquiposMenu, PermisosApi.RecepcionEquipos)]
         public IActionResult ReporteEquiposRecibidos([FromQuery]CriterioFilters filterData)
         {
+            filterData.PageIndex = 1;
             filterData.PageSize = int.MaxValue;
             List<EquipoRecepcionGet> equiposRecibidos = (List<EquipoRecepcionGet>)_equipos_Negocio.GetEquiposRecibidos(filterData);
 

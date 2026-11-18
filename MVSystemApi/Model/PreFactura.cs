@@ -38,6 +38,7 @@ namespace MVSystemApi.Model
         public string RNC { get; set; }
         public string Literal { get; set; }
         public int Cotizacion_Numero { get; set; }
+        public int? ID_Garantia { get; set; }
         public List<PreDetalleFactura> DetalleFacturaList { get; set; }
     }
 

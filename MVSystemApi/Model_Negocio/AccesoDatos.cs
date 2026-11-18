@@ -4554,6 +4554,7 @@ EXEC sp_set_session_context N'mov_nota', NULL;";
                 cmd.Parameters.AddWithValue("@RNC", prefactura.RNC ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Literal", prefactura.Literal ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Cotizacion_Numero", prefactura.Cotizacion_Numero);
+                cmd.Parameters.AddWithValue("@ID_Garantia", prefactura.ID_Garantia ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Fecha_Registro", prefactura.Fecha_Registro ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Fecha_Procesamiento", prefactura.Fecha_Procesamiento ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@Usuario_Procesamiento", prefactura.Usuario_Procesamiento ?? (object)DBNull.Value);

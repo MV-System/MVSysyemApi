@@ -165,7 +165,8 @@ namespace MVSystemApi.Controllers
                 FechaFacturacion = preFactura.Fecha_Registro ?? DateTime.Now,
                 FacturaTitulo = "Pre-Factura No.",
                 FacturaTituloTipo = "Tipo de Pre-Factura",
-                VerNCF = ""
+                VerNCF = "",
+                Garantia = DescripcionGarantia(preFactura.ID_Garantia ?? preDetalles.Select(d => (int?)d.ID_Garantia).Max())
             };
 
             var detalleFactura = preDetalles.Select(d => new DetalleFactura
@@ -196,6 +197,24 @@ namespace MVSystemApi.Controllers
                 DetalleFacturaList = detalleFactura,
                 DatosEmpresaFactura = DatosEmpresaFactura,
             };
+        }
+
+        /// <summary>Descripción de la garantía para el encabezado impreso; null si no hay o es "No Aplica" (igual que la factura).</summary>
+        private string DescripcionGarantia(int? idGarantia)
+        {
+            if (idGarantia == null || idGarantia <= 0) return null;
+            try
+            {
+                var fila = _accesoDatos.Get_Garantia_Equipo_Combo().AsEnumerable()
+                    .FirstOrDefault(r => Convert.ToInt32(r["ID_Garantia"]) == idGarantia);
+                var descripcion = fila == null ? null : Convert.ToString(fila["Descripcion_Garantia"])?.Trim();
+                return string.IsNullOrEmpty(descripcion) || string.Equals(descripcion, "No Aplica", StringComparison.OrdinalIgnoreCase)
+                    ? null : descripcion;
+            }
+            catch
+            {
+                return null;   // sin garantía en el impreso antes que no imprimir
+            }
         }
 
         public class ProcesarPreFacturaRequest

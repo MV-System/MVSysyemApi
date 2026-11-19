@@ -2,22 +2,22 @@
 {
     public class Utilidades
     {
-        public int Costo_Equipos;
-        public int Venta_Equipos;
-        public int Itbis_Equipos;
-        public int Ganancia_Equipos;
-        public int Costo_Accesorios;
-        public int Venta_Accesorios;
-        public int Itbis_Accesorios;
-        public int Ganancia_Accesorios;
-        public int Costo_Reparaciones;
-        public int Venta_Reparaciones;
-        public int Itbis_Reparaciones;
-        public int Ganancia_Reparaciones;
-        public int Costo_Desbloqueos;
-        public int Venta_Desbloqueos;
-        public int Itbis_Desbloqueos;
-        public int Ganancia_Desbloqueos;
+        public decimal Costo_Equipos;
+        public decimal Venta_Equipos;
+        public decimal Itbis_Equipos;
+        public decimal Ganancia_Equipos;
+        public decimal Costo_Accesorios;
+        public decimal Venta_Accesorios;
+        public decimal Itbis_Accesorios;
+        public decimal Ganancia_Accesorios;
+        public decimal Costo_Reparaciones;
+        public decimal Venta_Reparaciones;
+        public decimal Itbis_Reparaciones;
+        public decimal Ganancia_Reparaciones;
+        public decimal Costo_Desbloqueos;
+        public decimal Venta_Desbloqueos;
+        public decimal Itbis_Desbloqueos;
+        public decimal Ganancia_Desbloqueos;
         public decimal Abonos_Credito;
         public decimal Retencion_Tarjeta;
         public int valida = 1;

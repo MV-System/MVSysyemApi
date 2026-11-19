@@ -910,15 +910,29 @@ GO
 -- 5. UPDATE_Ver_Utilidades_Precio_Detalle_Retencion.sql
 -- #####################################################################
 -- ============================================================
--- Retencion de tarjeta en Utilidades
--- Ver_Utilidades_Precio_Detalle agrega la columna Retencion_Tarjeta: suma de Facturas.Monto_Retencion_Tarjeta
--- de las facturas de venta del periodo (mismos filtros que las ventas), a nivel de factura, sin prorrateo.
+-- Utilidades (Ver_Utilidades_Precio_Detalle): retencion de tarjeta + cuadre de numeros
+-- Cambios:
+--  * Retencion_Tarjeta: suma de Facturas.Monto_Retencion_Tarjeta de las facturas de venta del periodo.
+--  * Fecha: todos los bloques filtran por Facturas.Fecha_registro (rango sin cast sobre la columna),
+--    igual que la retencion; antes usaban Detalle_Facturas.fecha_registro.
+--  * Equipos: se quita el join con Equipos y el filtro Disponible = 'N'; la venta la definen la linea y la
+--    factura activas. Costo e ITBIS con coalesce para que Ganancia = Venta - Costo - ITBIS.
+--  * Accesorios: costo igual que antes (costo del accesorio * cantidad); coalesce en ITBIS/costo.
+--  * Reparaciones: sin filas duplicadas (una reparacion por linea) y ganancia = Venta - Costo - ITBIS.
+--    Se tratan las columnas como se comportan hoy (Reparaciones.Costo es el costo); sin renombrar.
+--  * Desbloqueos: logica sin cambios (pendiente); solo cambia el filtro de fecha.
 -- Requiere: CREATE_RETENCION_TARJETA.sql.
 -- Idempotente. Ejecutar en cada base (principal y espejo).
 -- ============================================================
 
-----------------------------------------------------------------------------------------------------------------
-
+-- Comprobacion previa: si faltan las columnas, no se crea el SP (SET NOEXEC ON hasta el GO del SP).
+IF COL_LENGTH('dbo.Reparaciones', 'Costo') IS NULL
+   OR COL_LENGTH('dbo.Detalle_Facturas', 'Costo_Equipo') IS NULL
+BEGIN
+    RAISERROR('Ver_Utilidades_Precio_Detalle NO se creo: falta la columna Reparaciones.Costo o Detalle_Facturas.Costo_Equipo en esta base. Revisar el esquema.', 16, 1);
+    SET NOEXEC ON;
+END
+GO
 
 CREATE OR ALTER PROCEDURE [dbo].[Ver_Utilidades_Precio_Detalle]
 @Sucursal int = null,
@@ -927,79 +941,82 @@ CREATE OR ALTER PROCEDURE [dbo].[Ver_Utilidades_Precio_Detalle]
 as
 begin
 Set DateFormat MDY
-	select * from 
+	select * from
 (
     --Ganancia en Equipo
-    select 
-        coalesce(sum(df.costo_equipo), 0) as Costo_Equipos,
+    select
+        coalesce(sum(coalesce(df.costo_equipo, 0)), 0) as Costo_Equipos,
         coalesce(sum(df.total), 0) as Venta_Equipos,
-        coalesce(sum(df.Itbis), 0) as Itbis_Equipos,
-        coalesce(sum(df.total - df.costo_equipo - df.Itbis), 0) as Ganancia_Equipos
+        coalesce(sum(coalesce(df.Itbis, 0)), 0) as Itbis_Equipos,
+        coalesce(sum(df.total - coalesce(df.costo_equipo, 0) - coalesce(df.Itbis, 0)), 0) as Ganancia_Equipos
     from  Detalle_Facturas df
-    left join Equipos eq on df.id_equipo = eq.IMEI
-    left join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura
-    where 
+    inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura
+                              and df.literalF = ft.literal + convert(varchar(10), ft.Numero_Factura)
+    where
         ft.estado = 'A'
-        and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal) 
+        and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)
 		and ft.ID_Tipo_Pagos <> 2
 		and df.id_tipo in (1)
 		and ft.ID_Tipo_Factura <> 3
-		and eq.Disponible = 'N'
-        and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
-        and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final  
+        and ft.Fecha_registro >= convert(date, @Fecha_Inicio) and ft.Fecha_registro < dateadd(day, 1, convert(date, @Fecha_Final))
         and df.Estado = 'A'
-		
+
 ) as EQUIPOS
 	, (
 		--Ganancia en Accesorio
-		select coalesce(sum(ac.costo_equipo * df.cantidad), 0)                          as Costo_Accesorios
-			 , coalesce(sum(df.total), 0)                                                as Venta_Accesorios
-			 , coalesce(sum(df.Itbis), 0)                                                as Itbis_Accesorios
-			 , coalesce(sum(df.total - (ac.costo_equipo * df.cantidad) - df.Itbis), 0)   as Ganancia_Accesorios
+		select coalesce(sum(coalesce(ac.costo_equipo, 0) * df.cantidad), 0)                                         as Costo_Accesorios
+			 , coalesce(sum(df.total), 0)                                                                            as Venta_Accesorios
+			 , coalesce(sum(coalesce(df.Itbis, 0)), 0)                                                               as Itbis_Accesorios
+			 , coalesce(sum(df.total - (coalesce(ac.costo_equipo, 0) * df.cantidad) - coalesce(df.Itbis, 0)), 0)     as Ganancia_Accesorios
 		  from Detalle_Facturas df
-		 inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura		  
+		 inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura
 		 inner join Accesorios ac on df.id_equipo = ac.id_accesorio
 		 where df.estado = 'A'
-		     and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal) 
+		     and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)
 		   and ft.ID_Tipo_Pagos <> 2
 		   and df.id_tipo = 2
 		   and ft.ID_Tipo_Factura <> 3
 		   and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
-		   and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final 														  
-		   and df.Estado = 'A') as ACCESORIOS
+		   and ft.Fecha_registro >= convert(date, @Fecha_Inicio) and ft.Fecha_registro < dateadd(day, 1, convert(date, @Fecha_Final))
+		   and df.Estado = 'A'
+		   and ft.Estado = 'A') as ACCESORIOS
 	, (
-		--Ganancia en reparaciones                                                                      
-		select coalesce(sum(r.Costo * df.cantidad), 0)          as Costo_Reparaciones
-			 , coalesce(sum(df.total), 0)                       as Venta_Reparaciones
-			 , coalesce(sum(df.Itbis), 0)                       as Itbis_Reparaciones
-			 , coalesce(sum(r.precio - r.Costo - df.Itbis), 0)  as Ganancia_Reparaciones
-		  from Detalle_Facturas df		
-		 inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura	
-		 inner join dbo.Reparaciones r on r.numero_factura = ft.numero_factura	  		 
-		 where df.estado = 'A'
-		   and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)  
+		--Ganancia en reparaciones (una reparacion por linea: por ID_Reparacion o por Imei)
+		select coalesce(sum(coalesce(rp.Costo, 0) * coalesce(df.cantidad, 1)), 0)                                              as Costo_Reparaciones
+			 , coalesce(sum(df.Total), 0)                                                                                      as Venta_Reparaciones
+			 , coalesce(sum(coalesce(df.Itbis, 0)), 0)                                                                         as Itbis_Reparaciones
+			 , coalesce(sum(df.Total - coalesce(rp.Costo, 0) * coalesce(df.cantidad, 1) - coalesce(df.Itbis, 0)), 0)           as Ganancia_Reparaciones
+		  from Detalle_Facturas df
+		 inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura and df.literalF = ft.literal + convert(varchar(10), ft.Numero_Factura)
+		 cross apply (select top (1) r.Costo
+		                from dbo.Reparaciones r
+		               where r.Numero_Factura = ft.Numero_Factura
+		                 and r.Estado = 'A'
+		                 and (df.ID_Equipo = convert(varchar(30), r.ID_Reparacion) or df.ID_Equipo = convert(varchar(30), r.Imei))
+		               order by case when df.ID_Equipo = convert(varchar(30), r.ID_Reparacion) then 0 else 1 end, r.ID_Reparacion) rp
+		 where df.Estado = 'A'
+		   and ft.Estado = 'A'
+		   and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)
 		   and ft.ID_Tipo_Pagos <> 2
-		   and df.id_tipo in(3,4)
-		   and ft.id_tipo_factura = 4
-		   and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
-		   and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final 	
-		   and df.Estado = 'A' And r.Estado = 'A') as REPARACIONES
+		   and df.ID_Tipo in (3, 4)
+		   and ft.ID_Tipo_Factura = 4
+		   and ft.Fecha_registro >= convert(date, @Fecha_Inicio) and ft.Fecha_registro < dateadd(day, 1, convert(date, @Fecha_Final))) as REPARACIONES
 	, (
-		--Ganancia en desbloqueo
+		--Ganancia en desbloqueo (logica sin cambios; pendiente de revisar)
 		select coalesce(sum(d.SubTotal * df.cantidad), 0)                       as Costo_Desbloqueos
 			 , coalesce(sum(df.total), 0)                                       as Venta_Desbloqueos
 			 , coalesce(sum(df.Itbis), 0)                                       as Itbis_Desbloqueos
 			 , coalesce(sum(df.total - (d.SubTotal * df.cantidad) - df.Itbis), 0) as Ganancia_Desbloqueos
 		  from Detalle_Facturas df
-		 inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura		  
+		 inner join dbo.Facturas ft on ft.Numero_Factura = df.Numero_Factura
 		 inner join dbo.Desbloqueos d on df.id_equipo = d.ID_Desbloqueos and d.numero_factura = ft.numero_factura
 		 where df.estado = 'A'
-		     and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal) 
+		     and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)
 		   and ft.ID_Tipo_Pagos <> 2
 		   and df.id_tipo = 5
 		   and ft.ID_Tipo_Factura <> 3
 		   and df.literalF = ft.literal + convert(varchar(10), ft.numero_factura)
-		   and cast(df.fecha_registro as date) between @Fecha_Inicio and @Fecha_Final 	
+		   and ft.Fecha_registro >= convert(date, @Fecha_Inicio) and ft.Fecha_registro < dateadd(day, 1, convert(date, @Fecha_Final))
 		   and df.Estado = 'A' And d.Estado = 'A') as DESBLOQUEOS
 	, (
 		-- Abonos recibidos durante el período en facturas a crédito.
@@ -1016,7 +1033,7 @@ Set DateFormat MDY
 		   --and hp.Tipo_Factura = 1
 		   and hp.Id_Sucursal = coalesce(@Sucursal, hp.Id_Sucursal)
 		   and hp.Total_Abono > 0
-		   and cast(hp.Fecha_registro as date) between @Fecha_Inicio and @Fecha_Final
+		   and hp.Fecha_registro >= convert(date, @Fecha_Inicio) and hp.Fecha_registro < dateadd(day, 1, convert(date, @Fecha_Final))
 	) as ABONOS_CREDITO
 	, (
 		-- Retencion de tarjeta de las facturas de venta del periodo (a nivel de factura, sin prorrateo)
@@ -1026,10 +1043,29 @@ Set DateFormat MDY
 		   and ft.ID_Sucursal = coalesce(@Sucursal, ft.ID_Sucursal)
 		   and ft.ID_Tipo_Pagos <> 2
 		   and ft.ID_Tipo_Factura <> 3
-		   and cast(ft.Fecha_registro as date) between @Fecha_Inicio and @Fecha_Final
+		   and ft.Fecha_registro >= convert(date, @Fecha_Inicio) and ft.Fecha_registro < dateadd(day, 1, convert(date, @Fecha_Final))
 	) as RETENCION
 end
 GO
+
+-- Restaura la ejecucion normal (si la comprobacion previa la desactivo, las secciones siguientes corren igual).
+SET NOEXEC OFF;
+GO
+
+-- Verificacion (comentada): por categoria, Venta - Costo - ITBIS - Ganancia debe dar 0.
+-- Cambiar las fechas; la sucursal NULL = todas.
+-- DECLARE @FI datetime = '2026-11-01', @FF datetime = '2026-11-30';
+-- CREATE TABLE #u (Costo_Equipos decimal(18,2), Venta_Equipos decimal(18,2), Itbis_Equipos decimal(18,2), Ganancia_Equipos decimal(18,2),
+--                  Costo_Accesorios decimal(18,2), Venta_Accesorios decimal(18,2), Itbis_Accesorios decimal(18,2), Ganancia_Accesorios decimal(18,2),
+--                  Costo_Reparaciones decimal(18,2), Venta_Reparaciones decimal(18,2), Itbis_Reparaciones decimal(18,2), Ganancia_Reparaciones decimal(18,2),
+--                  Costo_Desbloqueos decimal(18,2), Venta_Desbloqueos decimal(18,2), Itbis_Desbloqueos decimal(18,2), Ganancia_Desbloqueos decimal(18,2),
+--                  Abonos_Credito decimal(18,2), Retencion_Tarjeta decimal(18,2));
+-- INSERT INTO #u EXEC dbo.Ver_Utilidades_Precio_Detalle @Sucursal = NULL, @Fecha_Inicio = @FI, @Fecha_Final = @FF;
+-- SELECT 'Equipos' AS Categoria, Venta_Equipos - Costo_Equipos - Itbis_Equipos - Ganancia_Equipos AS Diferencia FROM #u
+-- UNION ALL SELECT 'Accesorios', Venta_Accesorios - Costo_Accesorios - Itbis_Accesorios - Ganancia_Accesorios FROM #u
+-- UNION ALL SELECT 'Reparaciones', Venta_Reparaciones - Costo_Reparaciones - Itbis_Reparaciones - Ganancia_Reparaciones FROM #u
+-- UNION ALL SELECT 'Desbloqueos', Venta_Desbloqueos - Costo_Desbloqueos - Itbis_Desbloqueos - Ganancia_Desbloqueos FROM #u;
+-- DROP TABLE #u;
 
 -- #####################################################################
 -- 6. UPDATE_Ver_Utilidades_Abonos_Credito_Detalle_Retencion.sql

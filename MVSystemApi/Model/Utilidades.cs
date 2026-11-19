@@ -19,6 +19,7 @@
         public int Itbis_Desbloqueos;
         public int Ganancia_Desbloqueos;
         public decimal Abonos_Credito;
+        public decimal Retencion_Tarjeta;
         public int valida = 1;
     }
 }

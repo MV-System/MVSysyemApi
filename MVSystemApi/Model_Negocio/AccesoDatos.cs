@@ -2716,6 +2716,16 @@ SELECT ID_Equipo, Descripcion, ID_Tipo, cantidad, precio, SubTotal, Descuento, I
                     }
                 }
 
+                // 4. Retencion de tarjeta (% y monto), en la misma transaccion
+                using (var cmdRet = new SqlCommand(
+                    "IF OBJECT_ID('dbo.Factura_Calcular_Retencion_Tarjeta','P') IS NOT NULL EXEC dbo.Factura_Calcular_Retencion_Tarjeta @Numero_Factura, @ID_Sucursal",
+                    connection, transaction))
+                {
+                    cmdRet.Parameters.AddWithValue("@Numero_Factura", factura.NumeroFactura);
+                    cmdRet.Parameters.AddWithValue("@ID_Sucursal", factura.IdAlmacen);
+                    cmdRet.ExecuteNonQuery();
+                }
+
                 transaction.Commit();
 
                 // Sync: marcar equipos como no disponibles en BD espejo
@@ -3570,6 +3580,26 @@ SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
                 if (cn.State == ConnectionState.Open) cn.Close();
             }
         }
+        // Retencion de tarjeta del abono. Si falla solo se registra: el abono ya quedo guardado.
+        private void CalcularRetencionAbono(Guid idLoteAbono)
+        {
+            if (idLoteAbono == Guid.Empty) return;
+            try
+            {
+                using (var cnRet = new SqlConnection(_connectionStrings))
+                using (var cmdRet = new SqlCommand(
+                    "IF OBJECT_ID('dbo.Abono_Calcular_Retencion_Tarjeta','P') IS NOT NULL EXEC dbo.Abono_Calcular_Retencion_Tarjeta @IdLoteAbono", cnRet))
+                {
+                    cmdRet.Parameters.AddWithValue("@IdLoteAbono", idLoteAbono);
+                    cnRet.Open();
+                    cmdRet.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo calcular la retencion de tarjeta del abono {IdLoteAbono}", idLoteAbono);
+            }
+        }
         public string AbonoAfactura(AbonoFacturaParam param, out Guid idLoteAbono)
         {
             try
@@ -3607,6 +3637,7 @@ SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
                     cn.Close();
 
                     idLoteAbono = idLoteParam.Value is Guid guid ? guid : Guid.Empty;
+                    CalcularRetencionAbono(idLoteAbono);
 
                     return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
                 }
@@ -3652,6 +3683,7 @@ SELECT TOP (1) NCF_NUMERO, NFCTipoNumero
                     cn.Close();
 
                     idLoteAbono = idLoteParam.Value is Guid guid ? guid : Guid.Empty;
+                    CalcularRetencionAbono(idLoteAbono);
 
                     return mensajeParam.Value.ToString(); // Retornar el mensaje que devuelve el procedimiento
                 }

@@ -77,6 +77,9 @@ namespace MVSystemApi.Model
         public decimal TotalFacturado { get; set; }
         public decimal TotalItbis { get; set; }
         public decimal TotalSinItbis { get; set; }
+        // Retención de tarjeta de la factura y total del resumen
+        public decimal MontoRetencionTarjeta { get; set; }
+        public decimal TotalRetencionTarjeta { get; set; }
         public DateTime FechaFacturacion { get; set; }
         public string empresa { get; set; }
 

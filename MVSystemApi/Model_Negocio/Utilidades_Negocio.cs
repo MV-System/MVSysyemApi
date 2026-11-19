@@ -38,6 +38,7 @@ namespace MVSystemApi.Model_Negocio
                                  Itbis_Desbloqueos = Convert.ToInt32(dt["Itbis_Desbloqueos"]),
                                  Ganancia_Desbloqueos = Convert.ToInt32(dt["Ganancia_Desbloqueos"]),
                                  Abonos_Credito = Convert.ToDecimal(dt["Abonos_Credito"]),
+                                 Retencion_Tarjeta = dt.Table.Columns.Contains("Retencion_Tarjeta") && dt["Retencion_Tarjeta"] != DBNull.Value ? Convert.ToDecimal(dt["Retencion_Tarjeta"]) : 0m,
 
                                  // ID_Tipo_Pagos = Convert.ToInt32(dt["ID_Tipo_Pagos"]),
                                  // Descripcion_Tipo_Pagos = Convert.ToString(dt["Descripcion_Tipo_Pagos"]),
@@ -63,6 +64,7 @@ namespace MVSystemApi.Model_Negocio
                 NumeroFactura = Convert.ToInt32(fila["NumeroFactura"]),
                 FechaAbono = Convert.ToDateTime(fila["FechaAbono"]),
                 MontoAbono = Convert.ToDecimal(fila["MontoAbono"]),
+                RetencionAbono = fila.Table.Columns.Contains("RetencionAbono") && fila["RetencionAbono"] != DBNull.Value ? Convert.ToDecimal(fila["RetencionAbono"]) : 0m,
                 FacturaSaldada = Convert.ToBoolean(fila["FacturaSaldada"]),
                 EsAbonoQueSaldaFactura = Convert.ToBoolean(fila["EsAbonoQueSaldaFactura"]),
                 CostoFactura = fila["CostoFactura"] == DBNull.Value ? 0m : Convert.ToDecimal(fila["CostoFactura"]),
@@ -98,6 +100,7 @@ namespace MVSystemApi.Model_Negocio
                                  Itbis_Desbloqueos = Convert.ToInt32(dt["Itbis_Desbloqueos"]),
                                  Ganancia_Desbloqueos = Convert.ToInt32(dt["Ganancia_Desbloqueos"]),
                                  Abonos_Credito = Convert.ToDecimal(dt["Abonos_Credito"]),
+                                 Retencion_Tarjeta = dt.Table.Columns.Contains("Retencion_Tarjeta") && dt["Retencion_Tarjeta"] != DBNull.Value ? Convert.ToDecimal(dt["Retencion_Tarjeta"]) : 0m,
                              }).FirstOrDefault();
 
                 return lista;

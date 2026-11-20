@@ -8,6 +8,9 @@ namespace DTO
         public int NumeroFactura { get; set; }
         public DateTime FechaAbono { get; set; }
         public decimal MontoAbono { get; set; }
+        public decimal RetencionAbono { get; set; }
+        // En el abono que salda la factura: retencion de todos sus abonos con tarjeta
+        public decimal RetencionFactura { get; set; }
         public bool FacturaSaldada { get; set; }
         public bool EsAbonoQueSaldaFactura { get; set; }
         public decimal CostoFactura { get; set; }

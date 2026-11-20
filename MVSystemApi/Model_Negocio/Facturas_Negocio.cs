@@ -74,6 +74,8 @@ namespace MVSystemApi.Model_Negocio
                               Itbis = Convert.ToDecimal(dt["Itbis"]),
                               Abono = dt.Table.Columns.Contains("Abono") ? (dt["Abono"] == DBNull.Value ? 0m : Convert.ToDecimal(dt["Abono"])) : 0m,
                               Nota = Convert.ToString(dt["Nota"]),
+                              MontoRetencionTarjeta = dt.Table.Columns.Contains("MontoRetencionTarjeta") && dt["MontoRetencionTarjeta"] != DBNull.Value ? Convert.ToDecimal(dt["MontoRetencionTarjeta"]) : 0m,
+                              TotalRetencionTarjeta = dt.Table.Columns.Contains("TotalRetencionTarjeta") && dt["TotalRetencionTarjeta"] != DBNull.Value ? Convert.ToDecimal(dt["TotalRetencionTarjeta"]) : 0m,
                               MotivoAnulacion = dt.Table.Columns.Contains("MotivoAnulacion") && dt["MotivoAnulacion"] != DBNull.Value ? Convert.ToString(dt["MotivoAnulacion"]) : null,
                               UsuarioAnulacion = dt.Table.Columns.Contains("UsuarioAnulacion") && dt["UsuarioAnulacion"] != DBNull.Value ? Convert.ToString(dt["UsuarioAnulacion"]) : null,
                               FechaAnulacion = dt.Table.Columns.Contains("FechaAnulacion") && dt["FechaAnulacion"] != DBNull.Value ? Convert.ToDateTime(dt["FechaAnulacion"]) : (DateTime?)null,

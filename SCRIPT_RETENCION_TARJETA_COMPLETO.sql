@@ -1072,8 +1072,9 @@ GO
 -- #####################################################################
 -- ============================================================
 -- Retencion de tarjeta en el detalle de abonos de Utilidades
--- Ver_Utilidades_Abonos_Credito_Detalle agrega RetencionAbono (Historio_Pagos.Monto_Retencion_Tarjeta).
--- GananciaAbono no cambia.
+-- Ver_Utilidades_Abonos_Credito_Detalle agrega RetencionAbono (Historio_Pagos.Monto_Retencion_Tarjeta)
+-- y RetencionFactura (en el abono que salda: retencion de todos los abonos de la factura).
+-- GananciaAbono no cambia; el front le resta RetencionFactura.
 -- Requiere: CREATE_RETENCION_TARJETA.sql.
 -- Idempotente. Ejecutar en cada base (principal y espejo).
 -- ============================================================
@@ -1096,6 +1097,8 @@ BEGIN
         hp.Fecha_registro AS FechaAbono,
         TRY_CONVERT(DECIMAL(18, 2), hp.Total_Abono) AS MontoAbono,
         CONVERT(DECIMAL(18, 2), hp.Monto_Retencion_Tarjeta) AS RetencionAbono,
+        -- Abono que salda: retencion de todos los abonos activos de la factura hasta este (no es ganancia)
+        CONVERT(DECIMAL(18, 2), CASE WHEN hp.Pendiente <= 0 THEN retFactura.Retencion ELSE 0 END) AS RetencionFactura,
         CASE WHEN COALESCE(saldoActual.Pendiente, hp.Pendiente, 0) <= 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS FacturaSaldada,
         CASE WHEN hp.Pendiente <= 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS EsAbonoQueSaldaFactura,
         costo.CostoFactura,
@@ -1131,6 +1134,15 @@ BEGIN
                     AND hpActual.Estado = 'A'
                 ORDER BY hpActual.Fecha_registro DESC, hpActual.Id DESC
         ) saldoActual
+    OUTER APPLY (
+        SELECT COALESCE(SUM(COALESCE(hpR.Monto_Retencion_Tarjeta, 0)), 0) AS Retencion
+        FROM dbo.Historio_Pagos hpR
+        WHERE TRY_CONVERT(INT, hpR.Numero_factura) = ft.Numero_Factura
+          AND hpR.Id_Sucursal = ft.ID_Sucursal
+          AND hpR.id_Cliente_Suplidor = ft.ID_Cliente
+          AND hpR.Estado = 'A'
+          AND hpR.Id <= hp.Id
+    ) retFactura
     WHERE ft.Estado = 'A'
       AND ft.ID_Tipo_Pagos = 2
       AND ft.ID_Tipo_Factura <> 3

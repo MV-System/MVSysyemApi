@@ -65,6 +65,7 @@ namespace MVSystemApi.Model_Negocio
                 FechaAbono = Convert.ToDateTime(fila["FechaAbono"]),
                 MontoAbono = Convert.ToDecimal(fila["MontoAbono"]),
                 RetencionAbono = fila.Table.Columns.Contains("RetencionAbono") && fila["RetencionAbono"] != DBNull.Value ? Convert.ToDecimal(fila["RetencionAbono"]) : 0m,
+                RetencionFactura = fila.Table.Columns.Contains("RetencionFactura") && fila["RetencionFactura"] != DBNull.Value ? Convert.ToDecimal(fila["RetencionFactura"]) : 0m,
                 FacturaSaldada = Convert.ToBoolean(fila["FacturaSaldada"]),
                 EsAbonoQueSaldaFactura = Convert.ToBoolean(fila["EsAbonoQueSaldaFactura"]),
                 CostoFactura = fila["CostoFactura"] == DBNull.Value ? 0m : Convert.ToDecimal(fila["CostoFactura"]),

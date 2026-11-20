@@ -61,6 +61,8 @@ namespace MVSystemApi.Model
         public decimal MontoPendiente { get; set; }
         public string FechaFactura { get; set; }
         public string FechaLimitePagoFactura { get; set; }
+        // Sucursal (almacen) de la factura: con Numero_Factura identifica la factura
+        public int IdSucursal { get; set; }
     }
     public class AbonoFacturaParam
     {

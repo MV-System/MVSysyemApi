@@ -170,6 +170,7 @@ namespace MVSystemApi.Model
                                    MontoPendiente = Convert.ToDecimal(dt["MontoPendiente"]),
                                    FechaFactura = Convert.ToString(dt["fecha_registro"]),
                                    FechaLimitePagoFactura = Convert.ToString(dt["Tiempo_Credito"]),
+                                   IdSucursal = dt.Table.Columns.Contains("ID_Sucursal") && dt["ID_Sucursal"] != DBNull.Value ? Convert.ToInt32(dt["ID_Sucursal"]) : 0,
                                }).ToList();
 
                 return solicit;
